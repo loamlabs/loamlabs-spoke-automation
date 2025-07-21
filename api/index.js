@@ -209,6 +209,7 @@ function runCalculationEngine(buildRecipe, componentData) {
         if (value === undefined || value === null || value === '') { return isNumber ? defaultValue : null; }
         return isNumber ? parseFloat(value) : value;
     };
+
     const calculateForPosition = (position) => {
         const rim = buildRecipe.components[`${position}Rim`];
         const hub = buildRecipe.components[`${position}Hub`];
@@ -220,24 +221,38 @@ function runCalculationEngine(buildRecipe, componentData) {
         if (hubType === 'Hook Flange') { return { calculationSuccessful: false, error: `Unsupported type (Hook Flange).` }; }
         let finalErd = getMeta(rim.variantId, rim.productId, 'rim_erd', true);
         if (getMeta(rim.variantId, rim.productId, 'rim_washer_policy') !== 'Not Compatible') { finalErd += (2 * getMeta(rim.variantId, rim.productId, 'rim_nipple_washer_thickness_mm', true)); }
+        
         const hubLacingPolicy = getMeta(hub.variantId, hub.productId, 'hub_lacing_policy');
         const hubManualCrossValue = getMeta(hub.variantId, hub.productId, 'hub_manual_cross_value', true);
         let initialCrossPattern;
-        if (hubLacingPolicy === 'Use Manual Override Field' && hubManualCrossValue > 0) { initialCrossPattern = hubManualCrossValue; } else { initialCrossPattern = (spokeCount >= 32) ? 3 : 2; }
+        if (hubLacingPolicy === 'Use Manual Override Field' && hubManualCrossValue > 0) {
+            initialCrossPattern = hubManualCrossValue;
+        } else {
+            initialCrossPattern = (spokeCount >= 28) ? 3 : 2;
+        }
+        
         let finalCrossPattern = initialCrossPattern;
         let fallbackAlert = null;
+
         while (!isLacingPossible(spokeCount, finalCrossPattern) && finalCrossPattern > 0) {
+            const angleBetweenHoles = 360 / (spokeCount / 2);
+            const failingAngle = (finalCrossPattern * angleBetweenHoles).toFixed(2);
+            
+            fallbackAlert = `Interference for ${initialCrossPattern}-cross (Angle: ${failingAngle}° >= 90°). Fell back to ${finalCrossPattern - 1}-cross.`;
+            
             console.log(`Interference detected for ${finalCrossPattern}-cross. Falling back...`);
             finalCrossPattern--;
         }
-        if (finalCrossPattern !== initialCrossPattern) { fallbackAlert = `Interference detected for ${initialCrossPattern}-cross. Automatically fell back to ${finalCrossPattern}-cross.`; }
+
         const commonParams = { hubType, baseCrossPattern: finalCrossPattern, spokeCount, finalErd, rimSpokeHoleOffset: getMeta(rim.variantId, rim.productId, 'rim_spoke_hole_offset', true), hubSpokeHoleDiameter: getMeta(hub.variantId, hub.productId, 'hub_spoke_hole_diameter', true) };
         const paramsLeft = { ...commonParams, isLeft: true, hubFlangeDiameter: getMeta(hub.variantId, hub.productId, 'hub_flange_diameter_left', true), flangeOffset: getMeta(hub.variantId, hub.productId, 'hub_flange_offset_left', true), spOffset: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_left', true) };
         const paramsRight = { ...commonParams, isLeft: false, hubFlangeDiameter: getMeta(hub.variantId, hub.productId, 'hub_flange_diameter_right', true), flangeOffset: getMeta(hub.variantId, hub.productId, 'hub_flange_offset_right', true), spOffset: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_right', true) };
+
         const lengthL = calculateSpokeLength(paramsLeft);
         const lengthR = calculateSpokeLength(paramsRight);
         const tensionKgf = getMeta(rim.variantId, rim.productId, 'rim_target_tension_kgf', true, 120);
         const crossArea = getMeta(spokes.variantId, spokes.productId, 'spoke_cross_sectional_area_mm2', true) || getMeta(spokes.variantId, spokes.productId, 'spoke_cross_section_area_mm2', true);
+
         return {
             calculationSuccessful: true,
             crossPattern: finalCrossPattern,
@@ -249,6 +264,7 @@ function runCalculationEngine(buildRecipe, componentData) {
             inputs: { rim: rim.title, hub: hub.title, spokes: spokes.title, targetTension: tensionKgf }
         };
     };
+    
     try {
         results.front = calculateForPosition('front');
         if (buildRecipe.buildType === 'Wheel Set') { results.rear = calculateForPosition('rear'); }
@@ -261,8 +277,14 @@ function formatNote(report) {
     const formatSide = (wheel, position) => {
         if (!wheel) return ``;
         if (!wheel.calculationSuccessful) return `\n${position.toUpperCase()} WHEEL: CALC FAILED - ${wheel.error}`;
-        let wheelNote = `\n${position.toUpperCase()} WHEEL (${wheel.crossPattern}-Cross):\n` +
-               `  Rim: ${wheel.inputs.rim}\n` +
+        
+        let wheelNote = `\n${position.toUpperCase()} WHEEL (${wheel.crossPattern}-Cross):\n`;
+        
+        if (wheel.alert) {
+            wheelNote += `  ALERT: ${wheel.alert}\n`;
+        }
+        
+        wheelNote += `  Rim: ${wheel.inputs.rim}\n` +
                `  Hub: ${wheel.inputs.hub}\n` +
                `  Spokes: ${wheel.inputs.spokes}\n` +
                `  Target Tension: ${wheel.inputs.targetTension} kgf\n` +
@@ -272,7 +294,7 @@ function formatNote(report) {
                `  --- Inventory Adjustments ---\n` +
                `  Left: ${wheel.inventory.left.quantity} x ${wheel.inventory.left.length}mm (${wheel.inventory.left.status})\n` +
                `  Right: ${wheel.inventory.right.quantity} x ${wheel.inventory.right.length}mm (${wheel.inventory.right.status})`;
-        if (wheel.alert) { wheelNote += `\n  ALERT: ${wheel.alert}`; }
+        
         return wheelNote;
     };
     note += formatSide(report.front, 'Front');
