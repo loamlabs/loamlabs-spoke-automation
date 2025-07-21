@@ -98,14 +98,6 @@ function calculateSpokeLength(params) {
     return finalLength;
 }
 
-async function addNoteToOrder(orderGid, note) {
-    const mutation = `mutation orderUpdate($input: OrderInput!) { orderUpdate(input: $input) { order { id } userErrors { field message } } }`;
-    try {
-        await shopifyAdminApiQuery(mutation, { input: { id: orderGid, note: note } });
-        console.log("✅ Successfully added note to order.");
-    } catch (error) { console.error("🚨 Failed to add note to order:", error); }
-}
-
 function isLacingPossible(spokeCount, crossPattern) {
     if (crossPattern === 0) return true;
     const angleBetweenHoles = 360 / (spokeCount / 2);
@@ -113,7 +105,62 @@ function isLacingPossible(spokeCount, crossPattern) {
     return lacingAngle < 90;
 }
 
-// --- FINAL, "SMART" CALCULATION ENGINE with ALERTING ---
+async function findVariantForLengthAndColor(productId, length, color) {
+    const query = `
+      query getProductVariants($id: ID!) {
+        product(id: $id) {
+          variants(first: 250) {
+            nodes {
+              id
+              title
+              inventoryItem { id }
+            }
+          }
+        }
+      }
+    `;
+    try {
+        const data = await shopifyAdminApiQuery(query, { id: productId });
+        const targetLengthStr = `${length}mm`;
+        const variant = data.product.variants.nodes.find(v => 
+            v.title.includes(color) && v.title.includes(targetLengthStr)
+        );
+        if (variant) {
+            return { variantId: variant.id, inventoryItemId: variant.inventoryItem.id };
+        }
+        console.warn(`Could not find variant for product ${productId} with color "${color}" and length "${targetLengthStr}"`);
+        return null;
+    } catch (error) {
+        console.error(`Error finding variant for product ${productId}:`, error);
+        return null;
+    }
+}
+
+async function adjustInventory(inventoryItemId, quantityDelta) {
+    const mutation = `
+        mutation inventoryAdjustQuantity($input: InventoryAdjustQuantityInput!) {
+            inventoryAdjustQuantity(input: $input) {
+                inventoryLevel { id }
+                userErrors { field message }
+            }
+        }
+    `;
+    try {
+        const data = await shopifyAdminApiQuery(mutation, {
+            input: { inventoryItemId: inventoryItemId, availableDelta: quantityDelta }
+        });
+        if (data.inventoryAdjustQuantity.userErrors.length > 0) {
+            throw new Error(JSON.stringify(data.inventoryAdjustQuantity.userErrors));
+        }
+        console.log(`✅ Successfully adjusted inventory for ${inventoryItemId} by ${quantityDelta}.`);
+        return true;
+    } catch (error) {
+        console.error(`🚨 Failed to adjust inventory for ${inventoryItemId}:`, error);
+        return false;
+    }
+}
+
+// --- "SMART" CALCULATION ENGINE with BERD EXCLUSION ---
 function runCalculationEngine(buildRecipe, componentData) {
     const results = { front: null, rear: null, errors: [] };
     const getMeta = (variantId, productId, key, isNumber = false, defaultValue = 0) => {
@@ -131,9 +178,14 @@ function runCalculationEngine(buildRecipe, componentData) {
         const spokeCount = parseInt(buildRecipe.specs[`${position}SpokeCount`]?.replace('h', ''), 10);
         if (!rim || !hub || !spokes || !spokeCount) { return { calculationSuccessful: false, error: `Skipping ${position} wheel: Missing component.` }; }
 
+        // --- NEW: BERD SPOKE CHECK ---
+        if (spokes.vendor === 'Berd') {
+            return { calculationSuccessful: false, error: 'Calculation not applicable for Berd spokes.' };
+        }
+
         const hubType = getMeta(hub.variantId, hub.productId, 'hub_type');
-        if (hubType === 'Hook Flange' || getMeta(spokes.variantId, spokes.productId, 'spoke_type') === 'BERD') {
-            return { calculationSuccessful: false, error: `Unsupported type (${hubType || 'BERD'}).` };
+        if (hubType === 'Hook Flange') {
+            return { calculationSuccessful: false, error: `Unsupported type (Hook Flange).` };
         }
 
         let finalErd = getMeta(rim.variantId, rim.productId, 'rim_erd', true);
@@ -143,7 +195,6 @@ function runCalculationEngine(buildRecipe, componentData) {
 
         const hubLacingPolicy = getMeta(hub.variantId, hub.productId, 'hub_lacing_policy');
         const hubManualCrossValue = getMeta(hub.variantId, hub.productId, 'hub_manual_cross_value', true);
-        
         let initialCrossPattern;
         if (hubLacingPolicy === 'Use Manual Override Field' && hubManualCrossValue > 0) {
             initialCrossPattern = hubManualCrossValue;
@@ -175,7 +226,7 @@ function runCalculationEngine(buildRecipe, componentData) {
         return {
             calculationSuccessful: true,
             crossPattern: finalCrossPattern,
-            alert: fallbackAlert, // Will be null if no fallback occurred
+            alert: fallbackAlert,
             lengths: {
                 left: { geo: lengthL.toFixed(2), stretch: calculateElongation(lengthL, tensionKgf, crossArea).toFixed(2) },
                 right: { geo: lengthR.toFixed(2), stretch: calculateElongation(lengthR, tensionKgf, crossArea).toFixed(2) }
@@ -196,9 +247,9 @@ function runCalculationEngine(buildRecipe, componentData) {
     return results;
 }
 
-// --- FINAL Note Formatter with ALERTING ---
+// --- FINAL Note Formatter with "mm" SUFFIX ---
 function formatNote(report) {
-    let note = "AUTOMATED SPOKE CALCULATION COMPLETE\n---------------------------------------\n";
+    let note = "AUTOMATED SPOKE CALCULATION & INVENTORY\n---------------------------------------\n";
     const formatSide = (wheel, position) => {
         if (!wheel) return ``;
         if (!wheel.calculationSuccessful) return `\n${position.toUpperCase()} WHEEL: CALC FAILED - ${wheel.error}`;
@@ -208,9 +259,13 @@ function formatNote(report) {
                `  Hub: ${wheel.inputs.hub}\n` +
                `  Spokes: ${wheel.inputs.spokes}\n` +
                `  Target Tension: ${wheel.inputs.targetTension} kgf\n` +
+               `  --- Calculated Lengths ---\n` +
                `  Left (Geo):  ${wheel.lengths.left.geo} mm (Stretch: ${wheel.lengths.left.stretch} mm)\n` +
-               `  Right (Geo): ${wheel.lengths.right.geo} mm (Stretch: ${wheel.lengths.right.stretch} mm)`;
-        
+               `  Right (Geo): ${wheel.lengths.right.geo} mm (Stretch: ${wheel.lengths.right.stretch} mm)\n` +
+               `  --- Inventory Adjustments ---\n` +
+               `  Left: ${wheel.inventory.left.quantity} x ${wheel.inventory.left.length}mm (${wheel.inventory.left.status})\n` +
+               `  Right: ${wheel.inventory.right.quantity} x ${wheel.inventory.right.length}mm (${wheel.inventory.right.status})`;
+
         if (wheel.alert) {
             wheelNote += `\n  ALERT: ${wheel.alert}`;
         }
@@ -250,8 +305,55 @@ export default async function handler(req, res) {
             const buildRecipe = JSON.parse(buildProperty.value);
             const componentData = await fetchComponentData(buildRecipe);
             if (componentData) {
-                const buildReport = runCalculationEngine(buildRecipe, componentData);
-                console.log("✅ Final Build Report:", JSON.stringify(buildReport, null, 2));
+                let buildReport = runCalculationEngine(buildRecipe, componentData);
+                console.log("✅ Initial Build Report:", JSON.stringify(buildReport, null, 2));
+
+                for (const position of ['front', 'rear']) {
+                    const wheel = buildReport[position];
+                    
+                    if (wheel && wheel.calculationSuccessful) {
+                        const spokeComponent = buildRecipe.components[`${position}Spokes`];
+                        const spokeCountPerSide = parseInt(buildRecipe.specs[`${position}SpokeCount`]?.replace('h', '')) / 2;
+                        const spokeProductId = spokeComponent?.productId;
+                        const colorOption = spokeComponent.selectedOptions.find(opt => opt.name === 'Color');
+                        const selectedColor = colorOption ? colorOption.value : null;
+
+                        if (!selectedColor) {
+                             wheel.inventory = {
+                                left: { status: 'ACTION REQUIRED: Color not found' },
+                                right: { status: 'ACTION REQUIRED: Color not found' }
+                            };
+                            continue;
+                        }
+
+                        const roundedL = Math.ceil(parseFloat(wheel.lengths.left.geo) / 2) * 2;
+                        const variantL = await findVariantForLengthAndColor(spokeProductId, roundedL, selectedColor);
+                        let statusL = "ACTION REQUIRED: Variant not found!";
+                        if (variantL) {
+                            const success = await adjustInventory(variantL.inventoryItemId, -spokeCountPerSide);
+                            statusL = success ? "Adjusted" : "FAILED to adjust";
+                        }
+
+                        const roundedR = Math.ceil(parseFloat(wheel.lengths.right.geo) / 2) * 2;
+                        const variantR = await findVariantForLengthAndColor(spokeProductId, roundedR, selectedColor);
+                        let statusR = "ACTION REQUIRED: Variant not found!";
+                        if (variantR) {
+                            const success = await adjustInventory(variantR.inventoryItemId, -spokeCountPerSide);
+                            statusR = success ? "Adjusted" : "FAILED to adjust";
+                        }
+                        
+                        wheel.inventory = {
+                            left: { length: roundedL, quantity: spokeCountPerSide, status: statusL },
+                            right: { length: roundedR, quantity: spokeCountPerSide, status: statusR }
+                        };
+                    } else if (wheel && !wheel.calculationSuccessful) {
+                        // Handle cases where calculation was skipped (e.g., Berd)
+                        wheel.inventory = {
+                            left: { status: 'N/A' },
+                            right: { status: 'N/A' }
+                        };
+                    }
+                }
                 
                 await addNoteToOrder(orderData.admin_graphql_api_id, formatNote(buildReport));
             }
