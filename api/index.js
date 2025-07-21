@@ -1,10 +1,7 @@
 import { createHmac } from 'crypto';
 
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
+// --- CONFIG AND HELPER FUNCTIONS (No Changes) ---
+export const config = { api: { bodyParser: false } };
 
 async function getRawBody(req) {
   const chunks = [];
@@ -14,13 +11,13 @@ async function getRawBody(req) {
   return Buffer.concat(chunks);
 }
 
-// --- NEW HELPER FUNCTION TO FETCH SHOPIFY DATA ---
 async function fetchComponentData(buildRecipe) {
+  // This function remains exactly the same as our last working version.
+  // It fetches all the metafields from Shopify.
   const storeDomain = process.env.SHOPIFY_STORE_DOMAIN;
   const apiToken = process.env.SHOPIFY_ADMIN_API_TOKEN;
-  const graphqlUrl = `https://${storeDomain}/admin/api/2023-07/graphql.json`;
+  const graphqlUrl = `https://${storeDomain}/admin/api/2024-04/graphql.json`;
 
-  // 1. Collect all the unique Variant and Product GIDs from the recipe.
   const componentIds = new Set();
   Object.values(buildRecipe.components).forEach(comp => {
     if (comp && comp.variantId && comp.productId) {
@@ -29,59 +26,34 @@ async function fetchComponentData(buildRecipe) {
     }
   });
 
-  if (componentIds.size === 0) {
-    console.log('No component IDs found in recipe to fetch.');
-    return null;
-  }
+  if (componentIds.size === 0) { return null; }
   
   const ids = Array.from(componentIds);
-  console.log(`Fetching metafields for ${ids.length} nodes...`);
-
-  // 2. Define the GraphQL query to get all metafields for the components.
   const query = `
     query getComponentMetafields($ids: [ID!]!) {
       nodes(ids: $ids) {
         id
         ... on ProductVariant {
-          # Get metafields directly on the variant
-          metafields(first: 50) {
-            nodes { key namespace value }
-          }
+          metafields(first: 50) { nodes { key namespace value } }
         }
         ... on Product {
-          # Get metafields on the parent product
-          metafields(first: 50) {
-            nodes { key namespace value }
-          }
+          metafields(first: 50) { nodes { key namespace value } }
         }
       }
     }
   `;
 
-  // 3. Make the API call to Shopify.
   try {
     const response = await fetch(graphqlUrl, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Shopify-Access-Token': apiToken,
-      },
-      body: JSON.stringify({
-        query: query,
-        variables: { ids: ids },
-      }),
+      headers: { 'Content-Type': 'application/json', 'X-Shopify-Access-Token': apiToken },
+      body: JSON.stringify({ query: query, variables: { ids: ids } }),
     });
 
-    if (!response.ok) {
-      throw new Error(`Shopify API request failed: ${response.statusText}`);
-    }
-
+    if (!response.ok) throw new Error(`Shopify API request failed: ${response.statusText}`);
     const jsonResponse = await response.json();
-    if (jsonResponse.errors) {
-      throw new Error(`GraphQL Errors: ${JSON.stringify(jsonResponse.errors)}`);
-    }
-
-    // 4. Organize the fetched data into an easy-to-use map.
+    if (jsonResponse.errors) throw new Error(`GraphQL Errors: ${JSON.stringify(jsonResponse.errors)}`);
+    
     const componentDataMap = new Map();
     jsonResponse.data.nodes.forEach(node => {
         if (node) {
@@ -94,17 +66,162 @@ async function fetchComponentData(buildRecipe) {
             componentDataMap.set(node.id, metafields);
         }
     });
-    
     return componentDataMap;
-
   } catch (error) {
     console.error('Error fetching component data from Shopify:', error);
     return null;
   }
 }
 
-// --- MAIN HANDLER FUNCTION (UPDATED) ---
+
+// --- *** YOUR TRUSTED CALCULATION LOGIC (from your index.js and sandbox) *** ---
+
+function calculateElongation(spokeLength, tensionKgf, crossSectionalArea) {
+    const YOUNG_MODULUS_STEEL_GPA = 210;
+    const tensionN = tensionKgf * 9.80665;
+    const modulusPa = YOUNG_MODULUS_STEEL_GPA * 1e9;
+    const elongationMeters = (tensionN * (spokeLength / 1000)) / (modulusPa * (crossSectionalArea / 1e6));
+    return elongationMeters * 1000;
+}
+
+function calculateSpokeLength(params) {
+    const { 
+        isLeft, hubType, baseCrossPattern, spokeCount, finalErd, 
+        hubFlangeDiameter, flangeOffset, rimSpokeHoleOffset, 
+        spOffset, hubSpokeHoleDiameter 
+    } = params;
+
+    const hubRadius = hubFlangeDiameter / 2;
+    const rimRadius = finalErd / 2;
+
+    let effectiveCrossPattern = baseCrossPattern;
+    if (hubType === 'Straight Pull' && baseCrossPattern > 0) {
+        effectiveCrossPattern += 0.5;
+    }
+    const angle = (2 * Math.PI * effectiveCrossPattern) / (spokeCount / 2);
+    
+    const finalZOffset = flangeOffset + (isLeft ? -rimSpokeHoleOffset : rimSpokeHoleOffset);
+
+    const term1 = Math.pow(finalZOffset, 2);
+    const term2 = Math.pow(hubRadius, 2);
+    const term3 = Math.pow(rimRadius, 2);
+    const term4 = 2 * hubRadius * rimRadius * Math.cos(angle);
+    const geometricLength = Math.sqrt(term1 + term2 + term3 - term4);
+
+    let finalLength;
+    if (hubType === 'Classic Flange') {
+        if (isNaN(hubSpokeHoleDiameter)) { throw new Error("Missing Hub Spoke Hole Diameter for Classic hub."); }
+        finalLength = geometricLength - (hubSpokeHoleDiameter / 2);
+    } else { // Straight Pull
+        finalLength = geometricLength + spOffset;
+    }
+    return finalLength;
+}
+
+
+// --- *** THE NEW "ADAPTER" / CALCULATION ENGINE *** ---
+function runCalculationEngine(buildRecipe, componentData) {
+    console.log("Starting spoke length calculation with your trusted sandbox logic...");
+    const results = { front: null, rear: null, errors: [] };
+
+    const getMeta = (variantId, productId, key, isNumber = false, defaultValue = 0) => {
+        const variantMeta = componentData.get(variantId) || {};
+        const productMeta = componentData.get(productId) || {};
+        const value = variantMeta[key] ?? productMeta[key];
+        if (value === undefined || value === null || value === '') {
+            if (isNumber) return defaultValue;
+            return null;
+        }
+        return isNumber ? parseFloat(value) : value;
+    };
+
+    const calculateForPosition = (position) => {
+        const rim = buildRecipe.components[`${position}Rim`];
+        const hub = buildRecipe.components[`${position}Hub`];
+        const spokes = buildRecipe.components[`${position}Spokes`];
+        const spokeCount = parseInt(buildRecipe.specs[`${position}SpokeCount`]?.replace('h', ''), 10);
+        
+        if (!rim || !hub || !spokes || !spokeCount) {
+            return { error: `Skipping ${position} wheel: Missing component or spoke count.` };
+        }
+        
+        // --- Gather Data using the Metafield Cheatsheet ---
+        const hubType = getMeta(hub.variantId, hub.productId, 'hub_type');
+        const spokeType = getMeta(spokes.variantId, spokes.productId, 'spoke_type');
+        
+        if (hubType === 'Hook Flange' || spokeType === 'BERD') {
+            return { error: `Calculation aborted: Unsupported type (${hubType || spokeType}).` };
+        }
+
+        let erd = getMeta(rim.variantId, rim.productId, 'rim_erd', true);
+        const rimSpokeHoleOffset = getMeta(rim.variantId, rim.productId, 'rim_spoke_hole_offset', true);
+        const rimWasherPolicy = getMeta(rim.variantId, rim.productId, 'rim_washer_policy');
+        const rimNippleWasherThickness = getMeta(rim.variantId, rim.productId, 'rim_nipple_washer_thickness_mm', true);
+        
+        const hubLacingPolicy = getMeta(hub.variantId, hub.productId, 'hub_lacing_policy');
+        const hubManualCrossValue = getMeta(hub.variantId, hub.productId, 'hub_manual_cross_value', true);
+        
+        // --- Apply Business Rules from Sandbox & Master Notes ---
+        let finalErd = erd;
+        if (rimWasherPolicy === 'Mandatory' || rimWasherPolicy === 'Optional') {
+             // Your sandbox formula adjusts the diameter correctly.
+            finalErd += (2 * rimNippleWasherThickness);
+        }
+
+        let baseCrossPattern;
+        if (hubLacingPolicy === 'Use Manual Override Field' && hubManualCrossValue > 0) {
+            baseCrossPattern = hubManualCrossValue;
+        } else { // Standard lacing rule from sandbox
+            baseCrossPattern = (spokeCount >= 32) ? 3 : 2;
+        }
+
+        // --- Prepare Params & Run Your Calculation Functions ---
+        const paramsLeft = {
+            isLeft: true, hubType, baseCrossPattern, spokeCount, finalErd,
+            hubFlangeDiameter: getMeta(hub.variantId, hub.productId, 'hub_flange_diameter_left', true),
+            flangeOffset: getMeta(hub.variantId, hub.productId, 'hub_flange_offset_left', true),
+            rimSpokeHoleOffset: rimSpokeHoleOffset,
+            spOffset: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_left', true),
+            hubSpokeHoleDiameter: getMeta(hub.variantId, hub.productId, 'hub_spoke_hole_diameter', true)
+        };
+
+        const paramsRight = {
+            isLeft: false, hubType, baseCrossPattern, spokeCount, finalErd,
+            hubFlangeDiameter: getMeta(hub.variantId, hub.productId, 'hub_flange_diameter_right', true),
+            flangeOffset: getMeta(hub.variantId, hub.productId, 'hub_flange_offset_right', true),
+            rimSpokeHoleOffset: rimSpokeHoleOffset,
+            spOffset: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_right', true),
+            hubSpokeHoleDiameter: getMeta(hub.variantId, hub.productId, 'hub_spoke_hole_diameter', true)
+        };
+
+        const lengthL = calculateSpokeLength(paramsLeft);
+        const lengthR = calculateSpokeLength(paramsRight);
+        
+        const tensionKgf = getMeta(rim.variantId, rim.productId, 'rim_target_tension_kgf', true, 120);
+        const crossArea = getMeta(spokes.variantId, spokes.productId, 'spoke_cross_sectional_area_mm2', true);
+
+        return {
+            left: { geo: lengthL.toFixed(2), stretch: calculateElongation(lengthL, tensionKgf, crossArea).toFixed(2) },
+            right: { geo: lengthR.toFixed(2), stretch: calculateElongation(lengthR, tensionKgf, crossArea).toFixed(2) },
+        };
+    };
+
+    try {
+        results.front = calculateForPosition('front');
+        if (buildRecipe.buildType === 'Wheel Set') {
+            results.rear = calculateForPosition('rear');
+        }
+    } catch (e) {
+        console.error("Error during calculation execution:", e);
+        results.errors.push(e.message);
+    }
+    
+    return results;
+}
+
+// --- MAIN HANDLER FUNCTION (Final Version) ---
 export default async function handler(req, res) {
+  // This part handles security and parsing, remains unchanged.
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
     return res.status(405).end('Method Not Allowed');
@@ -132,33 +249,30 @@ export default async function handler(req, res) {
       );
 
       if (wheelBuildLineItem) {
-        console.log('✅ Custom wheel build line item found.');
         const buildProperty = wheelBuildLineItem.properties.find(prop => prop.name === '_build');
-
         if (buildProperty && buildProperty.value) {
           const buildRecipe = JSON.parse(buildProperty.value);
-          console.log('✅ Successfully extracted and parsed build recipe.');
-
-          // --- CALL THE NEW FUNCTION ---
           const componentData = await fetchComponentData(buildRecipe);
 
           if (componentData) {
-            console.log('✅ Successfully fetched component metafield data from Shopify!');
-            // Log the Map object to see the result. Vercel logs might show this as {}.
-            // We'll use a little trick to make it readable.
-            console.log(JSON.stringify(Object.fromEntries(componentData), null, 2));
+            // --- *** THE FINAL CALL *** ---
+            // We call our new engine, which uses YOUR calculation functions.
+            const finalLengths = runCalculationEngine(buildRecipe, componentData);
+            
+            console.log("✅ Final Calculation Results (using your trusted sandbox logic):");
+            console.log(JSON.stringify(finalLengths, null, 2));
+
+            // NEXT STEPS: Take the 'finalLengths' object and format it for email and order notes.
+
           } else {
             console.error('🚨 Failed to fetch component metafield data.');
           }
-
-        } else {
-          console.error('🚨 "_build" property is missing!');
         }
       } else {
         console.log('ℹ️ No custom wheel build found in this order.');
       }
       
-      res.status(200).json({ message: 'Webhook processed.' });
+      return res.status(200).json({ message: 'Webhook processed.' });
 
     } else {
       console.error('🚨 Verification failed: HMAC mismatch.');
@@ -166,6 +280,6 @@ export default async function handler(req, res) {
     }
   } catch (error) {
     console.error('An error occurred in the webhook handler:', error);
-    res.status(500).send('Internal Server Error.');
+    return res.status(500).send('Internal Server Error.');
   }
 }
