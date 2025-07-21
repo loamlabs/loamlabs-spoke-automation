@@ -106,7 +106,14 @@ async function addNoteToOrder(orderGid, note) {
     } catch (error) { console.error("🚨 Failed to add note to order:", error); }
 }
 
-// --- FINAL, INVENTORY-READY CALCULATION ENGINE ---
+function isLacingPossible(spokeCount, crossPattern) {
+    if (crossPattern === 0) return true;
+    const angleBetweenHoles = 360 / (spokeCount / 2);
+    const lacingAngle = crossPattern * angleBetweenHoles;
+    return lacingAngle < 90;
+}
+
+// --- FINAL, "SMART" CALCULATION ENGINE with ALERTING ---
 function runCalculationEngine(buildRecipe, componentData) {
     const results = { front: null, rear: null, errors: [] };
     const getMeta = (variantId, productId, key, isNumber = false, defaultValue = 0) => {
@@ -136,14 +143,27 @@ function runCalculationEngine(buildRecipe, componentData) {
 
         const hubLacingPolicy = getMeta(hub.variantId, hub.productId, 'hub_lacing_policy');
         const hubManualCrossValue = getMeta(hub.variantId, hub.productId, 'hub_manual_cross_value', true);
-        let baseCrossPattern;
+        
+        let initialCrossPattern;
         if (hubLacingPolicy === 'Use Manual Override Field' && hubManualCrossValue > 0) {
-            baseCrossPattern = hubManualCrossValue;
+            initialCrossPattern = hubManualCrossValue;
         } else {
-            baseCrossPattern = (spokeCount >= 32) ? 3 : 2; // Single, decisive lacing pattern
+            initialCrossPattern = (spokeCount >= 32) ? 3 : 2;
         }
         
-        const commonParams = { hubType, baseCrossPattern, spokeCount, finalErd, rimSpokeHoleOffset: getMeta(rim.variantId, rim.productId, 'rim_spoke_hole_offset', true), hubSpokeHoleDiameter: getMeta(hub.variantId, hub.productId, 'hub_spoke_hole_diameter', true) };
+        let finalCrossPattern = initialCrossPattern;
+        let fallbackAlert = null;
+
+        while (!isLacingPossible(spokeCount, finalCrossPattern) && finalCrossPattern > 0) {
+            console.log(`Interference detected for ${finalCrossPattern}-cross. Falling back...`);
+            finalCrossPattern--;
+        }
+
+        if (finalCrossPattern !== initialCrossPattern) {
+            fallbackAlert = `Interference detected for ${initialCrossPattern}-cross. Automatically fell back to ${finalCrossPattern}-cross.`;
+        }
+        
+        const commonParams = { hubType, baseCrossPattern: finalCrossPattern, spokeCount, finalErd, rimSpokeHoleOffset: getMeta(rim.variantId, rim.productId, 'rim_spoke_hole_offset', true), hubSpokeHoleDiameter: getMeta(hub.variantId, hub.productId, 'hub_spoke_hole_diameter', true) };
         const paramsLeft = { ...commonParams, isLeft: true, hubFlangeDiameter: getMeta(hub.variantId, hub.productId, 'hub_flange_diameter_left', true), flangeOffset: getMeta(hub.variantId, hub.productId, 'hub_flange_offset_left', true), spOffset: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_left', true) };
         const paramsRight = { ...commonParams, isLeft: false, hubFlangeDiameter: getMeta(hub.variantId, hub.productId, 'hub_flange_diameter_right', true), flangeOffset: getMeta(hub.variantId, hub.productId, 'hub_flange_offset_right', true), spOffset: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_right', true) };
 
@@ -154,7 +174,8 @@ function runCalculationEngine(buildRecipe, componentData) {
 
         return {
             calculationSuccessful: true,
-            crossPattern: baseCrossPattern,
+            crossPattern: finalCrossPattern,
+            alert: fallbackAlert, // Will be null if no fallback occurred
             lengths: {
                 left: { geo: lengthL.toFixed(2), stretch: calculateElongation(lengthL, tensionKgf, crossArea).toFixed(2) },
                 right: { geo: lengthR.toFixed(2), stretch: calculateElongation(lengthR, tensionKgf, crossArea).toFixed(2) }
@@ -175,20 +196,26 @@ function runCalculationEngine(buildRecipe, componentData) {
     return results;
 }
 
-// --- FINAL, INVENTORY-READY Note Formatter ---
+// --- FINAL Note Formatter with ALERTING ---
 function formatNote(report) {
     let note = "AUTOMATED SPOKE CALCULATION COMPLETE\n---------------------------------------\n";
     const formatSide = (wheel, position) => {
         if (!wheel) return ``;
         if (!wheel.calculationSuccessful) return `\n${position.toUpperCase()} WHEEL: CALC FAILED - ${wheel.error}`;
         
-        return `\n${position.toUpperCase()} WHEEL (${wheel.crossPattern}-Cross):\n` +
+        let wheelNote = `\n${position.toUpperCase()} WHEEL (${wheel.crossPattern}-Cross):\n` +
                `  Rim: ${wheel.inputs.rim}\n` +
                `  Hub: ${wheel.inputs.hub}\n` +
                `  Spokes: ${wheel.inputs.spokes}\n` +
                `  Target Tension: ${wheel.inputs.targetTension} kgf\n` +
                `  Left (Geo):  ${wheel.lengths.left.geo} mm (Stretch: ${wheel.lengths.left.stretch} mm)\n` +
                `  Right (Geo): ${wheel.lengths.right.geo} mm (Stretch: ${wheel.lengths.right.stretch} mm)`;
+        
+        if (wheel.alert) {
+            wheelNote += `\n  ALERT: ${wheel.alert}`;
+        }
+        
+        return wheelNote;
     };
     note += formatSide(report.front, 'Front');
     note += formatSide(report.rear, 'Rear');
