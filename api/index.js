@@ -369,17 +369,17 @@ export default async function handler(req, res) {
                         const variantL = await findVariantForLengthAndColor(spokeProductId, roundedL, selectedColor);
                         let statusL = "ACTION REQUIRED: Variant not found!";
                         if (variantL) {
-                            const success = await adjustInventory(variantL.inventoryItemId, -spokeCountPerSide, `gid://shopify/Location/${locationId}`);
-                            statusL = success ? "Adjusted" : "FAILED to adjust";
-                        }
+    const success = await adjustInventory(variantL.inventoryItemId, -spokeCountPerSide, `gid://shopify/Location/${locationId}`, orderData.admin_graphql_api_id);
+    statusL = success ? "Adjusted" : "FAILED to adjust";
+}
 
                         const roundedR = Math.ceil(parseFloat(wheel.lengths.right.geo) / 2) * 2;
                         const variantR = await findVariantForLengthAndColor(spokeProductId, roundedR, selectedColor);
                         let statusR = "ACTION REQUIRED: Variant not found!";
                         if (variantR) {
-                            const success = await adjustInventory(variantR.inventoryItemId, -spokeCountPerSide, `gid://shopify/Location/${locationId}`);
-                            statusR = success ? "Adjusted" : "FAILED to adjust";
-                        }
+    const success = await adjustInventory(variantR.inventoryItemId, -spokeCountPerSide, `gid://shopify/Location/${locationId}`, orderData.admin_graphql_api_id);
+    statusR = success ? "Adjusted" : "FAILED to adjust";
+}
                         
                         wheel.inventory = {
                             left: { length: roundedL, quantity: spokeCountPerSide, status: statusL },
