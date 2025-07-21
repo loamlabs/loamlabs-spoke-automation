@@ -137,30 +137,23 @@ async function findVariantForLengthAndColor(productId, length, color) {
 }
 
 async function adjustInventory(inventoryItemId, quantityDelta, locationId) {
+    // This is the correct, simpler mutation for adjusting available stock.
     const mutation = `
-        mutation inventoryAdjustQuantities($input: InventoryAdjustQuantitiesInput!) {
-            inventoryAdjustQuantities(input: $input) {
-                inventoryAdjustmentGroup { id }
+        mutation inventoryBulkAdjustQuantityAtLocation($inventoryItemId: ID!, $locationId: ID!, $availableDelta: Int!) {
+            inventoryBulkAdjustQuantityAtLocation(inventoryItemId: $inventoryItemId, locationId: $locationId, availableDelta: $availableDelta) {
+                inventoryLevel { id }
                 userErrors { field message }
             }
         }
     `;
     try {
         const data = await shopifyAdminApiQuery(mutation, {
-            input: {
-                // The API requires BOTH a name and a reason at the top level.
-                name: "order_edit",
-                reason: "correction", 
-                changes: [{
-                    // The 'name' field must NOT be inside the 'changes' array.
-                    delta: quantityDelta,
-                    inventoryItemId: inventoryItemId,
-                    locationId: locationId
-                }]
-            }
+            inventoryItemId: inventoryItemId,
+            locationId: locationId,
+            availableDelta: quantityDelta
         });
-        if (data.inventoryAdjustQuantities.userErrors.length > 0) {
-            throw new Error(JSON.stringify(data.inventoryAdjustQuantities.userErrors));
+        if (data.inventoryBulkAdjustQuantityAtLocation.userErrors.length > 0) {
+            throw new Error(JSON.stringify(data.inventoryBulkAdjustQuantityAtLocation.userErrors));
         }
         console.log(`✅ Successfully adjusted inventory for ${inventoryItemId} by ${quantityDelta}.`);
         return true;
