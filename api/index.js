@@ -205,7 +205,7 @@ function runCalculationEngine(buildRecipe, componentData) {
 
         return {
             left: { geo: lengthL.toFixed(2), stretch: calculateElongation(lengthL, tensionKgf, crossArea).toFixed(2) },
-            right: { geo: lengthR.toFixed(2), stretch: calculateElongation(rightR, tensionKgf, crossArea).toFixed(2) },
+            right: { geo: lengthR.toFixed(2), stretch: calculateElongation(lengthR, tensionKgf, crossArea).toFixed(2) },
         };
     };
 
