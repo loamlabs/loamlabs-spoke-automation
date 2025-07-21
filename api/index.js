@@ -197,12 +197,15 @@ function runCalculationEngine(buildRecipe, componentData) {
         const lengthL = calculateSpokeLength(paramsLeft);
         const lengthR = calculateSpokeLength(paramsRight);
         
-        const tensionKgf = getMeta(rim.variantId, rim.productId, 'rim_target_tension_kgf', true, 120);
-        const crossArea = getMeta(spokes.variantId, spokes.productId, 'spoke_cross_sectional_area_mm2', true);
+                const tensionKgf = getMeta(rim.variantId, rim.productId, 'rim_target_tension_kgf', true, 120);
+        
+        // --- CORRECTED LINE ---
+        // Try the correct key first, then fall back to the key with the typo.
+        const crossArea = getMeta(spokes.variantId, spokes.productId, 'spoke_cross_sectional_area_mm2', true) || getMeta(spokes.variantId, spokes.productId, 'spoke_cross_section_area_mm2', true);
 
         return {
             left: { geo: lengthL.toFixed(2), stretch: calculateElongation(lengthL, tensionKgf, crossArea).toFixed(2) },
-            right: { geo: lengthR.toFixed(2), stretch: calculateElongation(lengthR, tensionKgf, crossArea).toFixed(2) },
+            right: { geo: lengthR.toFixed(2), stretch: calculateElongation(rightR, tensionKgf, crossArea).toFixed(2) },
         };
     };
 
