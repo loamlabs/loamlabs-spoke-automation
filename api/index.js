@@ -1,21 +1,73 @@
-// This is the required handler function that Vercel will run.
-// 'req' is the incoming request from Shopify.
-// 'res' is the response we will send back.
-export default function handler(req, res) {
-  // First, we check if the request method is POST. Shopify webhooks are always POST.
-  if (req.method === 'POST') {
-    // For now, we'll just log that we received the request body.
-    // The actual order data from Shopify will be in 'req.body'.
-    console.log('Webhook received! Body:', req.body);
+import { createHmac } from 'crypto';
 
-    // It's crucial to send a success response back to Shopify.
-    // If you don't, Shopify will think the webhook failed and will keep retrying.
-    // A 200 status code means "OK".
-    res.status(200).json({ message: "Webhook received successfully!" });
-  } else {
-    // If someone tries to access this URL with a different method (e.g., in a browser),
-    // we'll send a 405 "Method Not Allowed" error.
+// This special "config" export tells Vercel to not parse the request body.
+// We need the raw, unparsed body to be able to verify the Shopify webhook signature.
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
+// A helper function to read the raw request body from the stream.
+async function getRawBody(req) {
+  const chunks = [];
+  for await (const chunk of req) {
+    chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
+  }
+  return Buffer.concat(chunks);
+}
+
+// This is our main function that Vercel runs.
+export default async function handler(req, res) {
+  // We only process POST requests.
+  if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
-    res.status(405).end('Method Not Allowed');
+    return res.status(405).end('Method Not Allowed');
+  }
+
+  console.log('Webhook received. Starting verification...');
+
+  try {
+    // 1. Read the raw body and the Shopify signature from the headers.
+    const rawBody = await getRawBody(req);
+    const hmacHeader = req.headers['x-shopify-hmac-sha256'];
+    
+    // 2. Get our secret key from Vercel's environment variables.
+    const secret = process.env.SHOPIFY_WEBHOOK_SECRET;
+
+    // 3. If either of these are missing, we can't verify.
+    if (!hmacHeader || !secret) {
+        console.error('Verification failed: Missing HMAC header or secret key.');
+        return res.status(401).send('Could not verify webhook.');
+    }
+
+    // 4. Create a hash using our secret key and the raw body.
+    const hash = createHmac('sha256', secret)
+      .update(rawBody)
+      .digest('base64');
+
+    // 5. Compare our generated hash with the one Shopify sent.
+    if (hash === hmacHeader) {
+      console.log('✅ Verification successful! Webhook is from Shopify.');
+      
+      // Now that we've verified, we can safely parse the body as JSON.
+      const orderData = JSON.parse(rawBody.toString());
+      
+      // --- YOUR SPOKE CALCULATION LOGIC WILL GO HERE ---
+      console.log('Order Topic:', req.headers['x-shopify-topic']);
+      console.log('Order ID:', orderData.id);
+      // --------------------------------------------------
+
+      // Send a success response back to Shopify.
+      res.status(200).json({ message: 'Webhook processed successfully.' });
+
+    } else {
+      console.error('🚨 Verification failed: HMAC mismatch.');
+      // The hashes don't match, this request is not from Shopify.
+      return res.status(401).send('Could not verify webhook.');
+    }
+  } catch (error) {
+    console.error('An error occurred in the webhook handler:', error);
+    res.status(500).send('Internal Server Error.');
   }
 }
