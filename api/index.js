@@ -148,6 +148,9 @@ async function adjustInventory(inventoryItemId, quantityDelta, locationId) {
     try {
         const data = await shopifyAdminApiQuery(mutation, {
             input: {
+                // Shopify's API requires a 'name' field, even for this type of adjustment.
+                // It can be a simple reference to the order.
+                name: "order_edit",
                 reason: "correction", 
                 changes: [{
                     delta: quantityDelta,
