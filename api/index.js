@@ -296,7 +296,7 @@ export default async function handler(req, res) {
 
   try {
     const rawBody = await getRawBody(req);
-    const hmacHeader = req.headers['x-shopify-hmac-sha265'];
+    const hmacHeader = req.headers['x-shopify-hmac-sha256'];
     const secret = process.env.SHOPIFY_WEBHOOK_SECRET;
 
     if (!hmacHeader || !secret || createHmac('sha256', secret).update(rawBody).digest('base64') !== hmacHeader) {
