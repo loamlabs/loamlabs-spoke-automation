@@ -1,10 +1,14 @@
 {
   "name": "loamlabs-spoke-calculator-automation",
   "version": "1.0.0",
-  "engines": {
-    "node": "18.x"
-  },
+  "description": "Backend function for LoamLabs custom wheel builder.",
+  "main": "index.js",
   "scripts": {
-    "start": "node api/index.js"
-  }
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "node-fetch": "^2.6.7"
+  },
+  "author": "",
+  "license": "ISC"
 }
