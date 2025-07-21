@@ -137,7 +137,6 @@ async function findVariantForLengthAndColor(productId, length, color) {
 }
 
 async function adjustInventory(inventoryItemId, quantityDelta, locationId) {
-    // This mutation uses the modern 'inventoryAdjustQuantities' command
     const mutation = `
         mutation inventoryAdjustQuantities($input: InventoryAdjustQuantitiesInput!) {
             inventoryAdjustQuantities(input: $input) {
@@ -169,7 +168,14 @@ async function adjustInventory(inventoryItemId, quantityDelta, locationId) {
     }
 }
 
-// --- "SMART" CALCULATION ENGINE with BERD EXCLUSION ---
+async function addNoteToOrder(orderGid, note) {
+    const mutation = `mutation orderUpdate($input: OrderInput!) { orderUpdate(input: $input) { order { id } userErrors { field message } } }`;
+    try {
+        await shopifyAdminApiQuery(mutation, { input: { id: orderGid, note: note } });
+        console.log("✅ Successfully added note to order.");
+    } catch (error) { console.error("🚨 Failed to add note to order:", error); }
+}
+
 function runCalculationEngine(buildRecipe, componentData) {
     const results = { front: null, rear: null, errors: [] };
     const getMeta = (variantId, productId, key, isNumber = false, defaultValue = 0) => {
@@ -179,59 +185,35 @@ function runCalculationEngine(buildRecipe, componentData) {
         if (value === undefined || value === null || value === '') { return isNumber ? defaultValue : null; }
         return isNumber ? parseFloat(value) : value;
     };
-
     const calculateForPosition = (position) => {
         const rim = buildRecipe.components[`${position}Rim`];
         const hub = buildRecipe.components[`${position}Hub`];
         const spokes = buildRecipe.components[`${position}Spokes`];
         const spokeCount = parseInt(buildRecipe.specs[`${position}SpokeCount`]?.replace('h', ''), 10);
         if (!rim || !hub || !spokes || !spokeCount) { return { calculationSuccessful: false, error: `Skipping ${position} wheel: Missing component.` }; }
-
-        // --- NEW: BERD SPOKE CHECK ---
-        if (spokes.vendor === 'Berd') {
-            return { calculationSuccessful: false, error: 'Calculation not applicable for Berd spokes.' };
-        }
-
+        if (spokes.vendor === 'Berd') { return { calculationSuccessful: false, error: 'Calculation not applicable for Berd spokes.' }; }
         const hubType = getMeta(hub.variantId, hub.productId, 'hub_type');
-        if (hubType === 'Hook Flange') {
-            return { calculationSuccessful: false, error: `Unsupported type (Hook Flange).` };
-        }
-
+        if (hubType === 'Hook Flange') { return { calculationSuccessful: false, error: `Unsupported type (Hook Flange).` }; }
         let finalErd = getMeta(rim.variantId, rim.productId, 'rim_erd', true);
-        if (getMeta(rim.variantId, rim.productId, 'rim_washer_policy') !== 'Not Compatible') {
-            finalErd += (2 * getMeta(rim.variantId, rim.productId, 'rim_nipple_washer_thickness_mm', true));
-        }
-
+        if (getMeta(rim.variantId, rim.productId, 'rim_washer_policy') !== 'Not Compatible') { finalErd += (2 * getMeta(rim.variantId, rim.productId, 'rim_nipple_washer_thickness_mm', true)); }
         const hubLacingPolicy = getMeta(hub.variantId, hub.productId, 'hub_lacing_policy');
         const hubManualCrossValue = getMeta(hub.variantId, hub.productId, 'hub_manual_cross_value', true);
         let initialCrossPattern;
-        if (hubLacingPolicy === 'Use Manual Override Field' && hubManualCrossValue > 0) {
-            initialCrossPattern = hubManualCrossValue;
-        } else {
-            initialCrossPattern = (spokeCount >= 32) ? 3 : 2;
-        }
-        
+        if (hubLacingPolicy === 'Use Manual Override Field' && hubManualCrossValue > 0) { initialCrossPattern = hubManualCrossValue; } else { initialCrossPattern = (spokeCount >= 32) ? 3 : 2; }
         let finalCrossPattern = initialCrossPattern;
         let fallbackAlert = null;
-
         while (!isLacingPossible(spokeCount, finalCrossPattern) && finalCrossPattern > 0) {
             console.log(`Interference detected for ${finalCrossPattern}-cross. Falling back...`);
             finalCrossPattern--;
         }
-
-        if (finalCrossPattern !== initialCrossPattern) {
-            fallbackAlert = `Interference detected for ${initialCrossPattern}-cross. Automatically fell back to ${finalCrossPattern}-cross.`;
-        }
-        
+        if (finalCrossPattern !== initialCrossPattern) { fallbackAlert = `Interference detected for ${initialCrossPattern}-cross. Automatically fell back to ${finalCrossPattern}-cross.`; }
         const commonParams = { hubType, baseCrossPattern: finalCrossPattern, spokeCount, finalErd, rimSpokeHoleOffset: getMeta(rim.variantId, rim.productId, 'rim_spoke_hole_offset', true), hubSpokeHoleDiameter: getMeta(hub.variantId, hub.productId, 'hub_spoke_hole_diameter', true) };
         const paramsLeft = { ...commonParams, isLeft: true, hubFlangeDiameter: getMeta(hub.variantId, hub.productId, 'hub_flange_diameter_left', true), flangeOffset: getMeta(hub.variantId, hub.productId, 'hub_flange_offset_left', true), spOffset: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_left', true) };
         const paramsRight = { ...commonParams, isLeft: false, hubFlangeDiameter: getMeta(hub.variantId, hub.productId, 'hub_flange_diameter_right', true), flangeOffset: getMeta(hub.variantId, hub.productId, 'hub_flange_offset_right', true), spOffset: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_right', true) };
-
         const lengthL = calculateSpokeLength(paramsLeft);
         const lengthR = calculateSpokeLength(paramsRight);
         const tensionKgf = getMeta(rim.variantId, rim.productId, 'rim_target_tension_kgf', true, 120);
         const crossArea = getMeta(spokes.variantId, spokes.productId, 'spoke_cross_sectional_area_mm2', true) || getMeta(spokes.variantId, spokes.productId, 'spoke_cross_section_area_mm2', true);
-
         return {
             calculationSuccessful: true,
             crossPattern: finalCrossPattern,
@@ -240,29 +222,21 @@ function runCalculationEngine(buildRecipe, componentData) {
                 left: { geo: lengthL.toFixed(2), stretch: calculateElongation(lengthL, tensionKgf, crossArea).toFixed(2) },
                 right: { geo: lengthR.toFixed(2), stretch: calculateElongation(lengthR, tensionKgf, crossArea).toFixed(2) }
             },
-            inputs: {
-                rim: rim.title, hub: hub.title, spokes: spokes.title,
-                targetTension: tensionKgf
-            }
+            inputs: { rim: rim.title, hub: hub.title, spokes: spokes.title, targetTension: tensionKgf }
         };
     };
-    
     try {
         results.front = calculateForPosition('front');
-        if (buildRecipe.buildType === 'Wheel Set') {
-            results.rear = calculateForPosition('rear');
-        }
+        if (buildRecipe.buildType === 'Wheel Set') { results.rear = calculateForPosition('rear'); }
     } catch (e) { results.errors.push(e.message); }
     return results;
 }
 
-// --- FINAL Note Formatter with "mm" SUFFIX ---
 function formatNote(report) {
     let note = "AUTOMATED SPOKE CALCULATION & INVENTORY\n---------------------------------------\n";
     const formatSide = (wheel, position) => {
         if (!wheel) return ``;
         if (!wheel.calculationSuccessful) return `\n${position.toUpperCase()} WHEEL: CALC FAILED - ${wheel.error}`;
-        
         let wheelNote = `\n${position.toUpperCase()} WHEEL (${wheel.crossPattern}-Cross):\n` +
                `  Rim: ${wheel.inputs.rim}\n` +
                `  Hub: ${wheel.inputs.hub}\n` +
@@ -274,11 +248,7 @@ function formatNote(report) {
                `  --- Inventory Adjustments ---\n` +
                `  Left: ${wheel.inventory.left.quantity} x ${wheel.inventory.left.length}mm (${wheel.inventory.left.status})\n` +
                `  Right: ${wheel.inventory.right.quantity} x ${wheel.inventory.right.length}mm (${wheel.inventory.right.status})`;
-
-        if (wheel.alert) {
-            wheelNote += `\n  ALERT: ${wheel.alert}`;
-        }
-        
+        if (wheel.alert) { wheelNote += `\n  ALERT: ${wheel.alert}`; }
         return wheelNote;
     };
     note += formatSide(report.front, 'Front');
@@ -307,11 +277,14 @@ export default async function handler(req, res) {
     console.log('✅ Verification successful!');
     const orderData = JSON.parse(rawBody.toString());
 
-    // Get the Location ID needed for inventory adjustments from the order data.
-    const locationId = orderData.location_id ? `gid://shopify/Location/${orderData.location_id}` : null;
+    // ROBUST LOCATION ID FINDER: Look inside fulfillment orders.
+    let locationId = null;
+    if (orderData.fulfillment_orders && orderData.fulfillment_orders.length > 0) {
+        // Use the location of the first fulfillment order.
+        locationId = orderData.fulfillment_orders[0].assigned_location.id;
+    }
     if (!locationId) {
-        // Log an error but don't stop the whole process, just skip inventory.
-        console.error("CRITICAL: Could not determine order location_id. Aborting inventory adjustments.");
+        console.error("CRITICAL: Could not determine order location ID from fulfillment_orders. Aborting inventory adjustments.");
     }
 
     const wheelBuildLineItem = orderData.line_items.find(item => item.properties?.some(p => p.name === '_is_custom_wheel_build' && p.value === 'true'));
@@ -336,19 +309,11 @@ export default async function handler(req, res) {
                         const selectedColor = colorOption ? colorOption.value : null;
 
                         if (!selectedColor) {
-                             wheel.inventory = {
-                                left: { status: 'ACTION REQUIRED: Color not found' },
-                                right: { status: 'ACTION REQUIRED: Color not found' }
-                            };
+                             wheel.inventory = { left: { status: 'ACTION REQUIRED: Color not found' }, right: { status: 'ACTION REQUIRED: Color not found' } };
                             continue;
                         }
-
-                        // Only attempt inventory adjustment if we have a location ID
                         if (!locationId) {
-                            wheel.inventory = {
-                                left: { status: 'FAILED: Location ID missing' },
-                                right: { status: 'FAILED: Location ID missing' }
-                            };
+                            wheel.inventory = { left: { status: 'FAILED: Location ID missing' }, right: { status: 'FAILED: Location ID missing' } };
                             continue;
                         }
 
@@ -356,7 +321,7 @@ export default async function handler(req, res) {
                         const variantL = await findVariantForLengthAndColor(spokeProductId, roundedL, selectedColor);
                         let statusL = "ACTION REQUIRED: Variant not found!";
                         if (variantL) {
-                            const success = await adjustInventory(variantL.inventoryItemId, -spokeCountPerSide, locationId);
+                            const success = await adjustInventory(variantL.inventoryItemId, -spokeCountPerSide, `gid://shopify/Location/${locationId}`);
                             statusL = success ? "Adjusted" : "FAILED to adjust";
                         }
 
@@ -364,7 +329,7 @@ export default async function handler(req, res) {
                         const variantR = await findVariantForLengthAndColor(spokeProductId, roundedR, selectedColor);
                         let statusR = "ACTION REQUIRED: Variant not found!";
                         if (variantR) {
-                            const success = await adjustInventory(variantR.inventoryItemId, -spokeCountPerSide, locationId);
+                            const success = await adjustInventory(variantR.inventoryItemId, -spokeCountPerSide, `gid://shopify/Location/${locationId}`);
                             statusR = success ? "Adjusted" : "FAILED to adjust";
                         }
                         
@@ -373,10 +338,7 @@ export default async function handler(req, res) {
                             right: { length: roundedR, quantity: spokeCountPerSide, status: statusR }
                         };
                     } else if (wheel && !wheel.calculationSuccessful) {
-                        wheel.inventory = {
-                            left: { status: 'N/A' },
-                            right: { status: 'N/A' }
-                        };
+                        wheel.inventory = { left: { status: 'N/A' }, right: { status: 'N/A' } };
                     }
                 }
                 
