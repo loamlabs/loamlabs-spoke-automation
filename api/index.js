@@ -148,11 +148,11 @@ async function adjustInventory(inventoryItemId, quantityDelta, locationId) {
     try {
         const data = await shopifyAdminApiQuery(mutation, {
             input: {
+                // The API requires BOTH a name and a reason at the top level.
+                name: "order_edit",
                 reason: "correction", 
                 changes: [{
-                    // This 'name' field tells Shopify which inventory pool to change.
-                    // This is the key to fixing the error.
-                    name: "available",
+                    // The 'name' field must NOT be inside the 'changes' array.
                     delta: quantityDelta,
                     inventoryItemId: inventoryItemId,
                     locationId: locationId
