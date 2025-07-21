@@ -181,6 +181,7 @@ export default async function handler(req, res) {
     }
     
     console.log('✅ Verification successful!');
+    console.log(`Webhook Delivery ID: ${req.headers['x-shopify-webhook-id']}`);
     const orderData = JSON.parse(rawBody.toString());
     const wheelBuildLineItem = orderData.line_items.find(item => item.properties?.some(p => p.name === '_is_custom_wheel_build' && p.value === 'true'));
 
