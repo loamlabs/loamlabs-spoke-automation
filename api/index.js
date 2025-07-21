@@ -16,7 +16,7 @@ async function getRawBody(req) {
 async function shopifyAdminApiQuery(query, variables) {
     const storeDomain = process.env.SHOPIFY_STORE_DOMAIN;
     const apiToken = process.env.SHOPIFY_ADMIN_API_TOKEN;
-    const url = `https://${storeDomain}/admin/api/2024-04/graphql.json`;
+    const url = `https://${storeDomain}/admin/api/2024-07/graphql.json`;
     const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Shopify-Access-Token': apiToken },
@@ -136,21 +136,30 @@ async function findVariantForLengthAndColor(productId, length, color) {
     }
 }
 
-async function adjustInventory(inventoryItemId, quantityDelta) {
+async function adjustInventory(inventoryItemId, quantityDelta, locationId) {
+    // This mutation uses the modern 'inventoryAdjustQuantities' command
     const mutation = `
-        mutation inventoryAdjustQuantity($input: InventoryAdjustQuantityInput!) {
-            inventoryAdjustQuantity(input: $input) {
-                inventoryLevel { id }
+        mutation inventoryAdjustQuantities($input: InventoryAdjustQuantitiesInput!) {
+            inventoryAdjustQuantities(input: $input) {
+                inventoryAdjustmentGroup { id }
                 userErrors { field message }
             }
         }
     `;
     try {
         const data = await shopifyAdminApiQuery(mutation, {
-            input: { inventoryItemId: inventoryItemId, availableDelta: quantityDelta }
+            input: {
+                name: "Spoke Calculator Adjustment",
+                reason: "other",
+                changes: [{
+                    delta: quantityDelta,
+                    inventoryItemId: inventoryItemId,
+                    locationId: locationId
+                }]
+            }
         });
-        if (data.inventoryAdjustQuantity.userErrors.length > 0) {
-            throw new Error(JSON.stringify(data.inventoryAdjustQuantity.userErrors));
+        if (data.inventoryAdjustQuantities.userErrors.length > 0) {
+            throw new Error(JSON.stringify(data.inventoryAdjustQuantities.userErrors));
         }
         console.log(`✅ Successfully adjusted inventory for ${inventoryItemId} by ${quantityDelta}.`);
         return true;
@@ -287,7 +296,7 @@ export default async function handler(req, res) {
 
   try {
     const rawBody = await getRawBody(req);
-    const hmacHeader = req.headers['x-shopify-hmac-sha256'];
+    const hmacHeader = req.headers['x-shopify-hmac-sha265'];
     const secret = process.env.SHOPIFY_WEBHOOK_SECRET;
 
     if (!hmacHeader || !secret || createHmac('sha256', secret).update(rawBody).digest('base64') !== hmacHeader) {
@@ -297,6 +306,14 @@ export default async function handler(req, res) {
     
     console.log('✅ Verification successful!');
     const orderData = JSON.parse(rawBody.toString());
+
+    // Get the Location ID needed for inventory adjustments from the order data.
+    const locationId = orderData.location_id ? `gid://shopify/Location/${orderData.location_id}` : null;
+    if (!locationId) {
+        // Log an error but don't stop the whole process, just skip inventory.
+        console.error("CRITICAL: Could not determine order location_id. Aborting inventory adjustments.");
+    }
+
     const wheelBuildLineItem = orderData.line_items.find(item => item.properties?.some(p => p.name === '_is_custom_wheel_build' && p.value === 'true'));
 
     if (wheelBuildLineItem) {
@@ -326,11 +343,20 @@ export default async function handler(req, res) {
                             continue;
                         }
 
+                        // Only attempt inventory adjustment if we have a location ID
+                        if (!locationId) {
+                            wheel.inventory = {
+                                left: { status: 'FAILED: Location ID missing' },
+                                right: { status: 'FAILED: Location ID missing' }
+                            };
+                            continue;
+                        }
+
                         const roundedL = Math.ceil(parseFloat(wheel.lengths.left.geo) / 2) * 2;
                         const variantL = await findVariantForLengthAndColor(spokeProductId, roundedL, selectedColor);
                         let statusL = "ACTION REQUIRED: Variant not found!";
                         if (variantL) {
-                            const success = await adjustInventory(variantL.inventoryItemId, -spokeCountPerSide);
+                            const success = await adjustInventory(variantL.inventoryItemId, -spokeCountPerSide, locationId);
                             statusL = success ? "Adjusted" : "FAILED to adjust";
                         }
 
@@ -338,7 +364,7 @@ export default async function handler(req, res) {
                         const variantR = await findVariantForLengthAndColor(spokeProductId, roundedR, selectedColor);
                         let statusR = "ACTION REQUIRED: Variant not found!";
                         if (variantR) {
-                            const success = await adjustInventory(variantR.inventoryItemId, -spokeCountPerSide);
+                            const success = await adjustInventory(variantR.inventoryItemId, -spokeCountPerSide, locationId);
                             statusR = success ? "Adjusted" : "FAILED to adjust";
                         }
                         
@@ -347,7 +373,6 @@ export default async function handler(req, res) {
                             right: { length: roundedR, quantity: spokeCountPerSide, status: statusR }
                         };
                     } else if (wheel && !wheel.calculationSuccessful) {
-                        // Handle cases where calculation was skipped (e.g., Berd)
                         wheel.inventory = {
                             left: { status: 'N/A' },
                             right: { status: 'N/A' }
