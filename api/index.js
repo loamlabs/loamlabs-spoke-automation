@@ -1,14 +1,11 @@
 import { createHmac } from 'crypto';
 
-// This special "config" export tells Vercel to not parse the request body.
-// We need the raw, unparsed body to be able to verify the Shopify webhook signature.
 export const config = {
   api: {
     bodyParser: false,
   },
 };
 
-// A helper function to read the raw request body from the stream.
 async function getRawBody(req) {
   const chunks = [];
   for await (const chunk of req) {
@@ -17,53 +14,74 @@ async function getRawBody(req) {
   return Buffer.concat(chunks);
 }
 
-// This is our main function that Vercel runs.
 export default async function handler(req, res) {
-  // We only process POST requests.
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
     return res.status(405).end('Method Not Allowed');
   }
 
-  console.log('Webhook received. Starting verification...');
-
   try {
-    // 1. Read the raw body and the Shopify signature from the headers.
     const rawBody = await getRawBody(req);
     const hmacHeader = req.headers['x-shopify-hmac-sha256'];
-    
-    // 2. Get our secret key from Vercel's environment variables.
     const secret = process.env.SHOPIFY_WEBHOOK_SECRET;
 
-    // 3. If either of these are missing, we can't verify.
     if (!hmacHeader || !secret) {
         console.error('Verification failed: Missing HMAC header or secret key.');
         return res.status(401).send('Could not verify webhook.');
     }
 
-    // 4. Create a hash using our secret key and the raw body.
-    const hash = createHmac('sha256', secret)
-      .update(rawBody)
-      .digest('base64');
+    const hash = createHmac('sha256', secret).update(rawBody).digest('base64');
 
-    // 5. Compare our generated hash with the one Shopify sent.
     if (hash === hmacHeader) {
       console.log('✅ Verification successful! Webhook is from Shopify.');
       
-      // Now that we've verified, we can safely parse the body as JSON.
       const orderData = JSON.parse(rawBody.toString());
-      
-      // --- YOUR SPOKE CALCULATION LOGIC WILL GO HERE ---
-      console.log('Order Topic:', req.headers['x-shopify-topic']);
-      console.log('Order ID:', orderData.id);
-      // --------------------------------------------------
+      console.log(`Processing Order ID: ${orderData.id}`);
 
-      // Send a success response back to Shopify.
-      res.status(200).json({ message: 'Webhook processed successfully.' });
+      // --- NEW LOGIC STARTS HERE ---
+
+      // 1. Find the specific line item for the custom wheel build.
+      // We loop through all line items in the order.
+      const wheelBuildLineItem = orderData.line_items.find(item => 
+        // Each item has a 'properties' array. We check if that array exists...
+        item.properties && 
+        // ...and then we search inside it for our specific identifier property.
+        item.properties.some(prop => prop.name === '_is_custom_wheel_build' && prop.value === 'true')
+      );
+
+      // 2. Check if we found the wheel build line item.
+      if (wheelBuildLineItem) {
+        console.log('✅ Custom wheel build line item found.');
+
+        // 3. Extract the '_build' property which contains the JSON recipe string.
+        const buildProperty = wheelBuildLineItem.properties.find(prop => prop.name === '_build');
+
+        if (buildProperty && buildProperty.value) {
+          // 4. Parse the JSON string into a usable JavaScript object.
+          const buildRecipe = JSON.parse(buildProperty.value);
+          
+          console.log('✅ Successfully extracted and parsed build recipe:');
+          // We use JSON.stringify with formatting to make the log easy to read.
+          console.log(JSON.stringify(buildRecipe, null, 2));
+
+          // --- ALL FUTURE CALCULATION LOGIC WILL GO INSIDE THIS 'IF' BLOCK ---
+
+        } else {
+          console.error('🚨 Found wheel build item, but the vital "_build" property is missing!');
+        }
+
+      } else {
+        console.log('ℹ️ No custom wheel build found in this order. Nothing to process.');
+      }
+      
+      // --- END OF NEW LOGIC ---
+
+      // Send a success response back to Shopify regardless of whether a build was found.
+      // This prevents Shopify from resending webhooks for orders we don't need to process.
+      res.status(200).json({ message: 'Webhook processed.' });
 
     } else {
       console.error('🚨 Verification failed: HMAC mismatch.');
-      // The hashes don't match, this request is not from Shopify.
       return res.status(401).send('Could not verify webhook.');
     }
   } catch (error) {
