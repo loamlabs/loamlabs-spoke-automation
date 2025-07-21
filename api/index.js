@@ -148,7 +148,6 @@ async function adjustInventory(inventoryItemId, quantityDelta, locationId) {
     try {
         const data = await shopifyAdminApiQuery(mutation, {
             input: {
-                // The "reason" is a standard Shopify value for this type of change.
                 reason: "correction", 
                 changes: [{
                     delta: quantityDelta,
