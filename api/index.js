@@ -136,24 +136,31 @@ async function findVariantForLengthAndColor(productId, length, color) {
     }
 }
 
-async function adjustInventory(inventoryItemId, quantityDelta, locationId) {
-    // This is the correct, simpler mutation for adjusting available stock.
+async function adjustInventory(inventoryItemId, quantityDelta, locationId, orderGid) {
     const mutation = `
-        mutation inventoryBulkAdjustQuantityAtLocation($inventoryItemId: ID!, $locationId: ID!, $availableDelta: Int!) {
-            inventoryBulkAdjustQuantityAtLocation(inventoryItemId: $inventoryItemId, locationId: $locationId, availableDelta: $availableDelta) {
-                inventoryLevel { id }
+        mutation inventoryAdjustQuantities($input: InventoryAdjustQuantitiesInput!) {
+            inventoryAdjustQuantities(input: $input) {
+                inventoryAdjustmentGroup { id }
                 userErrors { field message }
             }
         }
     `;
     try {
         const data = await shopifyAdminApiQuery(mutation, {
-            inventoryItemId: inventoryItemId,
-            locationId: locationId,
-            availableDelta: quantityDelta
+            input: {
+                name: "available",
+                reason: "correction", 
+                changes: [{
+                    delta: quantityDelta,
+                    inventoryItemId: inventoryItemId,
+                    locationId: locationId
+                }],
+                // This is the missing piece: a reference to the order that caused the change.
+                referenceDocumentUri: orderGid 
+            }
         });
-        if (data.inventoryBulkAdjustQuantityAtLocation.userErrors.length > 0) {
-            throw new Error(JSON.stringify(data.inventoryBulkAdjustQuantityAtLocation.userErrors));
+        if (data.inventoryAdjustQuantities.userErrors.length > 0) {
+            throw new Error(JSON.stringify(data.inventoryAdjustQuantities.userErrors));
         }
         console.log(`✅ Successfully adjusted inventory for ${inventoryItemId} by ${quantityDelta}.`);
         return true;
