@@ -1,7 +1,9 @@
 import { createHmac } from 'crypto';
 
-// --- CONFIG AND HELPER FUNCTIONS (Defined Once) ---
+// --- Vercel Config ---
 export const config = { api: { bodyParser: false } };
+
+// --- Helper & Logic Functions (Each defined only ONCE) ---
 
 async function getRawBody(req) {
   const chunks = [];
@@ -62,19 +64,107 @@ async function fetchComponentData(buildRecipe) {
   }
 }
 
-// --- YOUR TRUSTED CALCULATION LOGIC ---
-function calculateElongation(spokeLength, tensionKgf, crossSectionalArea) { /* ... same as before ... */ }
-function calculateSpokeLength(params) { /* ... same as before ... */ }
-function runCalculationEngine(buildRecipe, componentData) { /* ... same as before ... */ }
+function calculateElongation(spokeLength, tensionKgf, crossSectionalArea) {
+    if (!crossSectionalArea || crossSectionalArea === 0) return 0; // Prevent division by zero
+    const YOUNG_MODULUS_STEEL_GPA = 210;
+    const tensionN = tensionKgf * 9.80665;
+    const modulusPa = YOUNG_MODULUS_STEEL_GPA * 1e9;
+    const elongationMeters = (tensionN * (spokeLength / 1000)) / (modulusPa * (crossSectionalArea / 1e6));
+    return elongationMeters * 1000;
+}
 
-// --- REPORTING FUNCTIONS ---
-function formatNote(results) { /* ... same as before ... */ }
-async function addNoteToOrder(orderGid, note) { /* ... same as before ... */ }
+function calculateSpokeLength(params) {
+    const { isLeft, hubType, baseCrossPattern, spokeCount, finalErd, hubFlangeDiameter, flangeOffset, rimSpokeHoleOffset, spOffset, hubSpokeHoleDiameter } = params;
+    const hubRadius = hubFlangeDiameter / 2;
+    const rimRadius = finalErd / 2;
+    let effectiveCrossPattern = baseCrossPattern;
+    if (hubType === 'Straight Pull' && baseCrossPattern > 0) {
+        effectiveCrossPattern += 0.5;
+    }
+    const angle = (2 * Math.PI * effectiveCrossPattern) / (spokeCount / 2);
+    const finalZOffset = flangeOffset + (isLeft ? -rimSpokeHoleOffset : rimSpokeHoleOffset);
+    const term1 = Math.pow(finalZOffset, 2);
+    const term2 = Math.pow(hubRadius, 2);
+    const term3 = Math.pow(rimRadius, 2);
+    const term4 = 2 * hubRadius * rimRadius * Math.cos(angle);
+    const geometricLength = Math.sqrt(term1 + term2 + term3 - term4);
+    let finalLength;
+    if (hubType === 'Classic Flange') {
+        if (isNaN(hubSpokeHoleDiameter)) { throw new Error("Missing Hub Spoke Hole Diameter for Classic hub."); }
+        finalLength = geometricLength - (hubSpokeHoleDiameter / 2);
+    } else {
+        finalLength = geometricLength + spOffset;
+    }
+    return finalLength;
+}
+
+function runCalculationEngine(buildRecipe, componentData) {
+    const results = { front: null, rear: null, errors: [] };
+    const getMeta = (variantId, productId, key, isNumber = false, defaultValue = 0) => {
+        const variantMeta = componentData.get(variantId) || {};
+        const productMeta = componentData.get(productId) || {};
+        const value = variantMeta[key] ?? productMeta[key];
+        if (value === undefined || value === null || value === '') {
+            return isNumber ? defaultValue : null;
+        }
+        return isNumber ? parseFloat(value) : value;
+    };
+    const calculateForPosition = (position) => {
+        const rim = buildRecipe.components[`${position}Rim`];
+        const hub = buildRecipe.components[`${position}Hub`];
+        const spokes = buildRecipe.components[`${position}Spokes`];
+        const spokeCount = parseInt(buildRecipe.specs[`${position}SpokeCount`]?.replace('h', ''), 10);
+        if (!rim || !hub || !spokes || !spokeCount) { return { error: `Skipping ${position} wheel: Missing component.` }; }
+        const hubType = getMeta(hub.variantId, hub.productId, 'hub_type');
+        if (hubType === 'Hook Flange' || getMeta(spokes.variantId, spokes.productId, 'spoke_type') === 'BERD') { return { error: `Unsupported type (${hubType || 'BERD'}).` }; }
+        let finalErd = getMeta(rim.variantId, rim.productId, 'rim_erd', true);
+        if (getMeta(rim.variantId, rim.productId, 'rim_washer_policy') !== 'Not Compatible') {
+            finalErd += (2 * getMeta(rim.variantId, rim.productId, 'rim_nipple_washer_thickness_mm', true));
+        }
+        let baseCrossPattern;
+        const hubLacingPolicy = getMeta(hub.variantId, hub.productId, 'hub_lacing_policy');
+        const hubManualCrossValue = getMeta(hub.variantId, hub.productId, 'hub_manual_cross_value', true);
+        if (hubLacingPolicy === 'Use Manual Override Field' && hubManualCrossValue > 0) { baseCrossPattern = hubManualCrossValue; } else { baseCrossPattern = (spokeCount >= 32) ? 3 : 2; }
+        const paramsLeft = { isLeft: true, hubType, baseCrossPattern, spokeCount, finalErd, hubFlangeDiameter: getMeta(hub.variantId, hub.productId, 'hub_flange_diameter_left', true), flangeOffset: getMeta(hub.variantId, hub.productId, 'hub_flange_offset_left', true), rimSpokeHoleOffset: getMeta(rim.variantId, rim.productId, 'rim_spoke_hole_offset', true), spOffset: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_left', true), hubSpokeHoleDiameter: getMeta(hub.variantId, hub.productId, 'hub_spoke_hole_diameter', true) };
+        const paramsRight = { isLeft: false, hubType, baseCrossPattern, spokeCount, finalErd, hubFlangeDiameter: getMeta(hub.variantId, hub.productId, 'hub_flange_diameter_right', true), flangeOffset: getMeta(hub.variantId, hub.productId, 'hub_flange_offset_right', true), rimSpokeHoleOffset: getMeta(rim.variantId, rim.productId, 'rim_spoke_hole_offset', true), spOffset: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_right', true), hubSpokeHoleDiameter: getMeta(hub.variantId, hub.productId, 'hub_spoke_hole_diameter', true) };
+        const lengthL = calculateSpokeLength(paramsLeft);
+        const lengthR = calculateSpokeLength(paramsRight);
+        const tensionKgf = getMeta(rim.variantId, rim.productId, 'rim_target_tension_kgf', true, 120);
+        const crossArea = getMeta(spokes.variantId, spokes.productId, 'spoke_cross_sectional_area_mm2', true) || getMeta(spokes.variantId, spokes.productId, 'spoke_cross_section_area_mm2', true);
+        return { left: { geo: lengthL.toFixed(2), stretch: calculateElongation(lengthL, tensionKgf, crossArea).toFixed(2) }, right: { geo: lengthR.toFixed(2), stretch: calculateElongation(lengthR, tensionKgf, crossArea).toFixed(2) }, };
+    };
+    try {
+        results.front = calculateForPosition('front');
+        if (buildRecipe.buildType === 'Wheel Set') {
+            results.rear = calculateForPosition('rear');
+        }
+    } catch (e) { results.errors.push(e.message); }
+    return results;
+}
+
+function formatNote(results) {
+    let note = "AUTOMATED SPOKE CALCULATION COMPLETE\n---------------------------------------\n";
+    const formatSide = (wheel, position) => {
+        if (!wheel) return `\n${position.toUpperCase()} WHEEL: Not part of build.`;
+        if (wheel.error) return `\n${position.toUpperCase()} WHEEL: CALC FAILED - ${wheel.error}`;
+        return `\n${position.toUpperCase()} WHEEL:\n` + `  Left (Geo):  ${wheel.left.geo} mm (Stretch: ${wheel.left.stretch} mm)\n` + `  Right (Geo): ${wheel.right.geo} mm (Stretch: ${wheel.right.stretch} mm)`;
+    };
+    note += formatSide(results.front, 'Front');
+    note += formatSide(results.rear, 'Rear');
+    if (results.errors && results.errors.length > 0) { note += `\n\nWARNINGS:\n- ${results.errors.join('\n- ')}`; }
+    return note;
+}
+
+async function addNoteToOrder(orderGid, note) {
+    const mutation = `mutation orderUpdate($input: OrderInput!) { orderUpdate(input: $input) { order { id } userErrors { field message } } }`;
+    try {
+        await shopifyAdminApiQuery(mutation, { input: { id: orderGid, note: note } });
+        console.log("✅ Successfully added note to order.");
+    } catch (error) { console.error("🚨 Failed to add note to order:", error); }
+}
 
 // --- MAIN HANDLER FUNCTION ---
 export default async function handler(req, res) {
-  // ... security, parsing, and final logic remains the same ...
-  // This function now calls the helpers defined above.
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
     return res.status(405).end('Method Not Allowed');
@@ -85,55 +175,34 @@ export default async function handler(req, res) {
     const hmacHeader = req.headers['x-shopify-hmac-sha256'];
     const secret = process.env.SHOPIFY_WEBHOOK_SECRET;
 
-    if (!hmacHeader || !secret) {
+    if (!hmacHeader || !secret || createHmac('sha256', secret).update(rawBody).digest('base64') !== hmacHeader) {
+        console.error('🚨 Verification failed.');
         return res.status(401).send('Could not verify webhook.');
     }
+    
+    console.log('✅ Verification successful!');
+    const orderData = JSON.parse(rawBody.toString());
+    const wheelBuildLineItem = orderData.line_items.find(item => item.properties?.some(p => p.name === '_is_custom_wheel_build' && p.value === 'true'));
 
-    const hash = createHmac('sha256', secret).update(rawBody).digest('base64');
-
-    if (hash === hmacHeader) {
-      console.log('✅ Verification successful!');
-      const orderData = JSON.parse(rawBody.toString());
-      console.log(`Processing Order ID: ${orderData.id}`);
-
-      const wheelBuildLineItem = orderData.line_items.find(item => 
-        item.properties && item.properties.some(prop => prop.name === '_is_custom_wheel_build' && prop.value === 'true')
-      );
-
-      if (wheelBuildLineItem) {
-        const buildProperty = wheelBuildLineItem.properties.find(prop => prop.name === '_build');
-        if (buildProperty && buildProperty.value) {
-          const buildRecipe = JSON.parse(buildProperty.value);
-          const componentData = await fetchComponentData(buildRecipe);
-
-          if (componentData) {
-            const finalLengths = runCalculationEngine(buildRecipe, componentData);
-            console.log("✅ Final Calculation Results:", JSON.stringify(finalLengths, null, 2));
-
-            const noteText = formatNote(finalLengths);
-            const orderGid = orderData.admin_graphql_api_id;
-            await addNoteToOrder(orderGid, noteText);
-          }
+    if (wheelBuildLineItem) {
+        const buildProperty = wheelBuildLineItem.properties.find(p => p.name === '_build');
+        if (buildProperty?.value) {
+            const buildRecipe = JSON.parse(buildProperty.value);
+            const componentData = await fetchComponentData(buildRecipe);
+            if (componentData) {
+                const finalLengths = runCalculationEngine(buildRecipe, componentData);
+                console.log("✅ Final Calculation Results:", JSON.stringify(finalLengths, null, 2));
+                await addNoteToOrder(orderData.admin_graphql_api_id, formatNote(finalLengths));
+            }
         }
-      } else {
-        console.log('ℹ️ No custom wheel build found in this order.');
-      }
-      
-      return res.status(200).json({ message: 'Webhook processed.' });
-
     } else {
-      console.error('🚨 Verification failed: HMAC mismatch.');
-      return res.status(401).send('Could not verify webhook.');
+        console.log('ℹ️ No custom wheel build found in this order.');
     }
+    
+    return res.status(200).json({ message: 'Webhook processed.' });
+
   } catch (error) {
     console.error('An error occurred in the webhook handler:', error);
     return res.status(500).send('Internal Server Error.');
   }
 }
-
-// --- Re-paste of the calculation and reporting functions for completeness ---
-function calculateElongation(spokeLength, tensionKgf, crossSectionalArea) { const YOUNG_MODULUS_STEEL_GPA = 210; const tensionN = tensionKgf * 9.80665; const modulusPa = YOUNG_MODULUS_STEEL_GPA * 1e9; const elongationMeters = (tensionN * (spokeLength / 1000)) / (modulusPa * (crossSectionalArea / 1e6)); return elongationMeters * 1000; }
-function calculateSpokeLength(params) { const { isLeft, hubType, baseCrossPattern, spokeCount, finalErd, hubFlangeDiameter, flangeOffset, rimSpokeHoleOffset, spOffset, hubSpokeHoleDiameter } = params; const hubRadius = hubFlangeDiameter / 2; const rimRadius = finalErd / 2; let effectiveCrossPattern = baseCrossPattern; if (hubType === 'Straight Pull' && baseCrossPattern > 0) { effectiveCrossPattern += 0.5; } const angle = (2 * Math.PI * effectiveCrossPattern) / (spokeCount / 2); const finalZOffset = flangeOffset + (isLeft ? -rimSpokeHoleOffset : rimSpokeHoleOffset); const term1 = Math.pow(finalZOffset, 2); const term2 = Math.pow(hubRadius, 2); const term3 = Math.pow(rimRadius, 2); const term4 = 2 * hubRadius * rimRadius * Math.cos(angle); const geometricLength = Math.sqrt(term1 + term2 + term3 - term4); let finalLength; if (hubType === 'Classic Flange') { if (isNaN(hubSpokeHoleDiameter)) { throw new Error("Missing Hub Spoke Hole Diameter for Classic hub."); } finalLength = geometricLength - (hubSpokeHoleDiameter / 2); } else { finalLength = geometricLength + spOffset; } return finalLength; }
-function runCalculationEngine(buildRecipe, componentData) { console.log("Starting spoke length calculation with your trusted sandbox logic..."); const results = { front: null, rear: null, errors: [] }; const getMeta = (variantId, productId, key, isNumber = false, defaultValue = 0) => { const variantMeta = componentData.get(variantId) || {}; const productMeta = componentData.get(productId) || {}; const value = variantMeta[key] ?? productMeta[key]; if (value === undefined || value === null || value === '') { if (isNumber) return defaultValue; return null; } return isNumber ? parseFloat(value) : value; }; const calculateForPosition = (position) => { const rim = buildRecipe.components[`${position}Rim`]; const hub = buildRecipe.components[`${position}Hub`]; const spokes = buildRecipe.components[`${position}Spokes`]; const spokeCount = parseInt(buildRecipe.specs[`${position}SpokeCount`]?.replace('h', ''), 10); if (!rim || !hub || !spokes || !spokeCount) { return { error: `Skipping ${position} wheel: Missing component or spoke count.` }; } const hubType = getMeta(hub.variantId, hub.productId, 'hub_type'); const spokeType = getMeta(spokes.variantId, spokes.productId, 'spoke_type'); if (hubType === 'Hook Flange' || spokeType === 'BERD') { return { error: `Calculation aborted: Unsupported type (${hubType || spokeType}).` }; } let erd = getMeta(rim.variantId, rim.productId, 'rim_erd', true); const rimSpokeHoleOffset = getMeta(rim.variantId, rim.productId, 'rim_spoke_hole_offset', true); const rimWasherPolicy = getMeta(rim.variantId, rim.productId, 'rim_washer_policy'); const rimNippleWasherThickness = getMeta(rim.variantId, rim.productId, 'rim_nipple_washer_thickness_mm', true); const hubLacingPolicy = getMeta(hub.variantId, hub.productId, 'hub_lacing_policy'); const hubManualCrossValue = getMeta(hub.variantId, hub.productId, 'hub_manual_cross_value', true); let finalErd = erd; if (rimWasherPolicy === 'Mandatory' || rimWasherPolicy === 'Optional') { finalErd += (2 * rimNippleWasherThickness); } let baseCrossPattern; if (hubLacingPolicy === 'Use Manual Override Field' && hubManualCrossValue > 0) { baseCrossPattern = hubManualCrossValue; } else { baseCrossPattern = (spokeCount >= 32) ? 3 : 2; } const paramsLeft = { isLeft: true, hubType, baseCrossPattern, spokeCount, finalErd, hubFlangeDiameter: getMeta(hub.variantId, hub.productId, 'hub_flange_diameter_left', true), flangeOffset: getMeta(hub.variantId, hub.productId, 'hub_flange_offset_left', true), rimSpokeHoleOffset: rimSpokeHoleOffset, spOffset: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_left', true), hubSpokeHoleDiameter: getMeta(hub.variantId, hub.productId, 'hub_spoke_hole_diameter', true) }; const paramsRight = { isLeft: false, hubType, baseCrossPattern, spokeCount, finalErd, hubFlangeDiameter: getMeta(hub.variantId, hub.productId, 'hub_flange_diameter_right', true), flangeOffset: getMeta(hub.variantId, hub.productId, 'hub_flange_offset_right', true), rimSpokeHoleOffset: rimSpokeHoleOffset, spOffset: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_right', true), hubSpokeHoleDiameter: getMeta(hub.variantId, hub.productId, 'hub_spoke_hole_diameter', true) }; const lengthL = calculateSpokeLength(paramsLeft); const lengthR = calculateSpokeLength(paramsRight); const tensionKgf = getMeta(rim.variantId, rim.productId, 'rim_target_tension_kgf', true, 120); const crossArea = getMeta(spokes.variantId, spokes.productId, 'spoke_cross_sectional_area_mm2', true) || getMeta(spokes.variantId, spokes.productId, 'spoke_cross_section_area_mm2', true); return { left: { geo: lengthL.toFixed(2), stretch: calculateElongation(lengthL, tensionKgf, crossArea).toFixed(2) }, right: { geo: lengthR.toFixed(2), stretch: calculateElongation(lengthR, tensionKgf, crossArea).toFixed(2) }, }; }; try { results.front = calculateForPosition('front'); if (buildRecipe.buildType === 'Wheel Set') { results.rear = calculateForPosition('rear'); } } catch (e) { console.error("Error during calculation execution:", e); results.errors.push(e.message); } return results; }
-function formatNote(results) { let note = "AUTOMATED SPOKE CALCULATION COMPLETE\n---------------------------------------\n"; const formatSide = (wheel, position) => { if (!wheel) return `\n${position.toUpperCase()} WHEEL: Not part of this build.`; if (wheel.error) return `\n${position.toUpperCase()} WHEEL: Calculation failed - ${wheel.error}`; return `\n${position.toUpperCase()} WHEEL:\n` + `  Left (Geo):  ${wheel.left.geo} mm (Stretch: ${wheel.left.stretch} mm)\n` + `  Right (Geo): ${wheel.right.geo} mm (Stretch: ${wheel.right.stretch} mm)`; }; note += formatSide(results.front, 'Front'); note += formatSide(results.rear, 'Rear'); if (results.errors && results.errors.length > 0) { note += `\n\nWARNINGS:\n- ${results.errors.join('\n- ')}`; } return note; }
-async function addNoteToOrder(orderGid, note) { console.log(`Adding note to order ${orderGid}...`); const mutation = ` mutation orderUpdate($input: OrderInput!) { orderUpdate(input: $input) { order { id } userErrors { field message } } } `; const variables = { input: { id: orderGid, note: note, } }; try { const data = await shopifyAdminApiQuery(mutation, variables); if (data.orderUpdate.userErrors.length > 0) { throw new Error(JSON.stringify(data.orderUpdate.userErrors)); } console.log("✅ Successfully added note to order."); } catch (error) { console.error("🚨 Failed to add note to order:", error); } }
