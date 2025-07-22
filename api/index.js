@@ -306,12 +306,12 @@ function formatNote(report) {
     return note;
 }
 
-// --- NEW: Email Reporting Function ---
 async function sendEmailReport(report, orderData) {
     const resend = new Resend(process.env.RESEND_API_KEY);
     const recipientEmail = process.env.BUILDER_EMAIL_ADDRESS;
     const orderNumber = orderData.order_number;
-    const orderAdminUrl = `https://${orderData.shop_domain}/admin/orders/${orderData.id}`;
+    // The Shopify domain is not available in the webhook payload, use the environment variable
+    const orderAdminUrl = `https://${process.env.SHOPIFY_STORE_DOMAIN}/admin/orders/${orderData.id}`;
 
     if (!recipientEmail) {
         console.error("CRITICAL: BUILDER_EMAIL_ADDRESS environment variable is not set. Cannot send email.");
@@ -319,12 +319,12 @@ async function sendEmailReport(report, orderData) {
     }
 
     const noteText = formatNote(report);
-    // Convert the plain text note to simple HTML for better email formatting
     const noteHtml = `<pre style="font-family: monospace; font-size: 14px;">${noteText}</pre>`;
 
     try {
-        await resend.emails.send({
-            from: 'Spoke Calculator <calculator@loamlabs.com>', // Resend will replace this with a verified domain
+        // Capture the response from Resend
+        const { data, error } = await resend.emails.send({
+            from: 'Spoke Calculator <onboarding@resend.dev>', // Use the default for unverified domains
             to: [recipientEmail],
             subject: `Spoke Calculation Complete for Order #${orderNumber}`,
             html: `
@@ -333,12 +333,22 @@ async function sendEmailReport(report, orderData) {
                 ${noteHtml}
             `,
         });
-        console.log(`✅ Successfully sent email report to ${recipientEmail}.`);
+
+        // Now, check the response for an error object
+        if (error) {
+            // This will now log the REAL error from Resend
+            console.error("🚨 Failed to send email report. Resend API returned an error:", error);
+            return;
+        }
+
+        // Only log success if there was no error
+        console.log(`✅ Successfully sent email report to ${recipientEmail}. Resend ID: ${data.id}`);
+
     } catch (error) {
-        console.error("🚨 Failed to send email report:", error);
+        // This catch block is for network errors or other crashes
+        console.error("🚨 A critical error occurred while trying to send the email:", error);
     }
 }
-
 
 // --- FINAL, COMPLETE MAIN HANDLER FUNCTION ---
 export default async function handler(req, res) {
