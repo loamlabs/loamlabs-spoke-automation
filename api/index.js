@@ -306,7 +306,7 @@ function formatNote(report) {
     return note;
 }
 
-async function sendEmailReport(report, orderData) {
+async function sendEmailReport(report, orderData, buildRecipe) {
     const resend = new Resend(process.env.RESEND_API_KEY);
     const recipientEmail = process.env.BUILDER_EMAIL_ADDRESS;
     const orderNumber = orderData.order_number;
@@ -317,22 +317,109 @@ async function sendEmailReport(report, orderData) {
         return;
     }
 
-    const noteText = formatNote(report);
-    const noteHtml = `<pre style="font-family: monospace; font-size: 14px;">${noteText}</pre>`;
+    // --- Helper to generate the HTML for one wheel ---
+    const generateWheelHtml = (wheel, position) => {
+        if (!wheel) return '';
+        if (!wheel.calculationSuccessful) {
+            return `
+                <h3>${position.toUpperCase()} WHEEL REPORT</h3>
+                <p style="color: #D8000C; background-color: #FFD2D2; padding: 10px; border-radius: 3px;">
+                    <strong>CALCULATION FAILED:</strong> ${wheel.error}
+                </p>
+            `;
+        }
+
+        return `
+            <div class="wheel-section">
+                <h3>${position.toUpperCase()} WHEEL DETAILS</h3>
+                
+                <!-- Lacing Decision Section -->
+                <h4>Lacing Decision</h4>
+                <p>Final pattern used: <strong>${wheel.crossPattern}-Cross</strong>.</p>
+                ${wheel.alert ? `<p class="alert"><strong>NOTE:</strong> ${wheel.alert}</p>` : '<p>The default lacing pattern passed the interference check.</p>'}
+
+                <!-- Key Inputs Table -->
+                <h4>Key Inputs</h4>
+                <table class="data-table">
+                    <tr><td>Rim</td><td>${wheel.inputs.rim}</td></tr>
+                    <tr><td>Hub</td><td>${wheel.inputs.hub}</td></tr>
+                    <tr><td>Spokes</td><td>${wheel.inputs.spokes}</td></tr>
+                    <tr><td>Final Adjusted ERD</td><td><strong>${wheel.inputs.finalErd} mm</strong></td></tr>
+                    <tr><td>Target Tension</td><td>${wheel.inputs.targetTension} kgf</td></tr>
+                </table>
+
+                <!-- Calculated Lengths Table -->
+                <h4>Calculated Lengths (Pre-Rounding)</h4>
+                <table class="data-table">
+                    <tr><td>Left (Geo)</td><td>${wheel.lengths.left.geo} mm (Stretch: ${wheel.lengths.left.stretch} mm)</td></tr>
+                    <tr><td>Right (Geo)</td><td>${wheel.lengths.right.geo} mm (Stretch: ${wheel.lengths.right.stretch} mm)</td></tr>
+                </table>
+
+                <!-- Inventory Adjustments Table -->
+                <h4>Inventory Adjustments (Final Lengths)</h4>
+                <table class="data-table">
+                    <tr><td>Left</td><td><strong>${wheel.inventory.left.quantity} x ${wheel.inventory.left.length}mm</strong> (${wheel.inventory.left.status})</td></tr>
+                    <tr><td>Right</td><td><strong>${wheel.inventory.right.quantity} x ${wheel.inventory.right.length}mm</strong> (${wheel.inventory.right.status})</td></tr>
+                </table>
+            </div>
+        `;
+    };
+    
+    // --- Main HTML Structure ---
+    const emailHtml = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #333; line-height: 1.6; }
+                .container { max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
+                h1, h2, h3, h4 { color: #111; }
+                a { color: #007bff; text-decoration: none; }
+                .summary-box { background-color: #f4f4f7; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
+                .summary-box h3 { margin-top: 0; }
+                .summary-box p { margin: 5px 0; font-size: 1.1em; }
+                .wheel-section { margin-top: 20px; border-top: 1px solid #eee; padding-top: 20px; }
+                .data-table { border-collapse: collapse; width: 100%; margin-bottom: 15px; }
+                .data-table td { padding: 8px; border: 1px solid #ddd; }
+                .data-table td:first-child { font-weight: bold; background-color: #f9f9f9; width: 150px; }
+                .alert { color: #9F6000; background-color: #FEEFB3; padding: 10px; border-radius: 3px; }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h2>Spoke Report for Order #${orderNumber}</h2>
+                <p>Build ID: ${buildRecipe.buildId} | <a href="${orderAdminUrl}"><strong>View Order in Shopify →</strong></a></p>
+
+                <!-- At-a-Glance Summary Box -->
+                <div class="summary-box">
+                    <h3>Final Spoke Lengths</h3>
+                    ${report.front && report.front.calculationSuccessful ? `
+                        <p><strong>Front Wheel (${report.front.crossPattern}-Cross):</strong></p>
+                        <p style="margin-left: 20px;">Left: ${report.front.inventory.left.quantity} x ${report.front.inventory.left.length}mm</p>
+                        <p style="margin-left: 20px;">Right: ${report.front.inventory.right.quantity} x ${report.front.inventory.right.length}mm</p>
+                    ` : ''}
+                    ${report.rear && report.rear.calculationSuccessful ? `
+                        <p><strong>Rear Wheel (${report.rear.crossPattern}-Cross):</strong></p>
+                        <p style="margin-left: 20px;">Left: ${report.rear.inventory.left.quantity} x ${report.rear.inventory.left.length}mm</p>
+                        <p style="margin-left: 20px;">Right: ${report.rear.inventory.right.quantity} x ${report.rear.inventory.right.length}mm</p>
+                    ` : ''}
+                </div>
+
+                <!-- Full Details -->
+                ${generateWheelHtml(report.front, 'Front')}
+                ${generateWheelHtml(report.rear, 'Rear')}
+            </div>
+        </body>
+        </html>
+    `;
 
     try {
         const { data, error } = await resend.emails.send({
-            // The professional, non-existent "from" address
-            from: 'Spoke Calculator <calculator@loamlabs.com>', 
+            from: 'Spoke Calculator <calculator@loamlabs.com>',
             to: [recipientEmail],
-            // The real inbox where replies should go
-            reply_to: 'LoamLabs Support <info@loamlabsusa.com>', 
+            reply_to: 'LoamLabs Support <info@loamlabsusa.com>',
             subject: `Spoke Calculation Complete for Order #${orderNumber}`,
-            html: `
-                <h2>Spoke Calculation for Order #${orderNumber}</h2>
-                <p><a href="${orderAdminUrl}">View Order in Shopify</a></p>
-                ${noteHtml}
-            `,
+            html: emailHtml,
         });
 
         if (error) {
@@ -427,7 +514,7 @@ export default async function handler(req, res) {
                 
                 // --- FINAL DELIVERY STEPS ---
                 await addNoteToOrder(orderData.admin_graphql_api_id, formatNote(buildReport));
-                await sendEmailReport(buildReport, orderData); // Call the new email function
+                await sendEmailReport(buildReport, orderData, buildRecipe);
             }
         }
     } else {
