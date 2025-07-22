@@ -279,13 +279,11 @@ async function handleOrderCreate(orderData) {
 }
 
 async function handleOrderCancelled(orderData) {
-    if (!orderData.restock) {
-        console.log("Order was cancelled without restock. No inventory action needed.");
-        return;
-    }
+    // The unreliable 'if (!orderData.restock)' check has been removed.
 
-    if (!orderData.note || !orderData.note.includes("AUTOMATED SPOKE CALCULATION")) {
-        console.log("This order does not have an automated calculation note. No automated restock needed.");
+    const wheelBuildLineItem = orderData.line_items.find(item => item.properties?.some(p => p.name === '_is_custom_wheel_build' && p.value === 'true'));
+    if (!wheelBuildLineItem || !orderData.note || !orderData.note.includes("AUTOMATED SPOKE CALCULATION")) {
+        console.log("This is not a wheel build with an automated note. No restock needed.");
         return;
     }
 
@@ -300,7 +298,6 @@ async function handleOrderCancelled(orderData) {
     }
 
     const note = orderData.note;
-    // Regex to find lines like: Left: 14 x 292mm (Adjusted)
     const regex = /(Left|Right):\s*(\d+)\s*x\s*(\d+)mm\s*\(Adjusted\)/g;
     let match;
     const restockActions = [];
@@ -313,27 +310,16 @@ async function handleOrderCancelled(orderData) {
     }
 
     if (restockActions.length === 0) {
-        console.log("No inventory adjustment lines with status 'Adjusted' found in the note. Nothing to restock.");
+        console.log("No 'Adjusted' inventory lines found in the note. Nothing to restock.");
         return;
     }
-
-    // Now, find the original build recipe to get spoke product details
-    const wheelBuildLineItem = orderData.line_items.find(item => item.properties?.some(p => p.name === '_is_custom_wheel_build' && p.value === 'true'));
+    
     const buildProperty = wheelBuildLineItem?.properties.find(p => p.name === '_build');
     if (!buildProperty || !buildProperty.value) {
          console.log("Could not find the original build recipe. Aborting restock.");
          return;
     }
     const buildRecipe = JSON.parse(buildProperty.value);
-
-    // Assume front and rear spokes are the same model/color for simplicity
-    const frontSpokes = buildRecipe.components.frontSpokes;
-    const rearSpokes = buildRecipe.components.rearSpokes;
-
-    if (!frontSpokes && !rearSpokes) {
-        console.log("No spoke components found in build recipe. Aborting restock.");
-        return;
-    }
 
     let restockNote = "AUTOMATED RESTOCK COMPLETE\n--------------------------\n";
     let actionIndex = 0;
