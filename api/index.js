@@ -310,7 +310,6 @@ async function sendEmailReport(report, orderData) {
     const resend = new Resend(process.env.RESEND_API_KEY);
     const recipientEmail = process.env.BUILDER_EMAIL_ADDRESS;
     const orderNumber = orderData.order_number;
-    // The Shopify domain is not available in the webhook payload, use the environment variable
     const orderAdminUrl = `https://${process.env.SHOPIFY_STORE_DOMAIN}/admin/orders/${orderData.id}`;
 
     if (!recipientEmail) {
@@ -322,10 +321,12 @@ async function sendEmailReport(report, orderData) {
     const noteHtml = `<pre style="font-family: monospace; font-size: 14px;">${noteText}</pre>`;
 
     try {
-        // Capture the response from Resend
         const { data, error } = await resend.emails.send({
-            from: 'Spoke Calculator <onboarding@resend.dev>', // Use the default for unverified domains
+            // The professional, non-existent "from" address
+            from: 'Spoke Calculator <calculator@loamlabs.com>', 
             to: [recipientEmail],
+            // The real inbox where replies should go
+            reply_to: 'LoamLabs Support <info@loamlabsusa.com>', 
             subject: `Spoke Calculation Complete for Order #${orderNumber}`,
             html: `
                 <h2>Spoke Calculation for Order #${orderNumber}</h2>
@@ -334,18 +335,14 @@ async function sendEmailReport(report, orderData) {
             `,
         });
 
-        // Now, check the response for an error object
         if (error) {
-            // This will now log the REAL error from Resend
             console.error("🚨 Failed to send email report. Resend API returned an error:", error);
             return;
         }
 
-        // Only log success if there was no error
         console.log(`✅ Successfully sent email report to ${recipientEmail}. Resend ID: ${data.id}`);
 
     } catch (error) {
-        // This catch block is for network errors or other crashes
         console.error("🚨 A critical error occurred while trying to send the email:", error);
     }
 }
