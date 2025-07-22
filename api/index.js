@@ -203,6 +203,148 @@ async function getPrimaryLocationId() {
     }
 }
 
+async function handleOrderCreate(orderData) {
+    let locationId = orderData.location_id;
+    if (!locationId) {
+        console.warn("Order data did not contain a top-level location_id. Fetching primary store location as a fallback.");
+        locationId = await getPrimaryLocationId();
+    }
+    
+    if (!locationId) {
+        console.error("CRITICAL: Could not determine any order location ID. Aborting inventory adjustments.");
+    }
+
+    const wheelBuildLineItem = orderData.line_items.find(item => item.properties?.some(p => p.name === '_is_custom_wheel_build' && p.value === 'true'));
+
+    if (wheelBuildLineItem) {
+        const buildProperty = wheelBuildLineItem.properties.find(p => p.name === '_build');
+        if (buildProperty?.value) {
+            const buildRecipe = JSON.parse(buildProperty.value);
+            const componentData = await fetchComponentData(buildRecipe);
+            if (componentData) {
+                let buildReport = runCalculationEngine(buildRecipe, componentData);
+                console.log("✅ Initial Build Report:", JSON.stringify(buildReport, null, 2));
+
+                for (const position of ['front', 'rear']) {
+                    const wheel = buildReport[position];
+                    
+                    if (wheel && wheel.calculationSuccessful) {
+                        const spokeComponent = buildRecipe.components[`${position}Spokes`];
+                        const spokeCountPerSide = parseInt(buildRecipe.specs[`${position}SpokeCount`]?.replace('h', '')) / 2;
+                        const spokeProductId = spokeComponent?.productId;
+                        const colorOption = spokeComponent.selectedOptions.find(opt => opt.name === 'Color');
+                        const selectedColor = colorOption ? colorOption.value : null;
+
+                        if (!selectedColor) {
+                             wheel.inventory = { left: { status: 'ACTION REQUIRED: Color not found' }, right: { status: 'ACTION REQUIRED: Color not found' } };
+                            continue;
+                        }
+                        if (!locationId) {
+                            wheel.inventory = { left: { status: 'FAILED: Location ID missing' }, right: { status: 'FAILED: Location ID missing' } };
+                            continue;
+                        }
+
+                        const roundedL = Math.ceil(parseFloat(wheel.lengths.left.geo) / 2) * 2;
+                        const variantL = await findVariantForLengthAndColor(spokeProductId, roundedL, selectedColor);
+                        let statusL = "ACTION REQUIRED: Variant not found!";
+                        if (variantL) {
+                            const success = await adjustInventory(variantL.inventoryItemId, -spokeCountPerSide, `gid://shopify/Location/${locationId}`);
+                            statusL = success ? "Adjusted" : "FAILED to adjust";
+                        }
+
+                        const roundedR = Math.ceil(parseFloat(wheel.lengths.right.geo) / 2) * 2;
+                        const variantR = await findVariantForLengthAndColor(spokeProductId, roundedR, selectedColor);
+                        let statusR = "ACTION REQUIRED: Variant not found!";
+                        if (variantR) {
+                            const success = await adjustInventory(variantR.inventoryItemId, -spokeCountPerSide, `gid://shopify/Location/${locationId}`);
+                            statusR = success ? "Adjusted" : "FAILED to adjust";
+                        }
+                        
+                        wheel.inventory = {
+                            left: { length: roundedL, quantity: spokeCountPerSide, status: statusL },
+                            right: { length: roundedR, quantity: spokeCountPerSide, status: statusR }
+                        };
+                    } else if (wheel && !wheel.calculationSuccessful) {
+                        wheel.inventory = { left: { status: 'N/A' }, right: { status: 'N/A' } };
+                    }
+                }
+                
+                await addNoteToOrder(orderData.admin_graphql_api_id, formatNote(buildReport));
+                await sendEmailReport(buildReport, orderData, buildRecipe);
+            }
+        }
+    } else {
+        console.log('ℹ️ No custom wheel build found in this order.');
+    }
+}
+
+async function handleOrderCancelled(orderData) {
+    // First, check if the "restock" option was actually selected in the Shopify admin.
+    if (!orderData.restock) {
+        console.log("Order was cancelled without restock. No inventory action needed.");
+        return;
+    }
+
+    const wheelBuildLineItem = orderData.line_items.find(item => item.properties?.some(p => p.name === '_is_custom_wheel_build' && p.value === 'true'));
+    if (!wheelBuildLineItem || !orderData.note) {
+        console.log("This is not a wheel build order or it has no calculation note. No automated restock needed.");
+        return;
+    }
+
+    let locationId = orderData.location_id;
+    if (!locationId) {
+        locationId = await getPrimaryLocationId();
+    }
+    if (!locationId) {
+        console.error("CRITICAL: Could not determine location ID for restock. Aborting.");
+        await addNoteToOrder(orderData.admin_graphql_api_id, "AUTOMATED RESTOCK FAILED: Could not determine location ID.");
+        return;
+    }
+
+    const note = orderData.note;
+    // This regular expression finds lines like "Left: 14 x 292mm (Adjusted)"
+    const regex = /(Left|Right):\s*(\d+)\s*x\s*(\d+)mm\s*\((Adjusted)\)/g;
+    let match;
+    const restockActions = [];
+    
+    // Find all the spoke adjustment lines in the note
+    while ((match = regex.exec(note)) !== null) {
+        restockActions.push({
+            side: match[1],
+            quantity: parseInt(match[2], 10),
+            length: parseInt(match[3], 10),
+        });
+    }
+
+    if (restockActions.length === 0) {
+        console.log("No inventory adjustment lines found in the note. Nothing to restock.");
+        return;
+    }
+
+    let restockNote = "AUTOMATED RESTOCK COMPLETE\n--------------------------\n";
+
+    for (const action of restockActions) {
+        // We need to find the original spoke product from the order to get its color and ID
+        const spokeLineItem = orderData.line_items.find(item => item.tags?.includes('component:spoke'));
+        if (!spokeLineItem) continue;
+
+        const colorOption = spokeLineItem.variant_title.split(' / ')[0].trim();
+        const spokeProductId = `gid://shopify/Product/${spokeLineItem.product_id}`;
+        
+        const variant = await findVariantForLengthAndColor(spokeProductId, action.length, colorOption);
+        if (variant) {
+            // Use a POSITIVE delta to add stock back
+            const success = await adjustInventory(variant.inventoryItemId, action.quantity, `gid://shopify/Location/${locationId}`);
+            const status = success ? "Restocked" : "FAILED";
+            restockNote += `- ${action.quantity} x ${action.length}mm (${colorOption}): ${status}\n`;
+        } else {
+            restockNote += `- ${action.quantity} x ${action.length}mm (${colorOption}): FAILED (Variant not found)\n`;
+        }
+    }
+
+    await addNoteToOrder(orderData.admin_graphql_api_id, restockNote);
+}
+
 function runCalculationEngine(buildRecipe, componentData) {
     const results = { front: null, rear: null, errors: [] };
     const getMeta = (variantId, productId, key, isNumber = false, defaultValue = 0) => {
@@ -434,7 +576,7 @@ async function sendEmailReport(report, orderData, buildRecipe) {
     }
 }
 
-// --- FINAL, COMPLETE MAIN HANDLER FUNCTION ---
+// --- MAIN HANDLER FUNCTION with Event Routing ---
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
@@ -453,72 +595,20 @@ export default async function handler(req, res) {
     
     console.log('✅ Verification successful!');
     const orderData = JSON.parse(rawBody.toString());
-    
-    let locationId = orderData.location_id;
-    if (!locationId) {
-        console.warn("Order data did not contain a top-level location_id. Fetching primary store location as a fallback.");
-        locationId = await getPrimaryLocationId();
-    }
-    
-    if (!locationId) {
-        console.error("CRITICAL: Could not determine any order location ID. Aborting inventory adjustments.");
-    }
+    const eventTopic = req.headers['x-shopify-topic'];
 
-    const wheelBuildLineItem = orderData.line_items.find(item => item.properties?.some(p => p.name === '_is_custom_wheel_build' && p.value === 'true'));
-
-    if (wheelBuildLineItem) {
-        const buildProperty = wheelBuildLineItem.properties.find(p => p.name === '_build');
-        if (buildProperty?.value) {
-            const buildRecipe = JSON.parse(buildProperty.value);
-            const componentData = await fetchComponentData(buildRecipe);
-            if (componentData) {
-                let buildReport = runCalculationEngine(buildRecipe, componentData);
-                console.log("✅ Initial Build Report:", JSON.stringify(buildReport, null, 2));
-
-                for (const position of ['front', 'rear']) {
-                    const wheel = buildReport[position];
-                    if (wheel && wheel.calculationSuccessful) {
-                        // ... inventory logic ...
-                        const spokeComponent = buildRecipe.components[`${position}Spokes`];
-                        const spokeCountPerSide = parseInt(buildRecipe.specs[`${position}SpokeCount`]?.replace('h', '')) / 2;
-                        const spokeProductId = spokeComponent?.productId;
-                        const colorOption = spokeComponent.selectedOptions.find(opt => opt.name === 'Color');
-                        const selectedColor = colorOption ? colorOption.value : null;
-                        if (!selectedColor) {
-                             wheel.inventory = { left: { status: 'ACTION REQUIRED: Color not found' }, right: { status: 'ACTION REQUIRED: Color not found' } };
-                            continue;
-                        }
-                        if (!locationId) {
-                            wheel.inventory = { left: { status: 'FAILED: Location ID missing' }, right: { status: 'FAILED: Location ID missing' } };
-                            continue;
-                        }
-                        const roundedL = Math.ceil(parseFloat(wheel.lengths.left.geo) / 2) * 2;
-                        const variantL = await findVariantForLengthAndColor(spokeProductId, roundedL, selectedColor);
-                        let statusL = "ACTION REQUIRED: Variant not found!";
-                        if (variantL) {
-                            const success = await adjustInventory(variantL.inventoryItemId, -spokeCountPerSide, `gid://shopify/Location/${locationId}`);
-                            statusL = success ? "Adjusted" : "FAILED to adjust";
-                        }
-                        const roundedR = Math.ceil(parseFloat(wheel.lengths.right.geo) / 2) * 2;
-                        const variantR = await findVariantForLengthAndColor(spokeProductId, roundedR, selectedColor);
-                        let statusR = "ACTION REQUIRED: Variant not found!";
-                        if (variantR) {
-                            const success = await adjustInventory(variantR.inventoryItemId, -spokeCountPerSide, `gid://shopify/Location/${locationId}`);
-                            statusR = success ? "Adjusted" : "FAILED to adjust";
-                        }
-                        wheel.inventory = { left: { length: roundedL, quantity: spokeCountPerSide, status: statusL }, right: { length: roundedR, quantity: spokeCountPerSide, status: statusR } };
-                    } else if (wheel && !wheel.calculationSuccessful) {
-                        wheel.inventory = { left: { status: 'N/A' }, right: { status: 'N/A' } };
-                    }
-                }
-                
-                // --- FINAL DELIVERY STEPS ---
-                await addNoteToOrder(orderData.admin_graphql_api_id, formatNote(buildReport));
-                await sendEmailReport(buildReport, orderData, buildRecipe);
-            }
-        }
-    } else {
-        console.log('ℹ️ No custom wheel build found in this order.');
+    // Route the request based on the event type
+    switch (eventTopic) {
+        case 'orders/create':
+            console.log(`Handling new order: #${orderData.order_number}`);
+            await handleOrderCreate(orderData);
+            break;
+        case 'orders/cancelled':
+            console.log(`Handling cancelled order: #${orderData.order_number}`);
+            await handleOrderCancelled(orderData);
+            break;
+        default:
+            console.log(`Received unhandled event topic: ${eventTopic}`);
     }
     
     return res.status(200).json({ message: 'Webhook processed.' });
