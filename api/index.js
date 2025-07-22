@@ -1,4 +1,5 @@
 import { createHmac } from 'crypto';
+import { Resend } from 'resend';
 
 // --- Vercel Config ---
 export const config = { api: { bodyParser: false } };
