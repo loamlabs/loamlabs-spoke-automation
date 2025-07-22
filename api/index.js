@@ -284,15 +284,8 @@ async function handleOrderCancelled(orderData) {
         return;
     }
 
-    const wheelBuildLineItem = orderData.line_items.find(item => item.properties?.some(p => p.name === '_is_custom_wheel_build' && p.value === 'true'));
-    if (!wheelBuildLineItem) {
-        console.log("This is not a wheel build order. No automated restock needed.");
-        return;
-    }
-
-    const buildProperty = wheelBuildLineItem.properties.find(p => p.name === '_build');
-    if (!buildProperty || !buildProperty.value) {
-        console.log("Could not find the original build recipe on the order. Cannot perform automated restock.");
+    if (!orderData.note || !orderData.note.includes("AUTOMATED SPOKE CALCULATION")) {
+        console.log("This order does not have an automated calculation note. No automated restock needed.");
         return;
     }
 
@@ -306,58 +299,73 @@ async function handleOrderCancelled(orderData) {
         return;
     }
 
+    const note = orderData.note;
+    // Regex to find lines like: Left: 14 x 292mm (Adjusted)
+    const regex = /(Left|Right):\s*(\d+)\s*x\s*(\d+)mm\s*\(Adjusted\)/g;
+    let match;
+    const restockActions = [];
+    
+    while ((match = regex.exec(note)) !== null) {
+        restockActions.push({
+            quantity: parseInt(match[2], 10),
+            length: parseInt(match[3], 10),
+        });
+    }
+
+    if (restockActions.length === 0) {
+        console.log("No inventory adjustment lines with status 'Adjusted' found in the note. Nothing to restock.");
+        return;
+    }
+
+    // Now, find the original build recipe to get spoke product details
+    const wheelBuildLineItem = orderData.line_items.find(item => item.properties?.some(p => p.name === '_is_custom_wheel_build' && p.value === 'true'));
+    const buildProperty = wheelBuildLineItem?.properties.find(p => p.name === '_build');
+    if (!buildProperty || !buildProperty.value) {
+         console.log("Could not find the original build recipe. Aborting restock.");
+         return;
+    }
     const buildRecipe = JSON.parse(buildProperty.value);
+
+    // Assume front and rear spokes are the same model/color for simplicity
+    const frontSpokes = buildRecipe.components.frontSpokes;
+    const rearSpokes = buildRecipe.components.rearSpokes;
+
+    if (!frontSpokes && !rearSpokes) {
+        console.log("No spoke components found in build recipe. Aborting restock.");
+        return;
+    }
+
     let restockNote = "AUTOMATED RESTOCK COMPLETE\n--------------------------\n";
+    let actionIndex = 0;
 
     for (const position of ['front', 'rear']) {
         const spokeComponent = buildRecipe.components[`${position}Spokes`];
-        const wheelData = buildRecipe.components[`${position}Rim`]; // Use any component to know if the wheel exists
-
-        if (spokeComponent && wheelData) {
-            if (spokeComponent.vendor === 'Berd') {
-                restockNote += `- ${position.charAt(0).toUpperCase() + position.slice(1)} Wheel (Berd): Manual restock required.\n`;
-                continue;
-            }
-
-            const spokeCountPerSide = parseInt(buildRecipe.specs[`${position}SpokeCount`]?.replace('h', '')) / 2;
-            const spokeProductId = spokeComponent.productId;
+        if (spokeComponent && spokeComponent.vendor !== 'Berd') {
             const colorOption = spokeComponent.selectedOptions.find(opt => opt.name === 'Color');
             const selectedColor = colorOption ? colorOption.value : null;
 
-            // We need to re-calculate the lengths to know what to restock
-            const geoLeft = parseFloat(buildRecipe.components[`${position}Spokes`]?.geoLeft) || 0; // Assuming geo lengths are stored
-            const geoRight = parseFloat(buildRecipe.components[`${position}Spokes`]?.geoRight) || 0;
-
-            // This part requires us to have access to the original calculated lengths.
-            // Let's re-run the calculation, as it's the most reliable way.
-            const componentData = await fetchComponentData(buildRecipe);
-            if (!componentData) {
-                restockNote += `- ${position.charAt(0).toUpperCase() + position.slice(1)} Wheel: FAILED (Could not fetch component data).\n`;
-                continue;
-            }
-            const report = runCalculationEngine(buildRecipe, componentData);
-            const wheelReport = report[position];
-
-            if (wheelReport && wheelReport.calculationSuccessful) {
-                const roundedL = Math.ceil(parseFloat(wheelReport.lengths.left.geo) / 2) * 2;
-                const roundedR = Math.ceil(parseFloat(wheelReport.lengths.right.geo) / 2) * 2;
-
-                const variantL = await findVariantForLengthAndColor(spokeProductId, roundedL, selectedColor);
-                if (variantL) {
-                    const success = await adjustInventory(variantL.inventoryItemId, spokeCountPerSide, `gid://shopify/Location/${locationId}`); // Positive number
+            // Process Left Side for this wheel
+            if (actionIndex < restockActions.length) {
+                const action = restockActions[actionIndex++];
+                const variant = await findVariantForLengthAndColor(spokeComponent.productId, action.length, selectedColor);
+                if (variant) {
+                    const success = await adjustInventory(variant.inventoryItemId, action.quantity, `gid://shopify/Location/${locationId}`); // Positive number
                     const status = success ? "Restocked" : "FAILED";
-                    restockNote += `- ${spokeCountPerSide} x ${roundedL}mm (${selectedColor}): ${status}\n`;
+                    restockNote += `- Left (${position}): ${action.quantity} x ${action.length}mm (${selectedColor}) - ${status}\n`;
                 } else {
-                    restockNote += `- ${spokeCountPerSide} x ${roundedL}mm (${selectedColor}): FAILED (Variant not found)\n`;
+                    restockNote += `- Left (${position}): ${action.quantity} x ${action.length}mm (${selectedColor}) - FAILED (Variant not found)\n`;
                 }
-
-                const variantR = await findVariantForLengthAndColor(spokeProductId, roundedR, selectedColor);
-                 if (variantR) {
-                    const success = await adjustInventory(variantR.inventoryItemId, spokeCountPerSide, `gid://shopify/Location/${locationId}`); // Positive number
+            }
+            // Process Right Side for this wheel
+            if (actionIndex < restockActions.length) {
+                 const action = restockActions[actionIndex++];
+                const variant = await findVariantForLengthAndColor(spokeComponent.productId, action.length, selectedColor);
+                if (variant) {
+                    const success = await adjustInventory(variant.inventoryItemId, action.quantity, `gid://shopify/Location/${locationId}`); // Positive number
                     const status = success ? "Restocked" : "FAILED";
-                    restockNote += `- ${spokeCountPerSide} x ${roundedR}mm (${selectedColor}): ${status}\n`;
+                    restockNote += `- Right (${position}): ${action.quantity} x ${action.length}mm (${selectedColor}) - ${status}\n`;
                 } else {
-                    restockNote += `- ${spokeCountPerSide} x ${roundedR}mm (${selectedColor}): FAILED (Variant not found)\n`;
+                    restockNote += `- Right (${position}): ${action.quantity} x ${action.length}mm (${selectedColor}) - FAILED (Variant not found)\n`;
                 }
             }
         }
