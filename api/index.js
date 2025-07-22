@@ -305,7 +305,41 @@ function formatNote(report) {
     return note;
 }
 
-// --- MAIN HANDLER FUNCTION ---
+// --- NEW: Email Reporting Function ---
+async function sendEmailReport(report, orderData) {
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    const recipientEmail = process.env.BUILDER_EMAIL_ADDRESS;
+    const orderNumber = orderData.order_number;
+    const orderAdminUrl = `https://${orderData.shop_domain}/admin/orders/${orderData.id}`;
+
+    if (!recipientEmail) {
+        console.error("CRITICAL: BUILDER_EMAIL_ADDRESS environment variable is not set. Cannot send email.");
+        return;
+    }
+
+    const noteText = formatNote(report);
+    // Convert the plain text note to simple HTML for better email formatting
+    const noteHtml = `<pre style="font-family: monospace; font-size: 14px;">${noteText}</pre>`;
+
+    try {
+        await resend.emails.send({
+            from: 'Spoke Calculator <calculator@loamlabs.com>', // Resend will replace this with a verified domain
+            to: [recipientEmail],
+            subject: `Spoke Calculation Complete for Order #${orderNumber}`,
+            html: `
+                <h2>Spoke Calculation for Order #${orderNumber}</h2>
+                <p><a href="${orderAdminUrl}">View Order in Shopify</a></p>
+                ${noteHtml}
+            `,
+        });
+        console.log(`✅ Successfully sent email report to ${recipientEmail}.`);
+    } catch (error) {
+        console.error("🚨 Failed to send email report:", error);
+    }
+}
+
+
+// --- FINAL, COMPLETE MAIN HANDLER FUNCTION ---
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
@@ -324,7 +358,7 @@ export default async function handler(req, res) {
     
     console.log('✅ Verification successful!');
     const orderData = JSON.parse(rawBody.toString());
-
+    
     let locationId = orderData.location_id;
     if (!locationId) {
         console.warn("Order data did not contain a top-level location_id. Fetching primary store location as a fallback.");
@@ -348,14 +382,13 @@ export default async function handler(req, res) {
 
                 for (const position of ['front', 'rear']) {
                     const wheel = buildReport[position];
-                    
                     if (wheel && wheel.calculationSuccessful) {
+                        // ... inventory logic ...
                         const spokeComponent = buildRecipe.components[`${position}Spokes`];
                         const spokeCountPerSide = parseInt(buildRecipe.specs[`${position}SpokeCount`]?.replace('h', '')) / 2;
                         const spokeProductId = spokeComponent?.productId;
                         const colorOption = spokeComponent.selectedOptions.find(opt => opt.name === 'Color');
                         const selectedColor = colorOption ? colorOption.value : null;
-
                         if (!selectedColor) {
                              wheel.inventory = { left: { status: 'ACTION REQUIRED: Color not found' }, right: { status: 'ACTION REQUIRED: Color not found' } };
                             continue;
@@ -364,33 +397,29 @@ export default async function handler(req, res) {
                             wheel.inventory = { left: { status: 'FAILED: Location ID missing' }, right: { status: 'FAILED: Location ID missing' } };
                             continue;
                         }
-
                         const roundedL = Math.ceil(parseFloat(wheel.lengths.left.geo) / 2) * 2;
                         const variantL = await findVariantForLengthAndColor(spokeProductId, roundedL, selectedColor);
                         let statusL = "ACTION REQUIRED: Variant not found!";
                         if (variantL) {
-    const success = await adjustInventory(variantL.inventoryItemId, -spokeCountPerSide, `gid://shopify/Location/${locationId}`, orderData.admin_graphql_api_id);
-    statusL = success ? "Adjusted" : "FAILED to adjust";
-}
-
+                            const success = await adjustInventory(variantL.inventoryItemId, -spokeCountPerSide, `gid://shopify/Location/${locationId}`);
+                            statusL = success ? "Adjusted" : "FAILED to adjust";
+                        }
                         const roundedR = Math.ceil(parseFloat(wheel.lengths.right.geo) / 2) * 2;
                         const variantR = await findVariantForLengthAndColor(spokeProductId, roundedR, selectedColor);
                         let statusR = "ACTION REQUIRED: Variant not found!";
                         if (variantR) {
-    const success = await adjustInventory(variantR.inventoryItemId, -spokeCountPerSide, `gid://shopify/Location/${locationId}`, orderData.admin_graphql_api_id);
-    statusR = success ? "Adjusted" : "FAILED to adjust";
-}
-                        
-                        wheel.inventory = {
-                            left: { length: roundedL, quantity: spokeCountPerSide, status: statusL },
-                            right: { length: roundedR, quantity: spokeCountPerSide, status: statusR }
-                        };
+                            const success = await adjustInventory(variantR.inventoryItemId, -spokeCountPerSide, `gid://shopify/Location/${locationId}`);
+                            statusR = success ? "Adjusted" : "FAILED to adjust";
+                        }
+                        wheel.inventory = { left: { length: roundedL, quantity: spokeCountPerSide, status: statusL }, right: { length: roundedR, quantity: spokeCountPerSide, status: statusR } };
                     } else if (wheel && !wheel.calculationSuccessful) {
                         wheel.inventory = { left: { status: 'N/A' }, right: { status: 'N/A' } };
                     }
                 }
                 
+                // --- FINAL DELIVERY STEPS ---
                 await addNoteToOrder(orderData.admin_graphql_api_id, formatNote(buildReport));
+                await sendEmailReport(buildReport, orderData); // Call the new email function
             }
         }
     } else {
