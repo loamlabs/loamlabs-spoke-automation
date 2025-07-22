@@ -4,6 +4,9 @@
   "description": "Backend function for LoamLabs custom wheel builder.",
   "type": "module",
   "main": "api/index.js",
+  "dependencies": {
+    "resend": "^3.2.0"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
