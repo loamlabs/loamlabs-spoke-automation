@@ -379,8 +379,14 @@ function runCalculationEngine(buildRecipe, componentData) {
         if (spokes.vendor === 'Berd') { return { calculationSuccessful: false, error: 'Calculation not applicable for Berd spokes.' }; }
         const hubType = getMeta(hub.variantId, hub.productId, 'hub_type');
         if (hubType === 'Hook Flange') { return { calculationSuccessful: false, error: `Unsupported type (Hook Flange).` }; }
-        let finalErd = getMeta(rim.variantId, rim.productId, 'rim_erd', true);
-        if (getMeta(rim.variantId, rim.productId, 'rim_washer_policy') !== 'Not Compatible') { finalErd += (2 * getMeta(rim.variantId, rim.productId, 'rim_nipple_washer_thickness_mm', true)); }
+        
+        // This is where the base ERD is correctly fetched.
+        let erd = getMeta(rim.variantId, rim.productId, 'rim_erd', true); 
+        
+        let finalErd = erd; // We will use this variable name consistently now.
+        if (getMeta(rim.variantId, rim.productId, 'rim_washer_policy') !== 'Not Compatible') {
+            finalErd += (2 * getMeta(rim.variantId, rim.productId, 'rim_nipple_washer_thickness_mm', true));
+        }
         
         const hubLacingPolicy = getMeta(hub.variantId, hub.productId, 'hub_lacing_policy');
         const hubManualCrossValue = getMeta(hub.variantId, hub.productId, 'hub_manual_cross_value', true);
@@ -397,9 +403,7 @@ function runCalculationEngine(buildRecipe, componentData) {
         while (!isLacingPossible(spokeCount, finalCrossPattern) && finalCrossPattern > 0) {
             const angleBetweenHoles = 360 / (spokeCount / 2);
             const failingAngle = (finalCrossPattern * angleBetweenHoles).toFixed(2);
-            
             fallbackAlert = `Interference for ${initialCrossPattern}-cross (Angle: ${failingAngle}° >= 90°). Fell back to ${finalCrossPattern - 1}-cross.`;
-            
             console.log(`Interference detected for ${finalCrossPattern}-cross. Falling back...`);
             finalCrossPattern--;
         }
@@ -421,14 +425,22 @@ function runCalculationEngine(buildRecipe, componentData) {
                 left: { geo: lengthL.toFixed(2), stretch: calculateElongation(lengthL, tensionKgf, crossArea).toFixed(2) },
                 right: { geo: lengthR.toFixed(2), stretch: calculateElongation(lengthR, tensionKgf, crossArea).toFixed(2) }
             },
-            inputs: { rim: rim.title, hub: hub.title, spokes: spokes.title, targetTension: tensionKgf }
+            inputs: {
+                rim: rim.title, hub: hub.title, spokes: spokes.title,
+                finalErd: finalErd.toFixed(2), // This now correctly references the 'finalErd' variable
+                targetTension: tensionKgf
+            }
         };
     };
     
     try {
         results.front = calculateForPosition('front');
-        if (buildRecipe.buildType === 'Wheel Set') { results.rear = calculateForPosition('rear'); }
-    } catch (e) { results.errors.push(e.message); }
+        if (buildRecipe.buildType === 'Wheel Set') {
+            results.rear = calculateForPosition('rear');
+        }
+    } catch (e) {
+        results.errors.push(e.message);
+    }
     return results;
 }
 
