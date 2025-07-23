@@ -20,7 +20,7 @@ async function runTest() {
         console.log(`Attempting to send email to ${toEmail}...`);
 
         const { data, error } = await resend.emails.send({
-            from: 'Test Suite <calculator@loamlabs.com>',
+            from: 'Test Suite <calculator@loamlabsusa.com>',
             to: [toEmail],
             reply_to: 'Support <info@loamlabsusa.com>',
             subject: 'Resend API Test',
