@@ -572,7 +572,7 @@ async function sendEmailReport(report, orderData, buildRecipe) {
 
     try {
         const { data, error } = await resend.emails.send({
-            from: 'Spoke Calculator <calculator@loamlabs.com>',
+            from: 'Spoke Calculator <calculator@loamlabsusa.com>',
             to: [recipientEmail],
             reply_to: 'LoamLabs Support <info@loamlabsusa.com>',
             subject: `Spoke Calculation Complete for Order #${orderNumber}`,
