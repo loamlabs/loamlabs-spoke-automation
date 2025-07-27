@@ -925,9 +925,22 @@ export default async function handler(req, res) {
   // --- CORRECTED --- Cron Job Trigger & Secure Verification
   // This block checks if the request is from our scheduled audit job.
   const { source } = req.query;
-  const authHeader = req.headers['authorization']; // <-- THIS IS THE CORRECTED LINE
+  const authHeader = req.headers['authorization']; 
 
   if (source === 'cron-berd-audit') {
+    // =============================================================
+    // --- TEMPORARY DEBUGGING BLOCK ---
+    // =============================================================
+    console.log('--- AUDIT DEBUGGING ---');
+    const expectedSecret = process.env.VERCEL_CRON_SECRET;
+    console.log('Authorization Header Received by function:', authHeader);
+    console.log('Is the VERCEL_CRON_SECRET variable loaded?', !!expectedSecret);
+    if (expectedSecret) {
+      console.log('The loaded secret has a length of:', expectedSecret.length);
+    }
+    console.log('--- END DEBUGGING ---');
+    // =============================================================
+
     // Vercel's Cron Job sends the secret in an 'Authorization: Bearer <secret>' header.
     if (authHeader !== `Bearer ${CRON_SECRET}`) {
       console.warn('AUDIT: Received cron request with invalid or missing secret.');
