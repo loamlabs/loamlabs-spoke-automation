@@ -4,5 +4,11 @@
       "path": "/api/index?source=cron-berd-audit",
       "schedule": "0 3 * * 0"
     }
-  ]
+  ],
+  "functions": {
+    "api/index.js": {
+      "maxDuration": 45,
+      "memory": 3008
+    }
+  }
 }
