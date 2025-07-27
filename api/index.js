@@ -371,12 +371,21 @@ async function handleOrderCancelled(orderData) {
 function runCalculationEngine(buildRecipe, componentData) {
     const results = { front: null, rear: null, errors: [] };
     const getMeta = (variantId, productId, key, isNumber = false, defaultValue = 0) => {
-        const variantMeta = componentData.get(variantId) || {};
-        const productMeta = componentData.get(productId) || {};
-        const value = variantMeta[key] ?? productMeta[key];
-        if (value === undefined || value === null || value === '') { return isNumber ? defaultValue : null; }
-        return isNumber ? parseFloat(value) : value;
-    };
+    const variantMeta = componentData.get(variantId) || {};
+    const productMeta = componentData.get(productId) || {};
+    const value = variantMeta[key] ?? productMeta[key];
+
+    if (value === undefined || value === null || value === '') {
+        return isNumber ? defaultValue : null;
+    }
+
+    if (isNumber) {
+        const num = parseFloat(value);
+        return isNaN(num) ? defaultValue : num;
+    }
+    
+    return value;
+};
 
     const calculateForPosition = (position) => {
         const rim = buildRecipe.components[`${position}Rim`];
@@ -639,18 +648,18 @@ async function sendEmailReport(report, orderData, buildRecipe) {
 
                 <!-- At-a-Glance Summary Box -->
                 <div class="summary-box">
-                    <h3>Final Spoke Lengths</h3>
-                    ${report.front && report.front.calculationSuccessful ? `
-                        <p><strong>Front Wheel (${report.front.crossPattern}-Cross):</strong></p>
-                        <p style="margin-left: 20px;">Left: ${report.front.inventory.left.quantity} x ${report.front.inventory.left.length}mm</p>
-                        <p style="margin-left: 20px;">Right: ${report.front.inventory.right.quantity} x ${report.front.inventory.right.length}mm</p>
-                    ` : ''}
-                    ${report.rear && report.rear.calculationSuccessful ? `
-                        <p><strong>Rear Wheel (${report.rear.crossPattern}-Cross):</strong></p>
-                        <p style="margin-left: 20px;">Left: ${report.rear.inventory.left.quantity} x ${report.rear.inventory.left.length}mm</p>
-                        <p style="margin-left: 20px;">Right: ${report.rear.inventory.right.quantity} x ${report.rear.inventory.right.length}mm</p>
-                    ` : ''}
-                </div>
+    <h3>Final Spoke Lengths</h3>
+    ${report.front && report.front.calculationSuccessful ? `
+        <p><strong>Front Wheel (${typeof report.front.crossPattern === 'object' ? `L:${report.front.crossPattern.left}, R:${report.front.crossPattern.right}` : report.front.crossPattern}-Cross):</strong></p>
+        <p style="margin-left: 20px;">Left: ${report.front.inventory.left.quantity} x ${report.front.inventory.left.length}mm</p>
+        <p style="margin-left: 20px;">Right: ${report.front.inventory.right.quantity} x ${report.front.inventory.right.length}mm</p>
+    ` : ''}
+    ${report.rear && report.rear.calculationSuccessful ? `
+        <p><strong>Rear Wheel (${typeof report.rear.crossPattern === 'object' ? `L:${report.rear.crossPattern.left}, R:${report.rear.crossPattern.right}` : report.rear.crossPattern}-Cross):</strong></p>
+        <p style="margin-left: 20px;">Left: ${report.rear.inventory.left.quantity} x ${report.rear.inventory.left.length}mm</p>
+        <p style="margin-left: 20px;">Right: ${report.rear.inventory.right.quantity} x ${report.rear.inventory.right.length}mm</p>
+    ` : ''}
+</div>
 
                 <!-- Full Details -->
                 ${generateWheelHtml(report.front, 'Front')}
