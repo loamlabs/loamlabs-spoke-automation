@@ -391,7 +391,7 @@ function runCalculationEngine(buildRecipe, componentData) {
         if (spokes.vendor === 'Berd') {
             const hubType = getMeta(hub.variantId, hub.productId, 'hub_type');
             
-            const nippleType = "External";
+            const nippleType = "External"; // Hardcoded for now
             let finalErd;
             if (nippleType === 'Internal') {
                 finalErd = getMeta(rim.variantId, rim.productId, 'rim_erd', true) + 17.0;
@@ -402,7 +402,7 @@ function runCalculationEngine(buildRecipe, componentData) {
             const defaultCross = (spokeCount >= 28) ? 3 : 2;
             const crossL = parseInt(getMeta(hub.variantId, hub.productId, 'hub_manual_cross_value', true) || defaultCross);
             const crossR = parseInt(getMeta(hub.variantId, hub.productId, 'hub_manual_cross_value', true) || defaultCross);
-
+            
             const flangeL = getMeta(hub.variantId, hub.productId, 'hub_flange_offset_left', true);
             const flangeR = getMeta(hub.variantId, hub.productId, 'hub_flange_offset_right', true);
 
@@ -417,8 +417,6 @@ function runCalculationEngine(buildRecipe, componentData) {
                     case 'Hook Flange':    hubConstant = 2.0; break;
                 }
 
-                // --- FIX FOR BUG #1 ---
-                // The tension calculation now correctly uses the pre-calculated metal lengths.
                 const angleLeft = flangeL / metalLengthL;
                 const angleRight = flangeR / metalLengthR;
                 let tensionPercent = (angleLeft < angleRight) ? (isLeft ? 100 : (angleLeft / angleRight * 100)) : (isLeft ? (angleRight / angleLeft * 100) : 100);
@@ -484,8 +482,6 @@ function runCalculationEngine(buildRecipe, componentData) {
             const lengthR = calculateSpokeLength(paramsRight);
             const tensionKgf = getMeta(rim.variantId, rim.productId, 'rim_target_tension_kgf', true, 120);
             const crossArea = getMeta(spokes.variantId, spokes.productId, 'spoke_cross_sectional_area_mm2', true) || getMeta(spokes.variantId, spokes.productId, 'spoke_cross_section_area_mm2', true);
-            
-            // --- FIX FOR BUG #2 ---
             return {
                 calculationSuccessful: true,
                 crossPattern: finalCrossPattern,
