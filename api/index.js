@@ -922,10 +922,10 @@ async function sendEmailReport(report, orderData, buildRecipe) {
 
 // --- MAIN HANDLER FUNCTION with Event Routing ---
 export default async function handler(req, res) {
-  // --- UPDATED --- Cron Job Trigger & Secure Verification
+  // --- CORRECTED --- Cron Job Trigger & Secure Verification
   // This block checks if the request is from our scheduled audit job.
   const { source } = req.query;
-  const authHeader = req.headers.get('authorization');
+  const authHeader = req.headers['authorization']; // <-- THIS IS THE CORRECTED LINE
 
   if (source === 'cron-berd-audit') {
     // Vercel's Cron Job sends the secret in an 'Authorization: Bearer <secret>' header.
@@ -938,7 +938,8 @@ export default async function handler(req, res) {
     runBerdAudit();
     return res.status(200).send('Berd audit triggered successfully.');
   }
-  // --- END of updated block ---
+  // --- END of corrected block ---
+
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
     return res.status(405).end('Method Not Allowed');
