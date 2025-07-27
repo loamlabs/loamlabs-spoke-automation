@@ -76,24 +76,25 @@ async function sendAlertEmail({ subject, html }) {
 async function scrapeBerdOfficialCalculator() {
   console.log('AUDIT: Launching Puppeteer to scrape official Berd site...');
   let browser;
-try {
-  // This is the definitive launch configuration for Vercel
-  browser = await puppeteer.launch({
-    args: [
-      ...chromium.args,
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-infobars',
-      '--window-position=0,0',
-      '--ignore-certifcate-errors',
-      '--ignore-certifcate-errors-spki-list',
-      '--user-agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"'
-    ],
-    executablePath: await chromium.executablePath(),
-    headless: chromium.headless,
-    ignoreHTTPSErrors: true,
-  });
-  const page = await browser.newPage();
+  try {
+    // This is the definitive launch configuration for Vercel
+    browser = await puppeteer.launch({
+      args: [
+        ...chromium.args,
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-infobars',
+        '--window-position=0,0',
+        '--ignore-certifcate-errors',
+        '--ignore-certifcate-errors-spki-list',
+        '--user-agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"'
+      ],
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless,
+      ignoreHTTPSErrors: true,
+    });
+
+    const page = await browser.newPage();
     const url = 'https://berdspokes.com/pages/calculator';
     await page.goto(url, { waitUntil: 'networkidle2' });
     console.log('AUDIT: Page loaded. Filling out FRONT WHEEL form.');
@@ -112,8 +113,6 @@ try {
     await page.fill('input#lacing_pattern_left_front', String(AUDIT_TEST_CASE.build.lacingPattern));
     await page.fill('input#lacing_pattern_right_front', String(AUDIT_TEST_CASE.build.lacingPattern));
 
-    // Wait for the calculation to happen automatically and populate the result fields.
-    // We will wait until the "recommended" length field is not empty.
     const resultSelector = 'input#left_spoke_length_rec_front';
     await page.waitForFunction(
       (selector) => document.querySelector(selector).value !== '',
@@ -122,7 +121,6 @@ try {
     );
     console.log('AUDIT: Calculation results detected.');
 
-    // Extract the results from the correct fields
     const officialLeft = await page.$eval(resultSelector, el => parseFloat(el.value));
     const officialRight = await page.$eval('input#right_spoke_length_rec_front', el => parseFloat(el.value));
 
@@ -137,16 +135,7 @@ try {
     console.error('AUDIT CRITICAL: Failed to scrape Berd calculator.', error);
     await sendAlertEmail({
         subject: 'CRITICAL ALERT: LoamLabs Berd Scraper FAILED',
-        html: `
-            <h1>Berd Scraper Failure</h1>
-            <p>The automated audit system could not complete its check because the web scraper failed. This could be due to:</p>
-            <ul>
-                <li>The Berd Calculator website is down.</li>
-                <li>The website's HTML structure (CSS selectors) has changed.</li>
-            </ul>
-            <p><strong>Action Required:</strong> Please manually check the Berd Calculator and update the selectors in <code>api/index.js</code> if necessary.</p>
-            <p>Error Message: ${error.message}</p>
-        `,
+        html: `<h1>Berd Scraper Failure</h1><p>The automated audit system could not complete its check...</p><p>Error Message: ${error.message}</p>`,
     });
     return null;
   } finally {
