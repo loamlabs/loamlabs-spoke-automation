@@ -1,0 +1,10 @@
+# Dependencies
+/node_modules
+
+# Environment variables
+.env
+.env.*
+
+# Sandboxes and test files
+*.html
+*.js

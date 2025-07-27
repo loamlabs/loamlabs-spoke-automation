@@ -1,10 +1,259 @@
 import { createHmac } from 'crypto';
 import { Resend } from 'resend';
+// --- NEW --- Import puppeteer for web scraping
+import puppeteer from 'puppeteer';
 
 // --- Vercel Config ---
 export const config = { api: { bodyParser: false } };
 
+
+// =================================================================
+// START: BERD AUTOMATED AUDIT SYSTEM (Section 12.4)
+// =================================================================
+
+// --- Configuration for the Audit ---
+// This is our "golden" test case. We will use these exact inputs every time.
+const AUDIT_TEST_CASE = {
+  hub: {
+    hubType: 'Classic Flange',
+    flangeDiameterLeft: 58.0,
+    flangeDiameterRight: 58.0,
+    flangeOffsetLeft: 35.0,
+    flangeOffsetRight: 21.0,
+    spokeHoleDiameter: 2.5,
+    spOffsetLeft: 0,
+    spOffsetRight: 0,
+  },
+  rim: {
+    erd: 599.0,
+    nippleWasherThickness: 0.5,
+  },
+  build: {
+    spokeCount: 28,
+    lacingPattern: 3,
+  }
+};
+
+// This secret must be set as an Environment Variable in Vercel.
+// It ensures that only Vercel's Cron Job can trigger the audit.
+const CRON_SECRET = process.env.VERCEL_CRON_SECRET;
+
+/**
+ * --- NEW ---
+ * Sends a simple alert email for the audit system.
+ * @param {object} params - The email parameters.
+ * @param {string} params.subject - The email subject.
+ * @param {string} params.html - The HTML body of the email.
+ */
+async function sendAlertEmail({ subject, html }) {
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    const recipientEmail = process.env.BUILDER_EMAIL_ADDRESS;
+    if (!recipientEmail) {
+        console.error("AUDIT CRITICAL: BUILDER_EMAIL_ADDRESS is not set. Cannot send alert.");
+        return;
+    }
+    try {
+        await resend.emails.send({
+            from: 'LoamLabs Automation Alert <alerts@loamlabsusa.com>',
+            to: [recipientEmail],
+            subject: subject,
+            html: html,
+        });
+        console.log(`AUDIT: Successfully sent alert email with subject: "${subject}"`);
+    } catch (error) {
+        console.error("AUDIT CRITICAL: Failed to send alert email.", error);
+    }
+}
+
+/**
+ * --- NEW ---
+ * Scrapes the Official BERD Calculator to get the reference spoke length.
+ * IMPORTANT: The CSS selectors below are the most likely part of this system to break.
+ * If this function fails, you must visit the Berd calculator page, inspect the
+ * form elements, and update the selectors to match the current website HTML.
+ * @returns {Promise<{left: number, right: number}|null>} The calculated spoke lengths or null on failure.
+ */
+async function scrapeBerdOfficialCalculator() {
+  console.log('AUDIT: Launching Puppeteer to scrape official Berd site...');
+  let browser;
+  try {
+    browser = await puppeteer.launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+    const page = await browser.newPage();
+    const url = 'https://berdspokes.com/pages/spoke-calculator';
+    await page.goto(url, { waitUntil: 'networkidle2' });
+
+    console.log('AUDIT: Page loaded. Filling form.');
+    
+    // These selectors are confirmed as of the time of writing.
+    await page.select('select#hub_type', 'J-Bend');
+    await page.type('input#pcd_left', String(AUDIT_TEST_CASE.hub.flangeDiameterLeft));
+    await page.type('input#pcd_right', String(AUDIT_TEST_CASE.hub.flangeDiameterRight));
+    await page.type('input#center_to_flange_left', String(AUDIT_TEST_CASE.hub.flangeOffsetLeft));
+    await page.type('input#center_to_flange_right', String(AUDIT_TEST_CASE.hub.flangeOffsetRight));
+    await page.type('input#spoke_hole_diameter', String(AUDIT_TEST_CASE.hub.spokeHoleDiameter));
+    
+    await page.type('input#erd', String(AUDIT_TEST_CASE.rim.erd));
+    await page.select('select#nipple_type', 'External');
+
+    await page.type('input#spoke_count', String(AUDIT_TEST_CASE.build.spokeCount));
+    await page.type('input#lacing_pattern', String(AUDIT_TEST_CASE.build.lacingPattern));
+    await page.select('select#lacing_pattern_right', String(AUDIT_TEST_CASE.build.lacingPattern));
+    
+    await page.click('button[name="calc"]');
+    await page.waitForSelector('input#left_spoke_length_rec', { timeout: 10000 });
+
+    const officialLeft = await page.$eval('input#left_spoke_length_rec', el => parseFloat(el.value));
+    const officialRight = await page.$eval('input#right_spoke_length_rec', el => parseFloat(el.value));
+
+    if (isNaN(officialLeft) || isNaN(officialRight)) {
+        throw new Error('Could not parse official lengths from result fields.');
+    }
+    
+    console.log(`AUDIT: Official Berd result -> Left: ${officialLeft}, Right: ${officialRight}`);
+    return { left: officialLeft, right: officialRight };
+
+  } catch (error) {
+    console.error('AUDIT CRITICAL: Failed to scrape Berd calculator.', error);
+    await sendAlertEmail({
+        subject: 'CRITICAL ALERT: LoamLabs Berd Scraper FAILED',
+        html: `
+            <h1>Berd Scraper Failure</h1>
+            <p>The automated audit system could not complete its check because the web scraper failed. This could be due to:</p>
+            <ul>
+                <li>The Berd Calculator website is down.</li>
+                <li>The website's HTML structure (CSS selectors) has changed.</li>
+            </ul>
+            <p><strong>Action Required:</strong> Please manually check the Berd Calculator and update the selectors in <code>api/index.js</code> if necessary.</p>
+            <p>Error Message: ${error.message}</p>
+        `,
+    });
+    return null;
+  } finally {
+    if (browser) await browser.close();
+  }
+}
+
+/**
+ * --- NEW ---
+ * Calculates the Berd-specific correction factors and returns the final length.
+ * @returns {number} The final Berd length (pre-rounding).
+ */
+function calculateBerdFinalLength(metalLength, hubType, isLeft, { flangeL, flangeR, metalLengthL, metalLengthR }) {
+    let hubConstant = 0.0;
+    switch(hubType) {
+        case 'Classic Flange': hubConstant = 9.0; break;
+        case 'Straight Pull':  hubConstant = 7.5; break;
+        case 'Hook Flange':    hubConstant = 2.0; break;
+    }
+
+    const angleLeft = flangeL / metalLengthL;
+    const angleRight = flangeR / metalLengthR;
+    let tensionPercent = (angleLeft < angleRight) ? (isLeft ? 100 : (angleLeft / angleRight * 100)) : (isLeft ? (angleRight / angleLeft * 100) : 100);
+    
+    const L = 2.5;
+    const tensionComp = 0.000444 * Math.pow(tensionPercent, 2) - 0.1231 * tensionPercent + L;
+    
+    let lengthAdder = 0.0;
+    if (metalLength < 200.0) lengthAdder = 4.0;
+    else if (metalLength < 220.0) lengthAdder = 3.0;
+    else if (metalLength < 240.0) lengthAdder = 2.0;
+    else if (metalLength < 260.0) lengthAdder = 1.0;
+
+    return metalLength + hubConstant + tensionComp + lengthAdder;
+}
+
+/**
+ * --- NEW ---
+ * Runs the internal Berd calculation logic with the golden test case data.
+ * @returns {{left: number, right: number}} The calculated spoke lengths from our internal logic.
+ */
+function runInternalBerdComparison() {
+    console.log('AUDIT: Running internal calculation for comparison...');
+    const { hub, rim, build } = AUDIT_TEST_CASE;
+
+    // For the audit, we assume an external nipple build, which adds washer thickness to the ERD.
+    const finalErd = rim.erd + (2 * rim.nippleWasherThickness);
+    
+    // Calculate base metal lengths
+    const metalLengthL = calculateSpokeLength({ isLeft: true, hubType: hub.hubType, baseCrossPattern: build.lacingPattern, spokeCount: build.spokeCount, finalErd, hubFlangeDiameter: hub.flangeDiameterLeft, flangeOffset: hub.flangeOffsetLeft, spOffset: hub.spOffsetLeft, hubSpokeHoleDiameter: hub.spokeHoleDiameter });
+    const metalLengthR = calculateSpokeLength({ isLeft: false, hubType: hub.hubType, baseCrossPattern: build.lacingPattern, spokeCount: build.spokeCount, finalErd, hubFlangeDiameter: hub.flangeDiameterRight, flangeOffset: hub.flangeOffsetRight, spOffset: hub.spOffsetRight, hubSpokeHoleDiameter: hub.spokeHoleDiameter });
+
+    const berdContext = { flangeL: hub.flangeOffsetLeft, flangeR: hub.flangeOffsetRight, metalLengthL, metalLengthR };
+    
+    const finalBerdLengthL = calculateBerdFinalLength(metalLengthL, hub.hubType, true, berdContext);
+    const finalBerdLengthR = calculateBerdFinalLength(metalLengthR, hub.hubType, false, berdContext);
+    
+    const internalLeft = applyRounding(finalBerdLengthL, 'Berd');
+    const internalRight = applyRounding(finalBerdLengthR, 'Berd');
+    
+    console.log(`AUDIT: Internal result -> Left: ${internalLeft}, Right: ${internalRight}`);
+    return { left: internalLeft, right: internalRight };
+}
+
+/**
+ * --- NEW ---
+ * Main orchestrator for the Berd audit.
+ */
+async function runBerdAudit() {
+  console.log('AUDIT: Starting Berd logic audit.');
+  const officialResult = await scrapeBerdOfficialCalculator();
+  if (!officialResult) {
+    console.log('AUDIT: Halting audit due to scraper failure.');
+    return;
+  }
+
+  const internalResult = runInternalBerdComparison();
+
+  const isMatch = officialResult.left === internalResult.left && officialResult.right === internalResult.right;
+
+  if (isMatch) {
+    console.log('AUDIT: SUCCESS - Internal logic matches official Berd calculator.');
+  } else {
+    console.log('AUDIT: MISMATCH DETECTED - Sending alert email.');
+    await sendAlertEmail({
+        subject: 'ACTION REQUIRED: LoamLabs Berd Logic Mismatch Detected',
+        html: `
+            <h1>Berd Calculation Logic Mismatch</h1>
+            <p>The automated audit has detected a difference between our internal calculation and the official Berd Spoke Calculator. This suggests the official formula may have changed.</p>
+            <p><strong>Manual review is required to prevent incorrect spoke orders.</strong></p>
+            <hr>
+            <h2>Audit Details</h2>
+            <h3>Test Case Inputs:</h3>
+            <pre>${JSON.stringify(AUDIT_TEST_CASE, null, 2)}</pre>
+            <h3>Results:</h3>
+            <ul>
+                <li><strong>Official Calculator Result:</strong> Left: ${officialResult.left} mm, Right: ${officialResult.right} mm</li>
+                <li><strong>Our Internal Result:</strong> Left: ${internalResult.left} mm, Right: ${internalResult.right} mm</li>
+            </ul>
+            <hr>
+            <p><strong>Action Required:</strong> Please investigate the official Berd calculator, update the formula in <code>api/index.js</code>, and re-validate.</p>
+        `,
+    });
+  }
+}
+
+// =================================================================
+// END: BERD AUTOMATED AUDIT SYSTEM
+// =================================================================
+
+
 // --- Helper Functions (Defined Once) ---
+
+/**
+ * --- NEW / REFACTORED ---
+ * Applies the correct rounding rule based on the spoke vendor.
+ * @param {number} length - The raw calculated length.
+ * @param {string} vendor - The vendor of the spoke (e.g., 'Berd' or another brand).
+ * @returns {number} The final, orderable length.
+ */
+function applyRounding(length, vendor) {
+    if (vendor === 'Berd') {
+        // Berd Puller Method: round to nearest whole, then subtract 2.
+        return Math.round(length) - 2;
+    }
+    // Steel Spoke Method: round up to the nearest even number.
+    return Math.ceil(length / 2) * 2;
+}
 
 async function getRawBody(req) {
   const chunks = [];
@@ -382,161 +631,114 @@ async function handleOrderCancelled(orderData) {
 function runCalculationEngine(buildRecipe, componentData) {
     const results = { front: null, rear: null, errors: [] };
     const getMeta = (variantId, productId, key, isNumber = false, defaultValue = 0) => {
-    const variantMeta = componentData.get(variantId) || {};
-    const productMeta = componentData.get(productId) || {};
-    const value = variantMeta[key] ?? productMeta[key];
-
-    if (value === undefined || value === null || value === '') {
-        return isNumber ? defaultValue : null;
-    }
-
-    if (isNumber) {
-        const num = parseFloat(value);
-        return isNaN(num) ? defaultValue : num;
-    }
-    
-    return value;
-};
+        const variantMeta = componentData.get(variantId) || {};
+        const productMeta = componentData.get(productId) || {};
+        const value = variantMeta[key] ?? productMeta[key];
+        if (value === undefined || value === null || value === '') { return isNumber ? defaultValue : null; }
+        if (isNumber) {
+            const num = parseFloat(value);
+            return isNaN(num) ? defaultValue : num;
+        }
+        return value;
+    };
 
     const calculateForPosition = (position) => {
-    const rim = buildRecipe.components[`${position}Rim`];
-    const hub = buildRecipe.components[`${position}Hub`];
-    const spokes = buildRecipe.components[`${position}Spokes`];
-    const spokeCount = parseInt(buildRecipe.specs[`${position}SpokeCount`]?.replace('h', ''), 10);
+        const rim = buildRecipe.components[`${position}Rim`];
+        const hub = buildRecipe.components[`${position}Hub`];
+        const spokes = buildRecipe.components[`${position}Spokes`];
+        const spokeCount = parseInt(buildRecipe.specs[`${position}SpokeCount`]?.replace('h', ''), 10);
 
-    if (!rim || !hub || !spokes || !spokeCount) { 
-        return { calculationSuccessful: false, error: `Skipping ${position} wheel: Missing component.` }; 
-    }
+        if (!rim || !hub || !spokes || !spokeCount) { 
+            return { calculationSuccessful: false, error: `Skipping ${position} wheel: Missing component.` }; 
+        }
 
-    // --- CORRECTED LOGIC: Declare hubType ONCE here ---
-    const hubType = getMeta(hub.variantId, hub.productId, 'hub_type');
+        const hubType = getMeta(hub.variantId, hub.productId, 'hub_type');
 
-    if (spokes.vendor === 'Berd') {
-        // Berd-specific logic starts here
-        const nippleType = "External"; // Hardcoded for now
-        let finalErd;
-        if (nippleType === 'Internal') {
-            finalErd = getMeta(rim.variantId, rim.productId, 'rim_erd', true) + 17.0;
+        if (spokes.vendor === 'Berd') {
+            // --- MODIFIED --- Berd-specific logic now uses the new helper functions
+            const nippleType = "External"; // Hardcoded for now
+            let finalErd;
+            if (nippleType === 'Internal') {
+                finalErd = getMeta(rim.variantId, rim.productId, 'rim_erd', true) + 17.0;
+            } else {
+                finalErd = getMeta(rim.variantId, rim.productId, 'rim_erd', true) + (2 * getMeta(rim.variantId, rim.productId, 'rim_nipple_washer_thickness_mm', true));
+            }
+
+            const defaultCross = (spokeCount >= 28) ? 3 : 2;
+            const crossL = parseInt(getMeta(hub.variantId, hub.productId, 'hub_manual_cross_value', true) || defaultCross);
+            const crossR = parseInt(getMeta(hub.variantId, hub.productId, 'hub_manual_cross_value', true) || defaultCross);
+            
+            const metalLengthL = calculateSpokeLength({ isLeft: true, hubType, baseCrossPattern: crossL, spokeCount, finalErd, hubFlangeDiameter: getMeta(hub.variantId, hub.productId, 'hub_flange_diameter_left', true), flangeOffset: getMeta(hub.variantId, hub.productId, 'hub_flange_offset_left', true), spOffset: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_left', true), hubSpokeHoleDiameter: getMeta(hub.variantId, hub.productId, 'hub_spoke_hole_diameter', true) });
+            const metalLengthR = calculateSpokeLength({ isLeft: false, hubType, baseCrossPattern: crossR, spokeCount, finalErd, hubFlangeDiameter: getMeta(hub.variantId, hub.productId, 'hub_flange_diameter_right', true), flangeOffset: getMeta(hub.variantId, hub.productId, 'hub_flange_offset_right', true), spOffset: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_right', true), hubSpokeHoleDiameter: getMeta(hub.variantId, hub.productId, 'hub_spoke_hole_diameter', true) });
+
+            const berdContext = {
+                flangeL: getMeta(hub.variantId, hub.productId, 'hub_flange_offset_left', true),
+                flangeR: getMeta(hub.variantId, hub.productId, 'hub_flange_offset_right', true),
+                metalLengthL,
+                metalLengthR
+            };
+
+            const finalBerdLengthL = calculateBerdFinalLength(metalLengthL, hubType, true, berdContext);
+            const finalBerdLengthR = calculateBerdFinalLength(metalLengthR, hubType, false, berdContext);
+            
+            return {
+                calculationSuccessful: true,
+                crossPattern: { left: crossL, right: crossR },
+                alert: "BERD calculation applied.",
+                lengths: {
+                    left: { geo: finalBerdLengthL.toFixed(2), rounded: applyRounding(finalBerdLengthL, 'Berd') },
+                    right: { geo: finalBerdLengthR.toFixed(2), rounded: applyRounding(finalBerdLengthR, 'Berd') }
+                },
+                inputs: { rim: rim.title, hub: hub.title, spokes: spokes.title, finalErd: finalErd.toFixed(2), targetTension: getMeta(rim.variantId, rim.productId, 'rim_target_tension_kgf', true, 120) }
+            };
+
         } else {
-            finalErd = getMeta(rim.variantId, rim.productId, 'rim_erd', true) + (2 * getMeta(rim.variantId, rim.productId, 'rim_nipple_washer_thickness_mm', true));
-        }
-
-        const defaultCross = (spokeCount >= 28) ? 3 : 2;
-        const crossL = parseInt(getMeta(hub.variantId, hub.productId, 'hub_manual_cross_value', true) || defaultCross);
-        const crossR = parseInt(getMeta(hub.variantId, hub.productId, 'hub_manual_cross_value', true) || defaultCross);
-        
-        const flangeL = getMeta(hub.variantId, hub.productId, 'hub_flange_offset_left', true);
-        const flangeR = getMeta(hub.variantId, hub.productId, 'hub_flange_offset_right', true);
-
-        const metalLengthL = calculateSpokeLength({ isLeft: true, hubType, baseCrossPattern: crossL, spokeCount, finalErd, hubFlangeDiameter: getMeta(hub.variantId, hub.productId, 'hub_flange_diameter_left', true), flangeOffset: flangeL, spOffset: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_left', true), hubSpokeHoleDiameter: getMeta(hub.variantId, hub.productId, 'hub_spoke_hole_diameter', true) });
-        const metalLengthR = calculateSpokeLength({ isLeft: false, hubType, baseCrossPattern: crossR, spokeCount, finalErd, hubFlangeDiameter: getMeta(hub.variantId, hub.productId, 'hub_flange_diameter_right', true), flangeOffset: flangeR, spOffset: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_right', true), hubSpokeHoleDiameter: getMeta(hub.variantId, hub.productId, 'hub_spoke_hole_diameter', true) });
-
-        const calculateBerdSide = (metalLength, isLeft) => {
-            let hubConstant = 0.0;
-            switch(hubType) {
-                case 'Classic Flange': hubConstant = 9.0; break;
-                case 'Straight Pull':  hubConstant = 7.5; break;
-                case 'Hook Flange':    hubConstant = 2.0; break;
-            }
-
-            const angleLeft = flangeL / metalLengthL;
-            const angleRight = flangeR / metalLengthR;
-            let tensionPercent = (angleLeft < angleRight) ? (isLeft ? 100 : (angleLeft / angleRight * 100)) : (isLeft ? (angleRight / angleLeft * 100) : 100);
+            // Steel spoke logic
+            if (hubType === 'Hook Flange') { return { calculationSuccessful: false, error: `Unsupported type (Hook Flange).` }; }
             
-            const L = 2.5;
-            const tensionComp = 0.000444 * Math.pow(tensionPercent, 2) - 0.1231 * tensionPercent + L;
-            
-            let lengthAdder = 0.0;
-            if (metalLength < 200.0) lengthAdder = 4.0;
-            else if (metalLength < 220.0) lengthAdder = 3.0;
-            else if (metalLength < 240.0) lengthAdder = 2.0;
-            else if (metalLength < 260.0) lengthAdder = 1.0;
-
-            const finalBerdLength = metalLength + hubConstant + tensionComp + lengthAdder;
-            const standardRecLength = Math.round(finalBerdLength); 
-            const pullerRecLength = standardRecLength - 2;
-
-            return { geo: finalBerdLength.toFixed(2), rounded: pullerRecLength };
-        };
-        
-        const berdLengthsLeft = calculateBerdSide(metalLengthL, true);
-        const berdLengthsRight = calculateBerdSide(metalLengthR, false);
-
-        const tensionKgf = getMeta(rim.variantId, rim.productId, 'rim_target_tension_kgf', true, 120);
-
-        return {
-            calculationSuccessful: true,
-            crossPattern: { left: crossL, right: crossR },
-            alert: "BERD calculation applied.",
-            lengths: {
-                left: { geo: berdLengthsLeft.geo, rounded: berdLengthsLeft.rounded },
-                right: { geo: berdLengthsRight.geo, rounded: berdLengthsRight.rounded }
-            },
-            inputs: { 
-                rim: rim.title, 
-                hub: hub.title, 
-                spokes: spokes.title, 
-                finalErd: finalErd.toFixed(2), 
-                targetTension: tensionKgf
+            let erd = getMeta(rim.variantId, rim.productId, 'rim_erd', true); 
+            let finalErd = erd;
+            if (getMeta(rim.variantId, rim.productId, 'rim_washer_policy') !== 'Not Compatible') {
+                finalErd += (2 * getMeta(rim.variantId, rim.productId, 'rim_nipple_washer_thickness_mm', true));
             }
-        };
-
-    } else {
-        // Steel spoke logic starts here
-        if (hubType === 'Hook Flange') { return { calculationSuccessful: false, error: `Unsupported type (Hook Flange).` }; }
-        
-        let erd = getMeta(rim.variantId, rim.productId, 'rim_erd', true); 
-        let finalErd = erd;
-        if (getMeta(rim.variantId, rim.productId, 'rim_washer_policy') !== 'Not Compatible') {
-            finalErd += (2 * getMeta(rim.variantId, rim.productId, 'rim_nipple_washer_thickness_mm', true));
-        }
         
         const hubLacingPolicy = getMeta(hub.variantId, hub.productId, 'hub_lacing_policy');
-        const hubManualCrossValue = getMeta(hub.variantId, hub.productId, 'hub_manual_cross_value', true);
-        let initialCrossPattern;
-        if (hubLacingPolicy === 'Use Manual Override Field' && hubManualCrossValue > 0) {
-            initialCrossPattern = hubManualCrossValue;
-        } else {
-            initialCrossPattern = (spokeCount >= 28) ? 3 : 2;
+            const hubManualCrossValue = getMeta(hub.variantId, hub.productId, 'hub_manual_cross_value', true);
+            let initialCrossPattern = (hubLacingPolicy === 'Use Manual Override Field' && hubManualCrossValue > 0) ? hubManualCrossValue : ((spokeCount >= 28) ? 3 : 2);
+            let finalCrossPattern = initialCrossPattern;
+            let fallbackAlert = null;
+            while (!isLacingPossible(spokeCount, finalCrossPattern) && finalCrossPattern > 0) {
+                fallbackAlert = `Interference for ${initialCrossPattern}-cross...Fell back to ${finalCrossPattern - 1}-cross.`;
+                finalCrossPattern--;
+            }
+            
+            const commonParams = { hubType, baseCrossPattern: finalCrossPattern, spokeCount, finalErd, rimSpokeHoleOffset: getMeta(rim.variantId, rim.productId, 'rim_spoke_hole_offset', true), hubSpokeHoleDiameter: getMeta(hub.variantId, hub.productId, 'hub_spoke_hole_diameter', true) };
+            const paramsLeft = { ...commonParams, isLeft: true, hubFlangeDiameter: getMeta(hub.variantId, hub.productId, 'hub_flange_diameter_left', true), flangeOffset: getMeta(hub.variantId, hub.productId, 'hub_flange_offset_left', true), spOffset: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_left', true) };
+            const paramsRight = { ...commonParams, isLeft: false, hubFlangeDiameter: getMeta(hub.variantId, hub.productId, 'hub_flange_diameter_right', true), flangeOffset: getMeta(hub.variantId, hub.productId, 'hub_flange_offset_right', true), spOffset: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_right', true) };
+            
+            const lengthL = calculateSpokeLength(paramsLeft);
+            const lengthR = calculateSpokeLength(paramsRight);
+            
+            const tensionKgf = getMeta(rim.variantId, rim.productId, 'rim_target_tension_kgf', true, 120);
+            const crossArea = getMeta(spokes.variantId, spokes.productId, 'spoke_cross_sectional_area_mm2', true) || getMeta(spokes.variantId, spokes.productId, 'spoke_cross_section_area_mm2', true);
+            
+            return {
+                calculationSuccessful: true,
+                crossPattern: finalCrossPattern,
+                alert: fallbackAlert,
+                lengths: {
+                    // --- MODIFIED --- Steel spoke logic now uses the new rounding helper
+                    left: { geo: lengthL.toFixed(2), stretch: calculateElongation(lengthL, tensionKgf, crossArea).toFixed(2), rounded: applyRounding(lengthL, 'Steel') },
+                    right: { geo: lengthR.toFixed(2), stretch: calculateElongation(lengthR, tensionKgf, crossArea).toFixed(2), rounded: applyRounding(lengthR, 'Steel') }
+                },
+                inputs: { rim: rim.title, hub: hub.title, spokes: spokes.title, finalErd: finalErd.toFixed(2), targetTension: tensionKgf }
+            };
         }
-        
-        let finalCrossPattern = initialCrossPattern;
-        let fallbackAlert = null;
-        while (!isLacingPossible(spokeCount, finalCrossPattern) && finalCrossPattern > 0) {
-            const angleBetweenHoles = 360 / (spokeCount / 2);
-            const failingAngle = (finalCrossPattern * angleBetweenHoles).toFixed(2);
-            fallbackAlert = `Interference for ${initialCrossPattern}-cross (Angle: ${failingAngle}° >= 90°). Fell back to ${finalCrossPattern - 1}-cross.`;
-            finalCrossPattern--;
-        }
-        
-        const commonParams = { hubType, baseCrossPattern: finalCrossPattern, spokeCount, finalErd, rimSpokeHoleOffset: getMeta(rim.variantId, rim.productId, 'rim_spoke_hole_offset', true), hubSpokeHoleDiameter: getMeta(hub.variantId, hub.productId, 'hub_spoke_hole_diameter', true) };
-        const paramsLeft = { ...commonParams, isLeft: true, hubFlangeDiameter: getMeta(hub.variantId, hub.productId, 'hub_flange_diameter_left', true), flangeOffset: getMeta(hub.variantId, hub.productId, 'hub_flange_offset_left', true), spOffset: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_left', true) };
-        const paramsRight = { ...commonParams, isLeft: false, hubFlangeDiameter: getMeta(hub.variantId, hub.productId, 'hub_flange_diameter_right', true), flangeOffset: getMeta(hub.variantId, hub.productId, 'hub_flange_offset_right', true), spOffset: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_right', true) };
-        
-        const lengthL = calculateSpokeLength(paramsLeft);
-        const lengthR = calculateSpokeLength(paramsRight);
-        
-        const tensionKgf = getMeta(rim.variantId, rim.productId, 'rim_target_tension_kgf', true, 120);
-        const crossArea = getMeta(spokes.variantId, spokes.productId, 'spoke_cross_sectional_area_mm2', true) || getMeta(spokes.variantId, spokes.productId, 'spoke_cross_section_area_mm2', true);
-        
-        return {
-            calculationSuccessful: true,
-            crossPattern: finalCrossPattern,
-            alert: fallbackAlert,
-            lengths: {
-                left: { geo: lengthL.toFixed(2), stretch: calculateElongation(lengthL, tensionKgf, crossArea).toFixed(2), rounded: Math.ceil(lengthL / 2) * 2 },
-                right: { geo: lengthR.toFixed(2), stretch: calculateElongation(lengthR, tensionKgf, crossArea).toFixed(2), rounded: Math.ceil(lengthR / 2) * 2 }
-            },
-            inputs: { rim: rim.title, hub: hub.title, spokes: spokes.title, finalErd: finalErd.toFixed(2), targetTension: tensionKgf }
-        };
-    }
-};
+    };
     
     try {
         results.front = calculateForPosition('front');
-        if (buildRecipe.buildType === 'Wheel Set') {
-            results.rear = calculateForPosition('rear');
-        }
+        if (buildRecipe.buildType === 'Wheel Set') { results.rear = calculateForPosition('rear'); }
     } catch (e) {
         results.errors.push(e.message);
     }
@@ -720,6 +922,20 @@ async function sendEmailReport(report, orderData, buildRecipe) {
 
 // --- MAIN HANDLER FUNCTION with Event Routing ---
 export default async function handler(req, res) {
+  // --- NEW --- Cron Job Trigger Logic
+  // This block checks if the request is from our scheduled audit job.
+  const { source, secret } = req.query;
+  if (source === 'cron-berd-audit') {
+    if (secret !== CRON_SECRET) {
+      console.warn('AUDIT: Received cron request with invalid secret.');
+      return res.status(401).send('Unauthorized');
+    }
+    // Run the audit in the background and return a success response immediately.
+    runBerdAudit();
+    return res.status(200).send('Berd audit triggered successfully.');
+  }
+  // --- END of new block ---
+
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
     return res.status(405).end('Method Not Allowed');
