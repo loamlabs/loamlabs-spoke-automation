@@ -75,25 +75,23 @@ function calculateElongation(spokeLength, tensionKgf, crossSectionalArea) {
 }
 
 function calculateSpokeLength(params) {
-    const { isLeft, hubType, baseCrossPattern, spokeCount, finalErd, hubFlangeDiameter, flangeOffset, rimSpokeHoleOffset, spOffset, hubSpokeHoleDiameter } = params;
-    const hubRadius = hubFlangeDiameter / 2;
-    const rimRadius = finalErd / 2;
+    const { isLeft, hubType, baseCrossPattern, spokeCount, finalErd, hubFlangeDiameter, flangeOffset, spOffset, hubSpokeHoleDiameter } = params;
     let effectiveCrossPattern = baseCrossPattern;
     if (hubType === 'Straight Pull' && baseCrossPattern > 0) {
         effectiveCrossPattern += 0.5;
     }
     const angle = (2 * Math.PI * effectiveCrossPattern) / (spokeCount / 2);
-    const finalZOffset = flangeOffset + (isLeft ? -rimSpokeHoleOffset : rimSpokeHoleOffset);
+    const finalZOffset = flangeOffset; // Asymmetry is handled in the finalErd
     const term1 = Math.pow(finalZOffset, 2);
-    const term2 = Math.pow(hubRadius, 2);
-    const term3 = Math.pow(rimRadius, 2);
-    const term4 = 2 * hubRadius * rimRadius * Math.cos(angle);
+    const term2 = Math.pow(hubFlangeDiameter / 2, 2);
+    const term3 = Math.pow(finalErd / 2, 2);
+    const term4 = 2 * (hubFlangeDiameter / 2) * (finalErd / 2) * Math.cos(angle);
     const geometricLength = Math.sqrt(term1 + term2 + term3 - term4);
+
     let finalLength;
-    if (hubType === 'Classic Flange') {
-        if (isNaN(hubSpokeHoleDiameter)) { throw new Error("Missing Hub Spoke Hole Diameter for Classic hub."); }
+    if (hubType === 'Classic Flange' || hubType === 'Hook Flange') {
         finalLength = geometricLength - (hubSpokeHoleDiameter / 2);
-    } else {
+    } else { // Straight Pull
         finalLength = geometricLength + spOffset;
     }
     return finalLength;
@@ -415,8 +413,8 @@ function runCalculationEngine(buildRecipe, componentData) {
             const flangeL = getMeta(hub.variantId, hub.productId, 'hub_flange_offset_left', true);
             const flangeR = getMeta(hub.variantId, hub.productId, 'hub_flange_offset_right', true);
 
-            const metalLengthL = calculateSpokeLength({ isLeft: true, hubType, baseCrossPattern: crossL, spokeCount, finalErd, hubFlangeDiameter: getMeta(hub.variantId, hub.productId, 'hub_flange_diameter_left', true), flangeOffset: flangeL, spOffset: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_left', true), hubSpokeHoleDiameter: getMeta(hub.variantId, hub.productId, 'hub_spoke_hole_diameter', true, 2.6) });
-            const metalLengthR = calculateSpokeLength({ isLeft: false, hubType, baseCrossPattern: crossR, spokeCount, finalErd, hubFlangeDiameter: getMeta(hub.variantId, hub.productId, 'hub_flange_diameter_right', true), flangeOffset: flangeR, spOffset: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_right', true), hubSpokeHoleDiameter: getMeta(hub.variantId, hub.productId, 'hub_spoke_hole_diameter', true, 2.6) });
+            const metalLengthL = calculateSpokeLength({ isLeft: true, hubType, baseCrossPattern: crossL, spokeCount, finalErd, hubFlangeDiameter: getMeta(hub.variantId, hub.productId, 'hub_flange_diameter_left', true), flangeOffset: flangeL, spOffset: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_left', true), hubSpokeHoleDiameter: getMeta(hub.variantId, hub.productId, 'hub_spoke_hole_diameter', true) });
+const metalLengthR = calculateSpokeLength({ isLeft: false, hubType, baseCrossPattern: crossR, spokeCount, finalErd, hubFlangeDiameter: getMeta(hub.variantId, hub.productId, 'hub_flange_diameter_right', true), flangeOffset: flangeR, spOffset: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_right', true), hubSpokeHoleDiameter: getMeta(hub.variantId, hub.productId, 'hub_spoke_hole_diameter', true) });
 
             const calculateBerdSide = (metalLength, isLeft) => {
                 let hubConstant = 0.0;
