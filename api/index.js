@@ -330,35 +330,48 @@ async function handleOrderCancelled(orderData) {
     let restockNote = "AUTOMATED RESTOCK COMPLETE\n--------------------------\n";
     let actionIndex = 0;
 
+    // THIS IS THE NEW, CORRECTED LOOP
     for (const position of ['front', 'rear']) {
         const spokeComponent = buildRecipe.components[`${position}Spokes`];
-        if (spokeComponent && spokeComponent.vendor !== 'Berd') {
-            const colorOption = spokeComponent.selectedOptions.find(opt => opt.name === 'Color');
-            const selectedColor = colorOption ? colorOption.value : null;
+        if (!spokeComponent) continue; // Skip if no spokes for this position
 
-            // Process Left Side for this wheel
-            if (actionIndex < restockActions.length) {
-                const action = restockActions[actionIndex++];
-                const variant = await findVariantForLengthAndColor(spokeComponent.productId, action.length, selectedColor);
-                if (variant) {
-                    const success = await adjustInventory(variant.inventoryItemId, action.quantity, `gid://shopify/Location/${locationId}`); // Positive number
-                    const status = success ? "Restocked" : "FAILED";
-                    restockNote += `- Left (${position}): ${action.quantity} x ${action.length}mm (${selectedColor}) - ${status}\n`;
-                } else {
-                    restockNote += `- Left (${position}): ${action.quantity} x ${action.length}mm (${selectedColor}) - FAILED (Variant not found)\n`;
-                }
+        const colorOption = spokeComponent.selectedOptions.find(opt => opt.name === 'Color');
+        const selectedColor = colorOption ? colorOption.value : null;
+
+        if (!selectedColor) {
+            restockNote += `- ${position.toUpperCase()}: SKIPPED (Could not determine original color)\n`;
+            continue;
+        }
+
+        // --- NEW: Smart Color Logic for Restocking ---
+        let inventoryColor = selectedColor; // Start with the selected color
+        if (spokeComponent.vendor === 'Berd' && selectedColor !== 'Black Berd' && selectedColor !== 'White Berd') {
+            inventoryColor = 'White Berd'; // If it was a custom color, restock the 'White Berd' variant
+        }
+        // --- End of New Logic ---
+
+        // Process Left Side for this wheel
+        if (actionIndex < restockActions.length) {
+            const action = restockActions[actionIndex++];
+            const variant = await findVariantForLengthAndColor(spokeComponent.productId, action.length, inventoryColor);
+            if (variant) {
+                const success = await adjustInventory(variant.inventoryItemId, action.quantity, `gid://shopify/Location/${locationId}`); // Positive number
+                const status = success ? "Restocked" : "FAILED";
+                restockNote += `- Left (${position}): ${action.quantity} x ${action.length}mm (${inventoryColor}) - ${status}\n`;
+            } else {
+                restockNote += `- Left (${position}): ${action.quantity} x ${action.length}mm (${inventoryColor}) - FAILED (Variant not found)\n`;
             }
-            // Process Right Side for this wheel
-            if (actionIndex < restockActions.length) {
-                 const action = restockActions[actionIndex++];
-                const variant = await findVariantForLengthAndColor(spokeComponent.productId, action.length, selectedColor);
-                if (variant) {
-                    const success = await adjustInventory(variant.inventoryItemId, action.quantity, `gid://shopify/Location/${locationId}`); // Positive number
-                    const status = success ? "Restocked" : "FAILED";
-                    restockNote += `- Right (${position}): ${action.quantity} x ${action.length}mm (${selectedColor}) - ${status}\n`;
-                } else {
-                    restockNote += `- Right (${position}): ${action.quantity} x ${action.length}mm (${selectedColor}) - FAILED (Variant not found)\n`;
-                }
+        }
+        // Process Right Side for this wheel
+        if (actionIndex < restockActions.length) {
+            const action = restockActions[actionIndex++];
+            const variant = await findVariantForLengthAndColor(spokeComponent.productId, action.length, inventoryColor);
+            if (variant) {
+                const success = await adjustInventory(variant.inventoryItemId, action.quantity, `gid://shopify/Location/${locationId}`); // Positive number
+                const status = success ? "Restocked" : "FAILED";
+                restockNote += `- Right (${position}): ${action.quantity} x ${action.length}mm (${inventoryColor}) - ${status}\n`;
+            } else {
+                restockNote += `- Right (${position}): ${action.quantity} x ${action.length}mm (${inventoryColor}) - FAILED (Variant not found)\n`;
             }
         }
     }
@@ -447,6 +460,9 @@ const metalLengthR = calculateSpokeLength({ isLeft: false, hubType, baseCrossPat
             const berdLengthsLeft = calculateBerdSide(metalLengthL, true);
             const berdLengthsRight = calculateBerdSide(metalLengthR, false);
 
+            // Get the target tension from the rim metafield
+            const tensionKgf = getMeta(rim.variantId, rim.productId, 'rim_target_tension_kgf', true, 120);
+
             return {
                 calculationSuccessful: true,
                 crossPattern: { left: crossL, right: crossR },
@@ -455,10 +471,14 @@ const metalLengthR = calculateSpokeLength({ isLeft: false, hubType, baseCrossPat
                     left: { geo: berdLengthsLeft.geo, rounded: berdLengthsLeft.rounded },
                     right: { geo: berdLengthsRight.geo, rounded: berdLengthsRight.rounded }
                 },
-                inputs: { rim: rim.title, hub: hub.title, spokes: spokes.title, finalErd: finalErd.toFixed(2), targetTension: 'N/A' }
+                inputs: { 
+                    rim: rim.title, 
+                    hub: hub.title, 
+                    spokes: spokes.title, 
+                    finalErd: finalErd.toFixed(2), 
+                    targetTension: tensionKgf // Use the value we just fetched
+                }
             };
-
-        } else {
             const hubType = getMeta(hub.variantId, hub.productId, 'hub_type');
             if (hubType === 'Hook Flange') { return { calculationSuccessful: false, error: `Unsupported type (Hook Flange).` }; }
             let erd = getMeta(rim.variantId, rim.productId, 'rim_erd', true); 
