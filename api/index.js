@@ -1,7 +1,8 @@
 import { createHmac } from 'crypto';
 import { Resend } from 'resend';
 // --- NEW --- Import puppeteer for web scraping
-import puppeteer from 'puppeteer';
+import chromium from '@sparticuz/chromium';
+import puppeteer from 'puppeteer-core';
 
 // --- Vercel Config ---
 export const config = { api: { bodyParser: false } };
@@ -76,9 +77,15 @@ async function sendAlertEmail({ subject, html }) {
 async function scrapeBerdOfficialCalculator() {
   console.log('AUDIT: Launching Puppeteer to scrape official Berd site...');
   let browser;
-  try {
-    browser = await puppeteer.launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'] });
-    const page = await browser.newPage();
+try {
+  browser = await puppeteer.launch({
+    args: chromium.args,
+    defaultViewport: chromium.defaultViewport,
+    executablePath: await chromium.executablePath(),
+    headless: chromium.headless,
+    ignoreHTTPSErrors: true,
+  });
+  const page = await browser.newPage();
     const url = 'https://berdspokes.com/pages/spoke-calculator';
     await page.goto(url, { waitUntil: 'networkidle2' });
 
