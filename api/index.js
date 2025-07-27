@@ -36,7 +36,7 @@ const AUDIT_TEST_CASE = {
 
 // This secret must be set as an Environment Variable in Vercel.
 // It ensures that only Vercel's Cron Job can trigger the audit.
-const CRON_SECRET = process.env.VERCEL_CRON_SECRET;
+const CRON_SECRET = process.env.CRON_SECRET;
 
 /**
  * --- NEW ---
@@ -928,19 +928,7 @@ export default async function handler(req, res) {
   const authHeader = req.headers['authorization']; 
 
   if (source === 'cron-berd-audit') {
-    // =============================================================
-    // --- TEMPORARY DEBUGGING BLOCK ---
-    // =============================================================
-    console.log('--- AUDIT DEBUGGING ---');
-    const expectedSecret = process.env.VERCEL_CRON_SECRET;
-    console.log('Authorization Header Received by function:', authHeader);
-    console.log('Is the VERCEL_CRON_SECRET variable loaded?', !!expectedSecret);
-    if (expectedSecret) {
-      console.log('The loaded secret has a length of:', expectedSecret.length);
-    }
-    console.log('--- END DEBUGGING ---');
-    // =============================================================
-
+    
     // Vercel's Cron Job sends the secret in an 'Authorization: Bearer <secret>' header.
     if (authHeader !== `Bearer ${CRON_SECRET}`) {
       console.warn('AUDIT: Received cron request with invalid or missing secret.');
