@@ -7,11 +7,11 @@ export const config = { api: { bodyParser: false } };
 // --- Helper Functions (Defined Once) ---
 
 async function getRawBody(req) {
-    const chunks = [];
-    for await (const chunk of req) {
-        chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
-    }
-    return Buffer.concat(chunks);
+  const chunks = [];
+  for await (const chunk of req) {
+    chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
+  }
+  return Buffer.concat(chunks);
 }
 
 async function shopifyAdminApiQuery(query, variables) {
@@ -29,17 +29,17 @@ async function shopifyAdminApiQuery(query, variables) {
 }
 
 async function fetchComponentData(buildRecipe) {
-    const ids = new Set();
-    Object.values(buildRecipe.components).forEach(comp => {
-        if (comp && comp.variantId && comp.productId) {
-            ids.add(comp.variantId);
-            ids.add(comp.productId);
-        }
-    });
+  const ids = new Set();
+  Object.values(buildRecipe.components).forEach(comp => {
+    if (comp && comp.variantId && comp.productId) {
+      ids.add(comp.variantId);
+      ids.add(comp.productId);
+    }
+  });
 
-    if (ids.size === 0) { return null; }
-    
-    const query = `
+  if (ids.size === 0) { return null; }
+  
+  const query = `
     query getComponentMetafields($ids: [ID!]!) {
       nodes(ids: $ids) {
         id
@@ -48,21 +48,21 @@ async function fetchComponentData(buildRecipe) {
       }
     }
   `;
-    try {
-        const data = await shopifyAdminApiQuery(query, { ids: Array.from(ids) });
-        const componentDataMap = new Map();
-        data.nodes.forEach(node => {
-            if (node) {
-                const metafields = {};
-                node.metafields.nodes.forEach(mf => { if (mf.namespace === 'custom') { metafields[mf.key] = mf.value; } });
-                componentDataMap.set(node.id, metafields);
-            }
-        });
-        return componentDataMap;
-    } catch (error) {
-        console.error('Error fetching component data from Shopify:', error);
-        return null;
-    }
+  try {
+    const data = await shopifyAdminApiQuery(query, { ids: Array.from(ids) });
+    const componentDataMap = new Map();
+    data.nodes.forEach(node => {
+        if (node) {
+            const metafields = {};
+            node.metafields.nodes.forEach(mf => { if (mf.namespace === 'custom') { metafields[mf.key] = mf.value; } });
+            componentDataMap.set(node.id, metafields);
+        }
+    });
+    return componentDataMap;
+  } catch (error) {
+    console.error('Error fetching component data from Shopify:', error);
+    return null;
+  }
 }
 
 function calculateElongation(spokeLength, tensionKgf, crossSectionalArea) {
@@ -333,6 +333,177 @@ function runCalculationEngine(buildRecipe, componentData) {
     return results;
 }
 
+function formatNote(report) {
+    let note = "AUTOMATED SPOKE CALCULATION & INVENTORY\n---------------------------------------\n";
+    const formatSide = (wheel, position) => {
+        if (!wheel) return ``;
+        if (!wheel.calculationSuccessful) return `\n${position.toUpperCase()} WHEEL: CALC FAILED - ${wheel.error}`;
+        
+        let crossText = (typeof wheel.crossPattern === 'object') 
+            ? `L:${wheel.crossPattern.left}-Cross, R:${wheel.crossPattern.right}-Cross`
+            : `${wheel.crossPattern}-Cross`;
+
+        let wheelNote = `\n${position.toUpperCase()} WHEEL (${crossText}):\n`;
+        
+        if (wheel.alert) {
+            wheelNote += `  ALERT: ${wheel.alert}\n`;
+        }
+        
+        wheelNote += `  Rim: ${wheel.inputs.rim}\n` +
+               `  Hub: ${wheel.inputs.hub}\n` +
+               `  Spokes: ${wheel.inputs.spokes}\n` +
+               `  Target Tension: ${wheel.inputs.targetTension} kgf\n` +
+               `  --- Calculated Lengths ---\n`;
+
+        if (wheel.inputs.spokes.includes("Berd")) {
+            wheelNote += `  Left (Raw BERD): ${wheel.lengths.left.geo} mm\n` +
+                         `  Right (Raw BERD): ${wheel.lengths.right.geo} mm\n`;
+        } else {
+            wheelNote += `  Left (Geo):  ${wheel.lengths.left.geo} mm (Stretch: ${wheel.lengths.left.stretch} mm)\n` +
+                         `  Right (Geo): ${wheel.lengths.right.geo} mm (Stretch: ${wheel.lengths.right.stretch} mm)\n`;
+        }
+        
+        wheelNote += `  --- Inventory Adjustments ---\n` +
+               `  Left: ${wheel.inventory.left.quantity} x ${wheel.inventory.left.length}mm (${wheel.inventory.left.status})\n` +
+               `  Right: ${wheel.inventory.right.quantity} x ${wheel.inventory.right.length}mm (${wheel.inventory.right.status})`;
+        
+        return wheelNote;
+    };
+    note += formatSide(report.front, 'Front');
+    note += formatSide(report.rear, 'Rear');
+    if (report.errors && report.errors.length > 0) { note += `\n\nWARNINGS:\n- ${report.errors.join('\n- ')}`; }
+    return note;
+}
+
+async function sendEmailReport(report, orderData, buildRecipe) {
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    const recipientEmail = process.env.BUILDER_EMAIL_ADDRESS;
+    const orderNumber = orderData.order_number;
+    const orderAdminUrl = `https://${process.env.SHOPIFY_STORE_DOMAIN}/admin/orders/${orderData.id}`;
+
+    if (!recipientEmail) {
+        console.error("CRITICAL: BUILDER_EMAIL_ADDRESS environment variable is not set. Cannot send email.");
+        return;
+    }
+
+    const generateWheelHtml = (wheel, position) => {
+        if (!wheel) return '';
+        if (!wheel.calculationSuccessful) {
+            return `
+                <h3>${position.toUpperCase()} WHEEL REPORT</h3>
+                <p style="color: #D8000C; background-color: #FFD2D2; padding: 10px; border-radius: 3px;">
+                    <strong>CALCULATION FAILED:</strong> ${wheel.error}
+                </p>
+            `;
+        }
+        
+        let crossText = (typeof wheel.crossPattern === 'object') 
+            ? `L:${wheel.crossPattern.left}-Cross, R:${wheel.crossPattern.right}-Cross`
+            : `${wheel.crossPattern}-Cross`;
+
+        return `
+            <div class="wheel-section">
+                <h3>${position.toUpperCase()} WHEEL DETAILS</h3>
+                
+                <h4>Lacing Decision</h4>
+                <p>Final pattern used: <strong>${crossText}</strong>.</p>
+                ${wheel.alert ? `<p class="alert"><strong>NOTE:</strong> ${wheel.alert}</p>` : (wheel.inputs.spokes.includes("Berd") ? '' : '<p>The default lacing pattern passed the interference check.</p>')}
+
+                <h4>Key Inputs</h4>
+                <table class="data-table">
+                    <tr><td>Rim</td><td>${wheel.inputs.rim}</td></tr>
+                    <tr><td>Hub</td><td>${wheel.inputs.hub}</td></tr>
+                    <tr><td>Spokes</td><td>${wheel.inputs.spokes}</td></tr>
+                    <tr><td>Final Adjusted ERD</td><td><strong>${wheel.inputs.finalErd} mm</strong></td></tr>
+                    <tr><td>Target Tension</td><td>${wheel.inputs.targetTension} kgf</td></tr>
+                </table>
+
+                <h4>Calculated Lengths (Pre-Rounding)</h4>
+                <table class="data-table">
+                    ${wheel.inputs.spokes.includes("Berd") ? `
+                        <tr><td>Left (Raw BERD)</td><td>${wheel.lengths.left.geo} mm</td></tr>
+                        <tr><td>Right (Raw BERD)</td><td>${wheel.lengths.right.geo} mm</td></tr>
+                    ` : `
+                        <tr><td>Left (Geo)</td><td>${wheel.lengths.left.geo} mm (Stretch: ${wheel.lengths.left.stretch} mm)</td></tr>
+                        <tr><td>Right (Geo)</td><td>${wheel.lengths.right.geo} mm (Stretch: ${wheel.lengths.right.stretch} mm)</td></tr>
+                    `}
+                </table>
+
+                <h4>Inventory Adjustments (Final Lengths)</h4>
+                <table class="data-table">
+                    <tr><td>Left</td><td><strong>${wheel.inventory.left.quantity} x ${wheel.inventory.left.length}mm</strong> (${wheel.inventory.left.status})</td></tr>
+                    <tr><td>Right</td><td><strong>${wheel.inventory.right.quantity} x ${wheel.inventory.right.length}mm</strong> (${wheel.inventory.right.status})</td></tr>
+                </table>
+            </div>
+        `;
+    };
+    
+    const emailHtml = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #333; line-height: 1.6; }
+                .container { max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
+                h1, h2, h3, h4 { color: #111; }
+                a { color: #007bff; text-decoration: none; }
+                .summary-box { background-color: #f4f4f7; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
+                .summary-box h3 { margin-top: 0; }
+                .summary-box p { margin: 5px 0; font-size: 1.1em; }
+                .wheel-section { margin-top: 20px; border-top: 1px solid #eee; padding-top: 20px; }
+                .data-table { border-collapse: collapse; width: 100%; margin-bottom: 15px; }
+                .data-table td { padding: 8px; border: 1px solid #ddd; }
+                .data-table td:first-child { font-weight: bold; background-color: #f9f9f9; width: 150px; }
+                .alert { color: #9F6000; background-color: #FEEFB3; padding: 10px; border-radius: 3px; }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h2>Spoke Report for Order #${orderNumber}</h2>
+                <p>Build ID: ${buildRecipe.buildId} | <a href="${orderAdminUrl}"><strong>View Order in Shopify →</strong></a></p>
+
+                <div class="summary-box">
+                    <h3>Final Spoke Lengths</h3>
+                    ${report.front && report.front.calculationSuccessful ? `
+                        <p><strong>Front Wheel (${typeof report.front.crossPattern === 'object' ? `L:${report.front.crossPattern.left}, R:${report.front.crossPattern.right}` : report.front.crossPattern}-Cross):</strong></p>
+                        <p style="margin-left: 20px;">Left: ${report.front.inventory.left.quantity} x ${report.front.inventory.left.length}mm</p>
+                        <p style="margin-left: 20px;">Right: ${report.front.inventory.right.quantity} x ${report.front.inventory.right.length}mm</p>
+                    ` : ''}
+                    ${report.rear && report.rear.calculationSuccessful ? `
+                        <p><strong>Rear Wheel (${typeof report.rear.crossPattern === 'object' ? `L:${report.rear.crossPattern.left}, R:${report.rear.crossPattern.right}` : report.rear.crossPattern}-Cross):</strong></p>
+                        <p style="margin-left: 20px;">Left: ${report.rear.inventory.left.quantity} x ${report.rear.inventory.left.length}mm</p>
+                        <p style="margin-left: 20px;">Right: ${report.rear.inventory.right.quantity} x ${report.rear.inventory.right.length}mm</p>
+                    ` : ''}
+                </div>
+
+                ${generateWheelHtml(report.front, 'Front')}
+                ${generateWheelHtml(report.rear, 'Rear')}
+            </div>
+        </body>
+        </html>
+    `;
+
+    try {
+        const { data, error } = await resend.emails.send({
+            from: 'Spoke Calculator <calculator@loamlabsusa.com>',
+            to: [recipientEmail],
+            reply_to: 'LoamLabs Support <info@loamlabsusa.com>',
+            subject: `Spoke Calculation Complete for Order #${orderNumber}`,
+            html: emailHtml,
+        });
+
+        if (error) {
+            console.error("🚨 Failed to send email report. Resend API returned an error:", error);
+            return;
+        }
+
+        console.log(`✅ Successfully sent email report to ${recipientEmail}. Resend ID: ${data.id}`);
+
+    } catch (error) {
+        console.error("🚨 A critical error occurred while trying to send the email:", error);
+    }
+}
+
 async function handleOrderCreate(orderData) {
     let locationId = orderData.location_id;
     if (!locationId) {
@@ -491,42 +662,6 @@ async function handleOrderCancelled(orderData) {
 
     await addNoteToOrder(orderData.admin_graphql_api_id, restockNote);
 }
-
-async function sendEmailReport(report, orderData, buildRecipe) {
-    const resend = new Resend(process.env.RESEND_API_KEY);
-    const recipientEmail = process.env.BUILDER_EMAIL_ADDRESS;
-    const orderNumber = orderData.order_number;
-    const orderAdminUrl = `https://${process.env.SHOPIFY_STORE_DOMAIN}/admin/orders/${orderData.id}`;
-
-    if (!recipientEmail) {
-        console.error("CRITICAL: BUILDER_EMAIL_ADDRESS environment variable is not set. Cannot send email.");
-        return;
-    }
-
-    const generateWheelHtml = (wheel, position) => { /* ... same as before ... */ };
-    const emailHtml = `...`; // Full HTML content here
-
-    try {
-        const { data, error } = await resend.emails.send({
-            from: 'Spoke Calculator <calculator@loamlabsusa.com>',
-            to: [recipientEmail],
-            reply_to: 'LoamLabs Support <info@loamlabsusa.com>',
-            subject: `Spoke Calculation Complete for Order #${orderNumber}`,
-            html: emailHtml,
-        });
-
-        if (error) {
-            console.error("🚨 Failed to send email report. Resend API returned an error:", error);
-            return;
-        }
-
-        console.log(`✅ Successfully sent email report to ${recipientEmail}. Resend ID: ${data.id}`);
-
-    } catch (error) {
-        console.error("🚨 A critical error occurred while trying to send the email:", error);
-    }
-}
-
 
 // --- MAIN HANDLER FUNCTION with Event Routing ---
 export default async function handler(req, res) {
