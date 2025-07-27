@@ -8,3 +8,4 @@
 # Sandboxes and test files
 *.html
 *.js
+.vercel
