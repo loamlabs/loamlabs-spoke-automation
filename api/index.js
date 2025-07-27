@@ -78,12 +78,11 @@ async function scrapeBerdOfficialCalculator() {
   console.log('AUDIT: Launching Puppeteer to scrape official Berd site...');
   let browser;
 try {
+  // This is the modern, robust way to launch for serverless
   browser = await puppeteer.launch({
     args: chromium.args,
-    defaultViewport: chromium.defaultViewport,
     executablePath: await chromium.executablePath(),
-    headless: chromium.headless,
-    ignoreHTTPSErrors: true,
+    headless: 'new', // Use the modern headless mode
   });
   const page = await browser.newPage();
     const url = 'https://berdspokes.com/pages/spoke-calculator';
