@@ -929,24 +929,19 @@ async function sendEmailReport(report, orderData, buildRecipe) {
 
 // --- MAIN HANDLER FUNCTION with Event Routing ---
 export default async function handler(req, res) {
-  // --- CORRECTED --- Cron Job Trigger & Secure Verification
-  // This block checks if the request is from our scheduled audit job.
   const { source } = req.query;
-  const authHeader = req.headers['authorization']; 
+  const authHeader = req.headers['authorization'];
 
   if (source === 'cron-berd-audit') {
-    
-    // Vercel's Cron Job sends the secret in an 'Authorization: Bearer <secret>' header.
     if (authHeader !== `Bearer ${CRON_SECRET}`) {
       console.warn('AUDIT: Received cron request with invalid or missing secret.');
       return res.status(401).send('Unauthorized');
     }
     
-    // Run the audit in the background and return success immediately.
-    runBerdAudit();
-    return res.status(200).send('Berd audit triggered successfully.');
+    await runBerdAudit(); 
+    return res.status(200).send('Berd audit completed successfully.');
   }
-  // --- END of corrected block ---
+  // --- END of block ---
 
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
