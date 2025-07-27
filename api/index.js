@@ -1,7 +1,7 @@
 import { createHmac } from 'crypto';
 import { Resend } from 'resend';
 // --- NEW --- Import puppeteer for web scraping
-import chromium from 'chrome-aws-lambda';
+import chromium from '@sparticuz/chromium';
 import puppeteer from 'puppeteer-core';
 
 // --- Vercel Config ---
@@ -77,11 +77,19 @@ async function scrapeBerdOfficialCalculator() {
   console.log('AUDIT: Launching Puppeteer to scrape official Berd site...');
   let browser;
 try {
-  // This launch configuration uses the self-contained chrome-aws-lambda package
+  // This is the definitive launch configuration for Vercel
   browser = await puppeteer.launch({
-    args: chromium.args,
-    defaultViewport: chromium.defaultViewport,
-    executablePath: await chromium.executablePath,
+    args: [
+      ...chromium.args,
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-infobars',
+      '--window-position=0,0',
+      '--ignore-certifcate-errors',
+      '--ignore-certifcate-errors-spki-list',
+      '--user-agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"'
+    ],
+    executablePath: await chromium.executablePath(),
     headless: chromium.headless,
     ignoreHTTPSErrors: true,
   });
