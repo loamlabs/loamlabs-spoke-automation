@@ -1,8 +1,5 @@
 import { createHmac } from 'crypto';
 import { Resend } from 'resend';
-// --- NEW --- Import puppeteer for web scraping
-import chromium from '@sparticuz/chromium';
-import puppeteer from 'puppeteer-core';
 
 // --- Vercel Config ---
 export const config = { api: { bodyParser: false } };
