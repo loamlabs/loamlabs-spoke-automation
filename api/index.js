@@ -375,62 +375,113 @@ function runCalculationEngine(buildRecipe, componentData) {
         const hub = buildRecipe.components[`${position}Hub`];
         const spokes = buildRecipe.components[`${position}Spokes`];
         const spokeCount = parseInt(buildRecipe.specs[`${position}SpokeCount`]?.replace('h', ''), 10);
-        if (!rim || !hub || !spokes || !spokeCount) { return { calculationSuccessful: false, error: `Skipping ${position} wheel: Missing component.` }; }
-        if (spokes.vendor === 'Berd') { return { calculationSuccessful: false, error: 'Calculation not applicable for Berd spokes.' }; }
-        const hubType = getMeta(hub.variantId, hub.productId, 'hub_type');
-        if (hubType === 'Hook Flange') { return { calculationSuccessful: false, error: `Unsupported type (Hook Flange).` }; }
-        
-        // This is where the base ERD is correctly fetched.
-        let erd = getMeta(rim.variantId, rim.productId, 'rim_erd', true); 
-        
-        let finalErd = erd; // We will use this variable name consistently now.
-        if (getMeta(rim.variantId, rim.productId, 'rim_washer_policy') !== 'Not Compatible') {
-            finalErd += (2 * getMeta(rim.variantId, rim.productId, 'rim_nipple_washer_thickness_mm', true));
-        }
-        
-        const hubLacingPolicy = getMeta(hub.variantId, hub.productId, 'hub_lacing_policy');
-        const hubManualCrossValue = getMeta(hub.variantId, hub.productId, 'hub_manual_cross_value', true);
-        let initialCrossPattern;
-        if (hubLacingPolicy === 'Use Manual Override Field' && hubManualCrossValue > 0) {
-            initialCrossPattern = hubManualCrossValue;
-        } else {
-            initialCrossPattern = (spokeCount >= 28) ? 3 : 2;
-        }
-        
-        let finalCrossPattern = initialCrossPattern;
-        let fallbackAlert = null;
 
-        while (!isLacingPossible(spokeCount, finalCrossPattern) && finalCrossPattern > 0) {
-            const angleBetweenHoles = 360 / (spokeCount / 2);
-            const failingAngle = (finalCrossPattern * angleBetweenHoles).toFixed(2);
-            fallbackAlert = `Interference for ${initialCrossPattern}-cross (Angle: ${failingAngle}° >= 90°). Fell back to ${finalCrossPattern - 1}-cross.`;
-            console.log(`Interference detected for ${finalCrossPattern}-cross. Falling back...`);
-            finalCrossPattern--;
+        if (!rim || !hub || !spokes || !spokeCount) { 
+            return { calculationSuccessful: false, error: `Skipping ${position} wheel: Missing component.` }; 
         }
 
-        const commonParams = { hubType, baseCrossPattern: finalCrossPattern, spokeCount, finalErd, rimSpokeHoleOffset: getMeta(rim.variantId, rim.productId, 'rim_spoke_hole_offset', true), hubSpokeHoleDiameter: getMeta(hub.variantId, hub.productId, 'hub_spoke_hole_diameter', true) };
-        const paramsLeft = { ...commonParams, isLeft: true, hubFlangeDiameter: getMeta(hub.variantId, hub.productId, 'hub_flange_diameter_left', true), flangeOffset: getMeta(hub.variantId, hub.productId, 'hub_flange_offset_left', true), spOffset: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_left', true) };
-        const paramsRight = { ...commonParams, isLeft: false, hubFlangeDiameter: getMeta(hub.variantId, hub.productId, 'hub_flange_diameter_right', true), flangeOffset: getMeta(hub.variantId, hub.productId, 'hub_flange_offset_right', true), spOffset: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_right', true) };
-
-        const lengthL = calculateSpokeLength(paramsLeft);
-        const lengthR = calculateSpokeLength(paramsRight);
-        const tensionKgf = getMeta(rim.variantId, rim.productId, 'rim_target_tension_kgf', true, 120);
-        const crossArea = getMeta(spokes.variantId, spokes.productId, 'spoke_cross_sectional_area_mm2', true) || getMeta(spokes.variantId, spokes.productId, 'spoke_cross_section_area_mm2', true);
-
-        return {
-            calculationSuccessful: true,
-            crossPattern: finalCrossPattern,
-            alert: fallbackAlert,
-            lengths: {
-                left: { geo: lengthL.toFixed(2), stretch: calculateElongation(lengthL, tensionKgf, crossArea).toFixed(2) },
-                right: { geo: lengthR.toFixed(2), stretch: calculateElongation(lengthR, tensionKgf, crossArea).toFixed(2) }
-            },
-            inputs: {
-                rim: rim.title, hub: hub.title, spokes: spokes.title,
-                finalErd: finalErd.toFixed(2), // This now correctly references the 'finalErd' variable
-                targetTension: tensionKgf
+        // --- ROUTE TO BERD or STEEL LOGIC ---
+        if (spokes.vendor === 'Berd') {
+            // --- BERD-SPECIFIC CALCULATION LOGIC ---
+            const hubType = getMeta(hub.variantId, hub.productId, 'hub_type');
+            
+            // For now, assume external nipples until front-end can specify.
+            const nippleType = "External"; // Future: This would come from the buildRecipe
+            let finalErd;
+            if (nippleType === 'Internal') {
+                finalErd = getMeta(rim.variantId, rim.productId, 'rim_erd', true) + 17.0;
+            } else { // External
+                finalErd = getMeta(rim.variantId, rim.productId, 'rim_erd', true) + (2 * getMeta(rim.variantId, rim.productId, 'rim_nipple_washer_thickness_mm', true));
             }
-        };
+
+            const crossL = parseInt(buildRecipe.specs[`${position}CrossL`] || getMeta(hub.variantId, hub.productId, 'hub_manual_cross_value', true) || ((spokeCount >= 28) ? 3 : 2));
+            const crossR = parseInt(buildRecipe.specs[`${position}CrossR`] || getMeta(hub.variantId, hub.productId, 'hub_manual_cross_value', true) || ((spokeCount >= 28) ? 3 : 2));
+
+            const metalLengthL = calculateSpokeLength({ isLeft: true, hubType, baseCrossPattern: crossL, spokeCount, finalErd, hubFlangeDiameter: getMeta(hub.variantId, hub.productId, 'hub_flange_diameter_left', true), flangeOffset: getMeta(hub.variantId, hub.productId, 'hub_flange_offset_left', true), spOffset: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_left', true), hubSpokeHoleDiameter: getMeta(hub.variantId, hub.productId, 'hub_spoke_hole_diameter', true, 2.6) });
+            const metalLengthR = calculateSpokeLength({ isLeft: false, hubType, baseCrossPattern: crossR, spokeCount, finalErd, hubFlangeDiameter: getMeta(hub.variantId, hub.productId, 'hub_flange_diameter_right', true), flangeOffset: getMeta(hub.variantId, hub.productId, 'hub_flange_offset_right', true), spOffset: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_right', true), hubSpokeHoleDiameter: getMeta(hub.variantId, hub.productId, 'hub_spoke_hole_diameter', true, 2.6) });
+
+            const calculateBerdSide = (metalLength, isLeft) => {
+                let hubConstant = 0.0;
+                switch(hubType) {
+                    case 'Classic Flange': hubConstant = 9.0; break;
+                    case 'Straight Pull':  hubConstant = 7.5; break;
+                    case 'Hook Flange':    hubConstant = 2.0; break;
+                }
+
+                const angleLeft = getMeta(hub.variantId, hub.productId, 'hub_flange_offset_left', true) / metalLengthL;
+                const angleRight = getMeta(hub.variantId, hub.productId, 'hub_flange_offset_right', true) / metalLengthR;
+                let tensionPercent = (angleLeft < angleRight) ? (isLeft ? 100 : (angleLeft / angleRight * 100)) : (isLeft ? (angleRight / angleLeft * 100) : 100);
+                
+                const L = 2.5;
+                const tensionComp = 0.000444 * Math.pow(tensionPercent, 2) - 0.1231 * tensionPercent + L;
+                
+                let lengthAdder = 0.0;
+                if (metalLength < 200.0) lengthAdder = 4.0;
+                else if (metalLength < 220.0) lengthAdder = 3.0;
+                else if (metalLength < 240.0) lengthAdder = 2.0;
+                else if (metalLength < 260.0) lengthAdder = 1.0;
+
+                const finalBerdLength = metalLength + hubConstant + tensionComp + lengthAdder;
+                const standardRecLength = Math.round(finalBerdLength); 
+                const pullerRecLength = standardRecLength - 2;
+
+                return { geo: finalBerdLength.toFixed(2), rounded: pullerRecLength };
+            };
+
+            return {
+                calculationSuccessful: true,
+                crossPattern: { left: crossL, right: crossR }, // Report both cross patterns
+                alert: "BERD calculation applied.",
+                lengths: {
+                    left: calculateBerdSide(metalLengthL, true),
+                    right: calculateBerdSide(metalLengthR, false)
+                },
+                inputs: { rim: rim.title, hub: hub.title, spokes: spokes.title, finalErd: finalErd.toFixed(2), targetTension: 'N/A' }
+            };
+
+        } else {
+            // --- EXISTING STEEL SPOKE LOGIC (Unchanged) ---
+            const hubType = getMeta(hub.variantId, hub.productId, 'hub_type');
+            if (hubType === 'Hook Flange') { return { calculationSuccessful: false, error: `Unsupported type (Hook Flange).` }; }
+            let erd = getMeta(rim.variantId, rim.productId, 'rim_erd', true); 
+            let finalErd = erd;
+            if (getMeta(rim.variantId, rim.productId, 'rim_washer_policy') !== 'Not Compatible') {
+                finalErd += (2 * getMeta(rim.variantId, rim.productId, 'rim_nipple_washer_thickness_mm', true));
+            }
+            const hubLacingPolicy = getMeta(hub.variantId, hub.productId, 'hub_lacing_policy');
+            const hubManualCrossValue = getMeta(hub.variantId, hub.productId, 'hub_manual_cross_value', true);
+            let initialCrossPattern;
+            if (hubLacingPolicy === 'Use Manual Override Field' && hubManualCrossValue > 0) {
+                initialCrossPattern = hubManualCrossValue;
+            } else {
+                initialCrossPattern = (spokeCount >= 28) ? 3 : 2;
+            }
+            let finalCrossPattern = initialCrossPattern;
+            let fallbackAlert = null;
+            while (!isLacingPossible(spokeCount, finalCrossPattern) && finalCrossPattern > 0) {
+                const angleBetweenHoles = 360 / (spokeCount / 2);
+                const failingAngle = (finalCrossPattern * angleBetweenHoles).toFixed(2);
+                fallbackAlert = `Interference for ${initialCrossPattern}-cross (Angle: ${failingAngle}° >= 90°). Fell back to ${finalCrossPattern - 1}-cross.`;
+                finalCrossPattern--;
+            }
+            const commonParams = { hubType, baseCrossPattern: finalCrossPattern, spokeCount, finalErd, rimSpokeHoleOffset: getMeta(rim.variantId, rim.productId, 'rim_spoke_hole_offset', true), hubSpokeHoleDiameter: getMeta(hub.variantId, hub.productId, 'hub_spoke_hole_diameter', true, 2.6) };
+            const paramsLeft = { ...commonParams, isLeft: true, hubFlangeDiameter: getMeta(hub.variantId, hub.productId, 'hub_flange_diameter_left', true), flangeOffset: getMeta(hub.variantId, hub.productId, 'hub_flange_offset_left', true), spOffset: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_left', true) };
+            const paramsRight = { ...commonParams, isLeft: false, hubFlangeDiameter: getMeta(hub.variantId, hub.productId, 'hub_flange_diameter_right', true), flangeOffset: getMeta(hub.variantId, hub.productId, 'hub_flange_offset_right', true), spOffset: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_right', true) };
+            const lengthL = calculateSpokeLength(paramsLeft);
+            const lengthR = calculateSpokeLength(paramsRight);
+            const tensionKgf = getMeta(rim.variantId, rim.productId, 'rim_target_tension_kgf', true, 120);
+            const crossArea = getMeta(spokes.variantId, spokes.productId, 'spoke_cross_sectional_area_mm2', true) || getMeta(spokes.variantId, spokes.productId, 'spoke_cross_section_area_mm2', true);
+            return {
+                calculationSuccessful: true,
+                crossPattern: finalCrossPattern,
+                alert: fallbackAlert,
+                lengths: {
+                    left: { geo: lengthL.toFixed(2), stretch: calculateElongation(lengthL, tensionKgf, crossArea).toFixed(2) },
+                    right: { geo: lengthR.toFixed(2), stretch: calculateElongation(lengthR, tensionKgf, crossArea).toFixed(2) }
+                },
+                inputs: { rim: rim.title, hub: hub.title, spokes: spokes.title, finalErd: finalErd.toFixed(2), targetTension: tensionKgf }
+            };
+        }
     };
     
     try {
