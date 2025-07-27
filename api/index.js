@@ -244,9 +244,16 @@ function runCalculationEngine(buildRecipe, componentData) {
                     case 'Hook Flange':    hubConstant = 2.0; break;
                 }
 
-                const angleLeft = flangeL / metalLengthL;
-                const angleRight = flangeR / metalLengthR;
-                let tensionPercent = (angleLeft < angleRight) ? (isLeft ? 100 : (angleLeft / angleRight * 100)) : (isLeft ? (angleRight / angleLeft * 100) : 100);
+                // Calculate the bracing angle, which determines tension balance.
+    const bracingAngleL = Math.asin(flangeL / metalLengthL) * (180 / Math.PI);
+    const bracingAngleR = Math.asin(flangeR / metalLengthR) * (180 / Math.PI);
+    
+    let tensionPercent;
+    if (bracingAngleL < bracingAngleR) {
+        tensionPercent = isLeft ? 100 : (bracingAngleL / bracingAngleR * 100);
+    } else {
+        tensionPercent = isLeft ? (bracingAngleR / bracingAngleL * 100) : 100;
+    }
                 
                 const L = 2.5;
                 const tensionComp = 0.000444 * Math.pow(tensionPercent, 2) - 0.1231 * tensionPercent + L;
