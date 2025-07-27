@@ -67,49 +67,65 @@ async function sendAlertEmail({ subject, html }) {
 }
 
 /**
- * --- NEW ---
+ * --- FINAL, CORRECTED VERSION ---
  * Scrapes the Official BERD Calculator to get the reference spoke length.
- * IMPORTANT: The CSS selectors below are the most likely part of this system to break.
- * If this function fails, you must visit the Berd calculator page, inspect the
- * form elements, and update the selectors to match the current website HTML.
+ * This version uses the correct CSS selectors from the live site and the robust
+ * launch options required for the Vercel serverless environment.
  * @returns {Promise<{left: number, right: number}|null>} The calculated spoke lengths or null on failure.
  */
 async function scrapeBerdOfficialCalculator() {
   console.log('AUDIT: Launching Puppeteer to scrape official Berd site...');
   let browser;
-try {
-  // This is the modern, robust way to launch for serverless
-  browser = await puppeteer.launch({
-    args: chromium.args,
-    executablePath: await chromium.executablePath(),
-    headless: 'new', // Use the modern headless mode
-  });
-  const page = await browser.newPage();
-    const url = 'https://berdspokes.com/pages/spoke-calculator';
+  try {
+    // This is the definitive launch configuration for Vercel
+    browser = await puppeteer.launch({
+      args: [
+        ...chromium.args,
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-infobars',
+        '--window-position=0,0',
+        '--ignore-certifcate-errors',
+        '--ignore-certifcate-errors-spki-list',
+        '--user-agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36"'
+      ],
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless,
+      ignoreHTTPSErrors: true,
+    });
+
+    const page = await browser.newPage();
+    const url = 'https://berdspokes.com/pages/calculator';
     await page.goto(url, { waitUntil: 'networkidle2' });
+    console.log('AUDIT: Page loaded. Filling out FRONT WHEEL form.');
 
-    console.log('AUDIT: Page loaded. Filling form.');
+    // --- Fill out the "Front Wheel" form using correct selectors ---
+    await page.click('input#j_bend_front'); // Select J-Bend for the front wheel
+    await page.fill('input#erd_front', String(AUDIT_TEST_CASE.rim.erd));
     
-    // These selectors are confirmed as of the time of writing.
-    await page.select('select#hub_type', 'J-Bend');
-    await page.type('input#pcd_left', String(AUDIT_TEST_CASE.hub.flangeDiameterLeft));
-    await page.type('input#pcd_right', String(AUDIT_TEST_CASE.hub.flangeDiameterRight));
-    await page.type('input#center_to_flange_left', String(AUDIT_TEST_CASE.hub.flangeOffsetLeft));
-    await page.type('input#center_to_flange_right', String(AUDIT_TEST_CASE.hub.flangeOffsetRight));
-    await page.type('input#spoke_hole_diameter', String(AUDIT_TEST_CASE.hub.spokeHoleDiameter));
+    await page.fill('input#pcd_left_front', String(AUDIT_TEST_CASE.hub.flangeDiameterLeft));
+    await page.fill('input#pcd_right_front', String(AUDIT_TEST_CASE.hub.flangeDiameterRight));
+    await page.fill('input#center_to_flange_left_front', String(AUDIT_TEST_CASE.hub.flangeOffsetLeft));
+    await page.fill('input#center_to_flange_right_front', String(AUDIT_TEST_CASE.hub.flangeOffsetRight));
+    await page.fill('input#spoke_hole_diameter_front', String(AUDIT_TEST_CASE.hub.spokeHoleDiameter));
     
-    await page.type('input#erd', String(AUDIT_TEST_CASE.rim.erd));
-    await page.select('select#nipple_type', 'External');
+    await page.fill('input#spoke_count_front', String(AUDIT_TEST_CASE.build.spokeCount));
+    await page.fill('input#lacing_pattern_left_front', String(AUDIT_TEST_CASE.build.lacingPattern));
+    await page.fill('input#lacing_pattern_right_front', String(AUDIT_TEST_CASE.build.lacingPattern));
 
-    await page.type('input#spoke_count', String(AUDIT_TEST_CASE.build.spokeCount));
-    await page.type('input#lacing_pattern', String(AUDIT_TEST_CASE.build.lacingPattern));
-    await page.select('select#lacing_pattern_right', String(AUDIT_TEST_CASE.build.lacingPattern));
-    
-    await page.click('button[name="calc"]');
-    await page.waitForSelector('input#left_spoke_length_rec', { timeout: 10000 });
+    // Wait for the calculation to happen automatically and populate the result fields.
+    // We will wait until the "recommended" length field is not empty.
+    const resultSelector = 'input#left_spoke_length_rec_front';
+    await page.waitForFunction(
+      (selector) => document.querySelector(selector).value !== '',
+      {},
+      resultSelector
+    );
+    console.log('AUDIT: Calculation results detected.');
 
-    const officialLeft = await page.$eval('input#left_spoke_length_rec', el => parseFloat(el.value));
-    const officialRight = await page.$eval('input#right_spoke_length_rec', el => parseFloat(el.value));
+    // Extract the results from the correct fields
+    const officialLeft = await page.$eval(resultSelector, el => parseFloat(el.value));
+    const officialRight = await page.$eval('input#right_spoke_length_rec_front', el => parseFloat(el.value));
 
     if (isNaN(officialLeft) || isNaN(officialRight)) {
         throw new Error('Could not parse official lengths from result fields.');
