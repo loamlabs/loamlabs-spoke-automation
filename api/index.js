@@ -501,7 +501,11 @@ function formatNote(report) {
         if (!wheel) return ``;
         if (!wheel.calculationSuccessful) return `\n${position.toUpperCase()} WHEEL: CALC FAILED - ${wheel.error}`;
         
-        let wheelNote = `\n${position.toUpperCase()} WHEEL (${wheel.crossPattern}-Cross):\n`;
+        let crossText = (typeof wheel.crossPattern === 'object') 
+            ? `L:${wheel.crossPattern.left}-Cross, R:${wheel.crossPattern.right}-Cross`
+            : `${wheel.crossPattern}-Cross`;
+
+        let wheelNote = `\n${position.toUpperCase()} WHEEL (${crossText}):\n`;
         
         if (wheel.alert) {
             wheelNote += `  ALERT: ${wheel.alert}\n`;
@@ -511,10 +515,17 @@ function formatNote(report) {
                `  Hub: ${wheel.inputs.hub}\n` +
                `  Spokes: ${wheel.inputs.spokes}\n` +
                `  Target Tension: ${wheel.inputs.targetTension} kgf\n` +
-               `  --- Calculated Lengths ---\n` +
-               `  Left (Geo):  ${wheel.lengths.left.geo} mm (Stretch: ${wheel.lengths.left.stretch} mm)\n` +
-               `  Right (Geo): ${wheel.lengths.right.geo} mm (Stretch: ${wheel.lengths.right.stretch} mm)\n` +
-               `  --- Inventory Adjustments ---\n` +
+               `  --- Calculated Lengths ---\n`;
+
+        if (wheel.inputs.spokes.includes("Berd")) {
+            wheelNote += `  Left (Raw BERD): ${wheel.lengths.left.geo} mm\n` +
+                         `  Right (Raw BERD): ${wheel.lengths.right.geo} mm\n`;
+        } else {
+            wheelNote += `  Left (Geo):  ${wheel.lengths.left.geo} mm (Stretch: ${wheel.lengths.left.stretch} mm)\n` +
+                         `  Right (Geo): ${wheel.lengths.right.geo} mm (Stretch: ${wheel.lengths.right.stretch} mm)\n`;
+        }
+        
+        wheelNote += `  --- Inventory Adjustments ---\n` +
                `  Left: ${wheel.inventory.left.quantity} x ${wheel.inventory.left.length}mm (${wheel.inventory.left.status})\n` +
                `  Right: ${wheel.inventory.right.quantity} x ${wheel.inventory.right.length}mm (${wheel.inventory.right.status})`;
         
@@ -539,51 +550,56 @@ async function sendEmailReport(report, orderData, buildRecipe) {
 
     // --- Helper to generate the HTML for one wheel ---
     const generateWheelHtml = (wheel, position) => {
-        if (!wheel) return '';
-        if (!wheel.calculationSuccessful) {
-            return `
-                <h3>${position.toUpperCase()} WHEEL REPORT</h3>
-                <p style="color: #D8000C; background-color: #FFD2D2; padding: 10px; border-radius: 3px;">
-                    <strong>CALCULATION FAILED:</strong> ${wheel.error}
-                </p>
-            `;
-        }
-
+    if (!wheel) return '';
+    if (!wheel.calculationSuccessful) {
         return `
-            <div class="wheel-section">
-                <h3>${position.toUpperCase()} WHEEL DETAILS</h3>
-                
-                <!-- Lacing Decision Section -->
-                <h4>Lacing Decision</h4>
-                <p>Final pattern used: <strong>${wheel.crossPattern}-Cross</strong>.</p>
-                ${wheel.alert ? `<p class="alert"><strong>NOTE:</strong> ${wheel.alert}</p>` : '<p>The default lacing pattern passed the interference check.</p>'}
+            <h3>${position.toUpperCase()} WHEEL REPORT</h3>
+            <p style="color: #D8000C; background-color: #FFD2D2; padding: 10px; border-radius: 3px;">
+                <strong>CALCULATION FAILED:</strong> ${wheel.error}
+            </p>
+        `;
+    }
+    
+    let crossText = (typeof wheel.crossPattern === 'object') 
+        ? `L:${wheel.crossPattern.left}-Cross, R:${wheel.crossPattern.right}-Cross`
+        : `${wheel.crossPattern}-Cross`;
 
-                <!-- Key Inputs Table -->
-                <h4>Key Inputs</h4>
-                <table class="data-table">
-                    <tr><td>Rim</td><td>${wheel.inputs.rim}</td></tr>
-                    <tr><td>Hub</td><td>${wheel.inputs.hub}</td></tr>
-                    <tr><td>Spokes</td><td>${wheel.inputs.spokes}</td></tr>
-                    <tr><td>Final Adjusted ERD</td><td><strong>${wheel.inputs.finalErd} mm</strong></td></tr>
-                    <tr><td>Target Tension</td><td>${wheel.inputs.targetTension} kgf</td></tr>
-                </table>
+    return `
+        <div class="wheel-section">
+            <h3>${position.toUpperCase()} WHEEL DETAILS</h3>
+            
+            <h4>Lacing Decision</h4>
+            <p>Final pattern used: <strong>${crossText}</strong>.</p>
+            ${wheel.alert ? `<p class="alert"><strong>NOTE:</strong> ${wheel.alert}</p>` : (wheel.inputs.spokes.includes("Berd") ? '' : '<p>The default lacing pattern passed the interference check.</p>')}
 
-                <!-- Calculated Lengths Table -->
-                <h4>Calculated Lengths (Pre-Rounding)</h4>
-                <table class="data-table">
+            <h4>Key Inputs</h4>
+            <table class="data-table">
+                <tr><td>Rim</td><td>${wheel.inputs.rim}</td></tr>
+                <tr><td>Hub</td><td>${wheel.inputs.hub}</td></tr>
+                <tr><td>Spokes</td><td>${wheel.inputs.spokes}</td></tr>
+                <tr><td>Final Adjusted ERD</td><td><strong>${wheel.inputs.finalErd} mm</strong></td></tr>
+                <tr><td>Target Tension</td><td>${wheel.inputs.targetTension} kgf</td></tr>
+            </table>
+
+            <h4>Calculated Lengths (Pre-Rounding)</h4>
+            <table class="data-table">
+                ${wheel.inputs.spokes.includes("Berd") ? `
+                    <tr><td>Left (Raw BERD)</td><td>${wheel.lengths.left.geo} mm</td></tr>
+                    <tr><td>Right (Raw BERD)</td><td>${wheel.lengths.right.geo} mm</td></tr>
+                ` : `
                     <tr><td>Left (Geo)</td><td>${wheel.lengths.left.geo} mm (Stretch: ${wheel.lengths.left.stretch} mm)</td></tr>
                     <tr><td>Right (Geo)</td><td>${wheel.lengths.right.geo} mm (Stretch: ${wheel.lengths.right.stretch} mm)</td></tr>
-                </table>
+                `}
+            </table>
 
-                <!-- Inventory Adjustments Table -->
-                <h4>Inventory Adjustments (Final Lengths)</h4>
-                <table class="data-table">
-                    <tr><td>Left</td><td><strong>${wheel.inventory.left.quantity} x ${wheel.inventory.left.length}mm</strong> (${wheel.inventory.left.status})</td></tr>
-                    <tr><td>Right</td><td><strong>${wheel.inventory.right.quantity} x ${wheel.inventory.right.length}mm</strong> (${wheel.inventory.right.status})</td></tr>
-                </table>
-            </div>
-        `;
-    };
+            <h4>Inventory Adjustments (Final Lengths)</h4>
+            <table class="data-table">
+                <tr><td>Left</td><td><strong>${wheel.inventory.left.quantity} x ${wheel.inventory.left.length}mm</strong> (${wheel.inventory.left.status})</td></tr>
+                <tr><td>Right</td><td><strong>${wheel.inventory.right.quantity} x ${wheel.inventory.right.length}mm</strong> (${wheel.inventory.right.status})</td></tr>
+            </table>
+        </div>
+    `;
+};
     
     // --- Main HTML Structure ---
     const emailHtml = `
