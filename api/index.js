@@ -34,7 +34,7 @@ async function getRawBody(req) {
 async function shopifyAdminApiQuery(query, variables) {
     const storeDomain = process.env.SHOPIFY_STORE_DOMAIN;
     const apiToken = process.env.SHOPIFY_ADMIN_API_TOKEN;
-    const url = `https://${storeDomain}/admin/api/2024-07/graphql.json`;
+    const url = `https://${storeDomain}/admin/api/2025-07/graphql.json`;
     const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Shopify-Access-Token': apiToken },
