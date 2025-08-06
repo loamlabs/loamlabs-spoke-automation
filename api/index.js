@@ -5,7 +5,7 @@ import { Resend } from 'resend';
 export const config = { api: { bodyParser: false } };
 
 
-// --- Helper Functions (Defined Once) ---   
+// --- Helper Functions (Defined Once) ---
 
 /**
  * --- NEW / REFACTORED ---
