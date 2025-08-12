@@ -1,148 +1,9 @@
 // Forcing a clean Vercel build environment
 import { createHmac } from 'crypto';
 import { Resend } from 'resend';
-// --- NEW --- Import puppeteer for web scraping
-import chromium from '@sparticuz/chromium';
-import puppeteer from 'puppeteer-core';
 
 // --- Vercel Config ---
 export const config = { api: { bodyParser: false } };
-
-
-// =================================================================
-// START: BERD AUTOMATED AUDIT SYSTEM (Section 12.4)
-// =================================================================
-
-// --- Configuration for the Audit ---
-// This is our "golden" test case. We will use these exact inputs every time.
-const AUDIT_TEST_CASE = {
-  hub: {
-    hubType: 'Classic Flange',
-    flangeDiameterLeft: 58.0,
-    flangeDiameterRight: 58.0,
-    flangeOffsetLeft: 35.0,
-    flangeOffsetRight: 21.0,
-    spokeHoleDiameter: 2.5,
-    spOffsetLeft: 0,
-    spOffsetRight: 0,
-  },
-  rim: {
-    erd: 599.0,
-    nippleWasherThickness: 0.5,
-  },
-  build: {
-    spokeCount: 28,
-    lacingPattern: 3,
-  }
-};
-
-// This secret must be set as an Environment Variable in Vercel.
-// It ensures that only Vercel's Cron Job can trigger the audit.
-const CRON_SECRET = process.env.CRON_SECRET;
-
-/**
- * --- NEW ---
- * Sends a simple alert email for the audit system.
- * @param {object} params - The email parameters.
- * @param {string} params.subject - The email subject.
- * @param {string} params.html - The HTML body of the email.
- */
-async function sendAlertEmail({ subject, html }) {
-    const resend = new Resend(process.env.RESEND_API_KEY);
-    const recipientEmail = process.env.BUILDER_EMAIL_ADDRESS;
-    if (!recipientEmail) {
-        console.error("AUDIT CRITICAL: BUILDER_EMAIL_ADDRESS is not set. Cannot send alert.");
-        return;
-    }
-    try {
-        await resend.emails.send({
-            from: 'LoamLabs Automation Alert <alerts@loamlabsusa.com>',
-            to: [recipientEmail],
-            subject: subject,
-            html: html,
-        });
-        console.log(`AUDIT: Successfully sent alert email with subject: "${subject}"`);
-    } catch (error) {
-        console.error("AUDIT CRITICAL: Failed to send alert email.", error);
-    }
-}
-
-/**
- * --- FINAL, CORRECTED VERSION ---
- * Scrapes the Official BERD Calculator to get the reference spoke length.
- * This version uses the correct CSS selectors from the live site and the robust
- * launch options required for the Vercel serverless environment.
- * @returns {Promise<{left: number, right: number}|null>} The calculated spoke lengths or null on failure.
- */
-async function scrapeBerdOfficialCalculator() {
-  console.log('AUDIT: Launching Puppeteer to scrape official Berd site...');
-  let browser;
-  try {
-    // This is the definitive launch configuration for Vercel
-    browser = await puppeteer.launch({
-      args: [
-        ...chromium.args,
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-infobars',
-        '--window-position=0,0',
-        '--ignore-certifcate-errors',
-        '--ignore-certifcate-errors-spki-list',
-        '--user-agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"'
-      ],
-      executablePath: await chromium.executablePath(),
-      headless: chromium.headless,
-      ignoreHTTPSErrors: true,
-    });
-
-    const page = await browser.newPage();
-    const url = 'https://berdspokes.com/pages/calculator';
-    await page.goto(url, { waitUntil: 'networkidle2' });
-    console.log('AUDIT: Page loaded. Filling out FRONT WHEEL form.');
-
-    // --- Fill out the "Front Wheel" form using correct selectors ---
-    await page.click('input#j_bend_front'); // Select J-Bend for the front wheel
-    await page.fill('input#erd_front', String(AUDIT_TEST_CASE.rim.erd));
-    
-    await page.fill('input#pcd_left_front', String(AUDIT_TEST_CASE.hub.flangeDiameterLeft));
-    await page.fill('input#pcd_right_front', String(AUDIT_TEST_CASE.hub.flangeDiameterRight));
-    await page.fill('input#center_to_flange_left_front', String(AUDIT_TEST_CASE.hub.flangeOffsetLeft));
-    await page.fill('input#center_to_flange_right_front', String(AUDIT_TEST_CASE.hub.flangeOffsetRight));
-    await page.fill('input#spoke_hole_diameter_front', String(AUDIT_TEST_CASE.hub.spokeHoleDiameter));
-    
-    await page.fill('input#spoke_count_front', String(AUDIT_TEST_CASE.build.spokeCount));
-    await page.fill('input#lacing_pattern_left_front', String(AUDIT_TEST_CASE.build.lacingPattern));
-    await page.fill('input#lacing_pattern_right_front', String(AUDIT_TEST_CASE.build.lacingPattern));
-
-    const resultSelector = 'input#left_spoke_length_rec_front';
-    await page.waitForFunction(
-      (selector) => document.querySelector(selector).value !== '',
-      {},
-      resultSelector
-    );
-    console.log('AUDIT: Calculation results detected.');
-
-    const officialLeft = await page.$eval(resultSelector, el => parseFloat(el.value));
-    const officialRight = await page.$eval('input#right_spoke_length_rec_front', el => parseFloat(el.value));
-
-    if (isNaN(officialLeft) || isNaN(officialRight)) {
-        throw new Error('Could not parse official lengths from result fields.');
-    }
-    
-    console.log(`AUDIT: Official Berd result -> Left: ${officialLeft}, Right: ${officialRight}`);
-    return { left: officialLeft, right: officialRight };
-
-  } catch (error) {
-    console.error('AUDIT CRITICAL: Failed to scrape Berd calculator.', error);
-    await sendAlertEmail({
-        subject: 'CRITICAL ALERT: LoamLabs Berd Scraper FAILED',
-        html: `<h1>Berd Scraper Failure</h1><p>The automated audit system could not complete its check...</p><p>Error Message: ${error.message}</p>`,
-    });
-    return null;
-  } finally {
-    if (browser) await browser.close();
-  }
-}
 
 /**
  * --- NEW ---
@@ -931,22 +792,7 @@ async function sendEmailReport(report, orderData, buildRecipe) {
     }
 }
 
-// --- MAIN HANDLER FUNCTION with Event Routing ---
 export default async function handler(req, res) {
-  const { source } = req.query;
-  const authHeader = req.headers['authorization'];
-
-  if (source === 'cron-berd-audit') {
-    if (authHeader !== `Bearer ${CRON_SECRET}`) {
-      console.warn('AUDIT: Received cron request with invalid or missing secret.');
-      return res.status(401).send('Unauthorized');
-    }
-    
-    await runBerdAudit(); 
-    return res.status(200).send('Berd audit completed successfully.');
-  }
-  // --- END of block ---
-
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
     return res.status(405).end('Method Not Allowed');
