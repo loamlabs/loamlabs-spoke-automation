@@ -5,9 +5,11 @@
   "type": "module",
   "main": "api/index.js",
   "dependencies": {
-  "resend": "^3.2.0",
-  "dotenv": "^16.4.5"
-},
+    "resend": "^3.2.0",
+    "dotenv": "^16.4.5",
+    "@sparticuz/chromium": "^123.0.1",
+    "puppeteer-core": "^22.9.0"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
