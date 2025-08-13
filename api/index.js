@@ -568,10 +568,14 @@ function runCalculationEngine(buildRecipe, componentData) {
             // Steel spoke logic
             if (hubType === 'Hook Flange') { return { calculationSuccessful: false, error: `Unsupported type (Hook Flange).` }; }
             
-            let erd = getMeta(rim.variantId, rim.productId, 'rim_erd', true); 
+            let erd = getMeta(rim.variantId, rim.productId, 'rim_erd', true);
+            const washerPolicy = getMeta(rim.variantId, rim.productId, 'rim_washer_policy');
+            const washerThickness = getMeta(rim.variantId, rim.productId, 'rim_nipple_washer_thickness_mm', true);
+            
             let finalErd = erd;
-            if (getMeta(rim.variantId, rim.productId, 'rim_washer_policy') !== 'Not Compatible') {
-                finalErd += (2 * getMeta(rim.variantId, rim.productId, 'rim_nipple_washer_thickness_mm', true));
+            // This is the new, more explicit logic
+            if (washerPolicy === 'Mandatory' || washerPolicy === 'Optional') {
+                finalErd += (2 * washerThickness);
             }
         
         const hubLacingPolicy = getMeta(hub.variantId, hub.productId, 'hub_lacing_policy');
@@ -593,15 +597,25 @@ function runCalculationEngine(buildRecipe, componentData) {
             
             const tensionKgf = getMeta(rim.variantId, rim.productId, 'rim_target_tension_kgf', true, 120);
             const crossArea = getMeta(spokes.variantId, spokes.productId, 'spoke_cross_sectional_area_mm2', true) || getMeta(spokes.variantId, spokes.productId, 'spoke_cross_section_area_mm2', true);
+
+            const stretchL = calculateElongation(lengthL, tensionKgf, crossArea);
+            const stretchR = calculateElongation(lengthR, tensionKgf, crossArea);
+
+            // --- THIS IS THE NEW "LOAMLABS STANDARD" LOGIC ---
+            // We subtract the stretch from the geometric length BEFORE rounding.
+            const effectiveLengthL = lengthL - stretchL;
+            const effectiveLengthR = lengthR - stretchR;
+
+            const roundedL = applyRounding(effectiveLengthL, 'Steel');
+            const roundedR = applyRounding(effectiveLengthR, 'Steel');
             
             return {
                 calculationSuccessful: true,
                 crossPattern: finalCrossPattern,
                 alert: fallbackAlert,
                 lengths: {
-                    // --- MODIFIED --- Steel spoke logic now uses the new rounding helper
-                    left: { geo: lengthL.toFixed(2), stretch: calculateElongation(lengthL, tensionKgf, crossArea).toFixed(2), rounded: applyRounding(lengthL, 'Steel') },
-                    right: { geo: lengthR.toFixed(2), stretch: calculateElongation(lengthR, tensionKgf, crossArea).toFixed(2), rounded: applyRounding(lengthR, 'Steel') }
+                    left: { geo: lengthL.toFixed(2), stretch: stretchL.toFixed(2), rounded: roundedL },
+                    right: { geo: lengthR.toFixed(2), stretch: stretchR.toFixed(2), rounded: roundedR }
                 },
                 inputs: { rim: rim.title, hub: hub.title, spokes: spokes.title, finalErd: finalErd.toFixed(2), targetTension: tensionKgf }
             };
