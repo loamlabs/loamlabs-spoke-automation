@@ -409,7 +409,7 @@ function runCalculationEngine(buildRecipe, componentData) {
         return value;
     };
 
-    const calculateForPosition = (position) => {
+        const calculateForPosition = (position) => {
         const rim = buildRecipe.components[`${position}Rim`];
         const hub = buildRecipe.components[`${position}Hub`];
         const spokes = buildRecipe.components[`${position}Spokes`];
@@ -419,8 +419,8 @@ function runCalculationEngine(buildRecipe, componentData) {
             return { calculationSuccessful: false, error: `Skipping ${position} wheel: Missing component.` }; 
         }
 
-        let crossL = parseInt(buildRecipe.specs[`${position}CrossPatternLeft`]);
-        let crossR = parseInt(buildRecipe.specs[`${position}CrossPatternRight`]);
+        // Restore the "smart" logic for determining the cross pattern.
+        let crossL, crossR;
         let lacingAlert = null;
 
         const hubLacingPolicy = getMeta(hub.variantId, hub.productId, 'hub_lacing_policy');
@@ -430,6 +430,11 @@ function runCalculationEngine(buildRecipe, componentData) {
             lacingAlert = `Hub policy override applied. Using ${manualCrossOverride}-cross.`;
             crossL = manualCrossOverride;
             crossR = manualCrossOverride;
+        } else {
+            // If no override, use the standard default logic.
+            const defaultCross = (spokeCount >= 28) ? 3 : 2;
+            crossL = defaultCross;
+            crossR = defaultCross;
         }
         
         const hubType = getMeta(hub.variantId, hub.productId, 'hub_type');
@@ -452,7 +457,6 @@ function runCalculationEngine(buildRecipe, componentData) {
                 },
                 inputs: { rim: rim.title, hub: hub.title, spokes: spokes.title, finalErd: finalErd.toFixed(2), targetTension: getMeta(rim.variantId, rim.productId, 'rim_target_tension_kgf', true, 120) }
             };
-
         } else { // Steel spoke logic
             let erd = getMeta(rim.variantId, rim.productId, 'rim_erd', true); 
             let finalErd = erd;
