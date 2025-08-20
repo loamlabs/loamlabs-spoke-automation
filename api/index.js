@@ -635,6 +635,8 @@ async function handleOrderCancelled(orderData) {
 }
 
 function runCalculationEngine(buildRecipe, componentData) {
+    console.log("--- RUNNING CALCULATION ENGINE V3 (with buildType fix) ---");
+
     const results = { front: null, rear: null, errors: [] };
 
     const getMeta = (variantId, productId, key, isNumber = false, defaultValue = 0) => {
