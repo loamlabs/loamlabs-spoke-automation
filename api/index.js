@@ -734,8 +734,18 @@ function runCalculationEngine(buildRecipe, componentData) {
     };
     
     try {
-        results.front = calculateForPosition('front');
-        if (buildRecipe.buildType === 'Wheel Set') { results.rear = calculateForPosition('rear'); }
+        // Check the build type from the recipe and only run the necessary calculations.
+        if (buildRecipe.buildType === 'Front Wheel') {
+            results.front = calculateForPosition('front');
+        } else if (buildRecipe.buildType === 'Rear Wheel') {
+            results.rear = calculateForPosition('rear');
+        } else if (buildRecipe.buildType === 'Wheel Set') {
+            results.front = calculateForPosition('front');
+            results.rear = calculateForPosition('rear');
+        } else {
+            // Fallback for safety, though this case should not happen.
+            results.errors.push(`Unknown buildType: ${buildRecipe.buildType}`);
+        }
     } catch (e) {
         results.errors.push(e.message);
     }
