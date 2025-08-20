@@ -484,56 +484,51 @@ async function handleOrderCreate(orderData) {
                 console.log("✅ Initial Build Report:", JSON.stringify(buildReport, null, 2));
 
                 for (const position of ['front', 'rear']) {
-    const wheel = buildReport[position];
-    
-    if (wheel && wheel.calculationSuccessful) {
-        const spokeComponent = buildRecipe.components[`${position}Spokes`];
-        const spokeCountPerSide = parseInt(buildRecipe.specs[`${position}SpokeCount`]?.replace('h', '')) / 2;
-        const spokeProductId = spokeComponent?.productId;
-        const colorOption = spokeComponent.selectedOptions.find(opt => opt.name === 'Color');
-        const selectedColor = colorOption ? colorOption.value : null;
+                    // Check if the wheel for this position exists and was calculated.
+                    const wheel = buildReport[position];
+                    if (!wheel || !wheel.calculationSuccessful) continue; // Skip if no wheel or calc failed.
 
-        if (!selectedColor) {
-             wheel.inventory = { left: { status: 'ACTION REQUIRED: Color not found' }, right: { status: 'ACTION REQUIRED: Color not found' } };
-            continue;
-        }
-        if (!locationId) {
-            wheel.inventory = { left: { status: 'FAILED: Location ID missing' }, right: { status: 'FAILED: Location ID missing' } };
-            continue;
-        }
+                    const spokeComponent = buildRecipe.components[`${position}Spokes`];
+                    const spokeCountPerSide = parseInt(buildRecipe.specs[`${position}SpokeCount`]?.replace('h', '')) / 2;
+                    const spokeProductId = spokeComponent?.productId;
+                    const colorOption = spokeComponent.selectedOptions.find(opt => opt.name === 'Color');
+                    const selectedColor = colorOption ? colorOption.value : null;
 
-        // --- NEW: Smart Color Logic for Inventory ---
-        let inventoryColor = selectedColor; // Start with the selected color
-        if (spokeComponent.vendor === 'Berd' && selectedColor !== 'Black Berd' && selectedColor !== 'White Berd') {
-            console.log(`Custom BERD color "${selectedColor}" detected. Deducting from "White Berd" inventory.`);
-            inventoryColor = 'White Berd'; // Override to deduct from White stock
-        }
-        // --- End of New Logic ---
+                    if (!selectedColor) {
+                        wheel.inventory = { left: { status: 'ACTION REQUIRED: Color not found' }, right: { status: 'ACTION REQUIRED: Color not found' } };
+                        continue;
+                    }
+                    if (!locationId) {
+                        wheel.inventory = { left: { status: 'FAILED: Location ID missing' }, right: { status: 'FAILED: Location ID missing' } };
+                        continue;
+                    }
 
-        const roundedL = wheel.lengths.left.rounded;
-        const variantL = await findVariantForLengthAndColor(spokeProductId, roundedL, inventoryColor);
-        let statusL = "ACTION REQUIRED: Variant not found!";
-        if (variantL) {
-            const success = await adjustInventory(variantL.inventoryItemId, -spokeCountPerSide, `gid://shopify/Location/${locationId}`);
-            statusL = success ? "Adjusted" : "FAILED to adjust";
-        }
+                    let inventoryColor = selectedColor;
+                    if (spokeComponent.vendor === 'Berd' && selectedColor !== 'Black Berd' && selectedColor !== 'White Berd') {
+                        inventoryColor = 'White Berd';
+                    }
 
-        const roundedR = wheel.lengths.right.rounded;
-        const variantR = await findVariantForLengthAndColor(spokeProductId, roundedR, inventoryColor);
-        let statusR = "ACTION REQUIRED: Variant not found!";
-        if (variantR) {
-            const success = await adjustInventory(variantR.inventoryItemId, -spokeCountPerSide, `gid://shopify/Location/${locationId}`);
-            statusR = success ? "Adjusted" : "FAILED to adjust";
-        }
-        
-        wheel.inventory = {
-            left: { length: roundedL, quantity: spokeCountPerSide, status: statusL },
-            right: { length: roundedR, quantity: spokeCountPerSide, status: statusR }
-        };
-    } else if (wheel && !wheel.calculationSuccessful) {
-        wheel.inventory = { left: { status: 'N/A' }, right: { status: 'N/A' } };
-    }
-}
+                    const roundedL = wheel.lengths.left.rounded;
+                    const variantL = await findVariantForLengthAndColor(spokeProductId, roundedL, inventoryColor);
+                    let statusL = "ACTION REQUIRED: Variant not found!";
+                    if (variantL) {
+                        const success = await adjustInventory(variantL.inventoryItemId, -spokeCountPerSide, `gid://shopify/Location/${locationId}`, orderData.admin_graphql_api_id);
+                        statusL = success ? "Adjusted" : "FAILED to adjust";
+                    }
+
+                    const roundedR = wheel.lengths.right.rounded;
+                    const variantR = await findVariantForLengthAndColor(spokeProductId, roundedR, inventoryColor);
+                    let statusR = "ACTION REQUIRED: Variant not found!";
+                    if (variantR) {
+                        const success = await adjustInventory(variantR.inventoryItemId, -spokeCountPerSide, `gid://shopify/Location/${locationId}`, orderData.admin_graphql_api_id);
+                        statusR = success ? "Adjusted" : "FAILED to adjust";
+                    }
+                    
+                    wheel.inventory = {
+                        left: { length: roundedL, quantity: spokeCountPerSide, status: statusL },
+                        right: { length: roundedR, quantity: spokeCountPerSide, status: statusR }
+                    };
+                }
                 
                 await addNoteToOrder(orderData.admin_graphql_api_id, formatNote(buildReport));
                 await sendEmailReport(buildReport, orderData, buildRecipe);
