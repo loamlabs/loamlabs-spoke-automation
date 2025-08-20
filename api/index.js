@@ -735,9 +735,9 @@ function runCalculationEngine(buildRecipe, componentData) {
     
     try {
         // Check the build type from the recipe and only run the necessary calculations.
-        if (buildRecipe.buildType === 'Front Wheel') {
+        if (buildRecipe.buildType === 'Front') {
             results.front = calculateForPosition('front');
-        } else if (buildRecipe.buildType === 'Rear Wheel') {
+        } else if (buildRecipe.buildType === 'Rear') {
             results.rear = calculateForPosition('rear');
         } else if (buildRecipe.buildType === 'Wheel Set') {
             results.front = calculateForPosition('front');
