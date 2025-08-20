@@ -635,7 +635,7 @@ async function handleOrderCancelled(orderData) {
 }
 
 function runCalculationEngine(buildRecipe, componentData) {
-    console.log("--- RUNNING CALCULATION ENGINE V3 (with buildType fix) ---");
+    console.log("--- RUNNING CALCULATION ENGINE V4 (with FINAL buildType fix) ---");
 
     const results = { front: null, rear: null, errors: [] };
 
@@ -730,9 +730,10 @@ function runCalculationEngine(buildRecipe, componentData) {
     };
     
     try {
-        if (buildRecipe.buildType === 'Front Wheel') {
+        // Check for the exact buildType strings sent by the front-end builder.
+        if (buildRecipe.buildType === 'Front') { 
             results.front = calculateForPosition('front');
-        } else if (buildRecipe.buildType === 'Rear Wheel') {
+        } else if (buildRecipe.buildType === 'Rear') {
             results.rear = calculateForPosition('rear');
         } else if (buildRecipe.buildType === 'Wheel Set') {
             results.front = calculateForPosition('front');
