@@ -1,15 +1,11 @@
 // Forcing a clean Vercel build environment
 import { createHmac } from 'crypto';
 import { Resend } from 'resend';
-// --- NEW --- Import puppeteer for web scraping
-import chromium from '@sparticuz/chromium';
-import puppeteer from 'puppeteer-core';
 
 // --- Vercel Config ---
 export const config = { api: { bodyParser: false } };
 
 /**
- * --- NEW / REFACTORED ---
  * Applies the correct rounding rule based on the spoke vendor.
  * @param {number} length - The raw calculated length.
  * @param {string} vendor - The vendor of the spoke (e.g., 'Berd' or another brand).
@@ -439,6 +435,17 @@ function runCalculationEngine(buildRecipe, componentData) {
         
         const hubType = getMeta(hub.variantId, hub.productId, 'hub_type');
 
+        const hubDimensions = {
+            hubType: hubType,
+            pcd_l: getMeta(hub.variantId, hub.productId, 'hub_flange_diameter_left', true),
+            pcd_r: getMeta(hub.variantId, hub.productId, 'hub_flange_diameter_right', true),
+            flange_l: getMeta(hub.variantId, hub.productId, 'hub_flange_offset_left', true),
+            flange_r: getMeta(hub.variantId, hub.productId, 'hub_flange_offset_right', true),
+            shd: getMeta(hub.variantId, hub.productId, 'hub_spoke_hole_diameter', true, 2.6),
+            spo_l: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_left', true),
+            spo_r: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_right', true)
+        };
+            
         if (spokes.vendor === 'Berd') {
             const finalErd = getMeta(rim.variantId, rim.productId, 'rim_erd', true) + (2 * getMeta(rim.variantId, rim.productId, 'rim_nipple_washer_thickness_mm', true));
             const metalLengthL = calculateSpokeLength({ isLeft: true, hubType, baseCrossPattern: crossL, spokeCount, finalErd, hubFlangeDiameter: getMeta(hub.variantId, hub.productId, 'hub_flange_diameter_left', true), flangeOffset: getMeta(hub.variantId, hub.productId, 'hub_flange_offset_left', true), spOffset: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_left', true), hubSpokeHoleDiameter: getMeta(hub.variantId, hub.productId, 'hub_spoke_hole_diameter', true, 2.6) });
@@ -455,7 +462,7 @@ function runCalculationEngine(buildRecipe, componentData) {
                     left: { geo: finalBerdLengthL.toFixed(2), rounded: applyRounding(finalBerdLengthL, 'Berd') },
                     right: { geo: finalBerdLengthR.toFixed(2), rounded: applyRounding(finalBerdLengthR, 'Berd') }
                 },
-                inputs: { rim: rim.title, hub: hub.title, spokes: spokes.title, finalErd: finalErd.toFixed(2), targetTension: getMeta(rim.variantId, rim.productId, 'rim_target_tension_kgf', true, 120) }
+                inputs: { rim: rim.title, hub: hub.title, spokes: spokes.title, finalErd: finalErd.toFixed(2), targetTension: getMeta(rim.variantId, rim.productId, 'rim_target_tension_kgf', true, 120), hubDimensions: hubDimensions }
             };
         } else { // Steel spoke logic
             let erd = getMeta(rim.variantId, rim.productId, 'rim_erd', true); 
@@ -486,7 +493,7 @@ function runCalculationEngine(buildRecipe, componentData) {
                     left: { geo: lengthL.toFixed(2), stretch: calculateElongation(lengthL, tensionKgf, crossArea).toFixed(2), rounded: applyRounding(lengthL, 'Steel') },
                     right: { geo: lengthR.toFixed(2), stretch: calculateElongation(lengthR, tensionKgf, crossArea).toFixed(2), rounded: applyRounding(lengthR, 'Steel') }
                 },
-                inputs: { rim: rim.title, hub: hub.title, spokes: spokes.title, finalErd: finalErd.toFixed(2), targetTension: tensionKgf }
+                inputs: { rim: rim.title, hub: hub.title, spokes: spokes.title, finalErd: finalErd.toFixed(2), targetTension: tensionKgf, hubDimensions: hubDimensions }
             };
         }
     };
@@ -579,6 +586,26 @@ async function sendEmailReport(report, orderData, buildRecipe) {
         ? `L:${wheel.crossPattern.left}-Cross, R:${wheel.crossPattern.right}-Cross`
         : `${wheel.crossPattern}-Cross`;
 
+        // --- Generate the Hub Dimensions table ---
+        let hubDimensionsHtml = '';
+        const hubDims = wheel.inputs.hubDimensions;
+        if (hubDims) {
+            hubDimensionsHtml = `
+                <h4>Hub Dimensions</h4>
+                <table class="data-table">
+                    <tr><td>Hub Type</td><td>${hubDims.hubType || 'N/A'}</td></tr>
+                    <tr><td>PCD (L/R)</td><td>${hubDims.pcd_l} mm / ${hubDims.pcd_r} mm</td></tr>
+                    <tr><td>Flange Offset (L/R)</td><td>${hubDims.flange_l} mm / ${hubDims.flange_r} mm</td></tr>
+            `;
+            if (hubDims.hubType === 'Classic Flange') {
+                hubDimensionsHtml += `<tr><td>Spoke Hole Diameter</td><td>${hubDims.shd} mm</td></tr>`;
+            }
+            if (hubDims.hubType === 'Straight Pull') {
+                hubDimensionsHtml += `<tr><td>Spoke Offset (L/R)</td><td>${hubDims.spo_l} mm / ${hubDims.spo_r} mm</td></tr>`;
+            }
+            hubDimensionsHtml += '</table>';
+        }
+        
     return `
         <div class="wheel-section">
             <h3>${position.toUpperCase()} WHEEL DETAILS</h3>
@@ -595,6 +622,8 @@ async function sendEmailReport(report, orderData, buildRecipe) {
                 <tr><td>Final Adjusted ERD</td><td><strong>${wheel.inputs.finalErd} mm</strong></td></tr>
                 <tr><td>Target Tension</td><td>${wheel.inputs.targetTension} kgf</td></tr>
             </table>
+
+            ${hubDimensionsHtml}
 
             <h4>Calculated Lengths (Pre-Rounding)</h4>
             <table class="data-table">
