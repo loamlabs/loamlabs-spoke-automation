@@ -415,6 +415,15 @@ function runCalculationEngine(buildRecipe, componentData) {
             return { calculationSuccessful: false, error: `Skipping ${position} wheel: Missing component.` }; 
         }
 
+        // Check for customer-supplied parts BEFORE doing any calculations.
+        // Using .includes() is robust enough for "Your Own Hub", "Your Own Rim", etc.
+        if (hub.title.includes('Your Own')) {
+            return { calculationSuccessful: false, error: `Skipping calculation: Customer is supplying their own ${position} hub.` };
+        }
+        if (rim.title.includes('Your Own')) {
+            return { calculationSuccessful: false, error: `Skipping calculation: Customer is supplying their own ${position} rim.` };
+        }
+
         // Restore the "smart" logic for determining the cross pattern.
         let crossL, crossR;
         let lacingAlert = null;
