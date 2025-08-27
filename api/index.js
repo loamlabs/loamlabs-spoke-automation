@@ -518,7 +518,7 @@ function runCalculationEngine(buildRecipe, componentData) {
 }
 
 function formatNote(report) {
-    let note = "AUTOMATED SPOKE CALCULATION & INVENTORY\n---------------------------------------\n";
+    let note = "AUTOMATED SPOKE CALCULATION & INVENTORY\n";
     const formatSide = (wheel, position) => {
         if (!wheel) return ``;
         if (!wheel.calculationSuccessful) return `\n${position.toUpperCase()} WHEEL: CALC FAILED - ${wheel.error}`;
