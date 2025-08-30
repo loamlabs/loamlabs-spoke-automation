@@ -103,10 +103,13 @@ function calculateSpokeLength(params) {
     const geometricLength = Math.sqrt(term1 + term2 + term3 - term4);
 
     let finalLength;
-    if (hubType === 'Classic Flange' || hubType === 'Hook Flange') {
+    // --- MODIFICATION: Only subtract spoke hole diameter for Classic Flange hubs ---
+    if (hubType === 'Classic Flange') {
         finalLength = geometricLength - (hubSpokeHoleDiameter / 2);
-    } else { // Straight Pull
+    } else if (hubType === 'Straight Pull') {
         finalLength = geometricLength + spOffset;
+    } else { // For Hook Flange and any other types
+        finalLength = geometricLength;
     }
     return finalLength;
 }
