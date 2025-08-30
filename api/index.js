@@ -414,6 +414,18 @@ function runCalculationEngine(buildRecipe, componentData) {
         if (!rim || !hub || !spokes || !spokeCount) { 
             return { calculationSuccessful: false, error: `Skipping ${position} wheel: Missing component.` }; 
         }
+        
+        // --- MODIFICATION START ---
+        // Construct a more descriptive rim title that includes its size variant.
+        let rimTitleWithSize = rim.title; // Default to the product title.
+        // Find the 'Size' option from the selected variant options in the build recipe.
+        const sizeOption = rim.selectedOptions?.find(opt => opt.name === 'Size');
+        if (sizeOption && sizeOption.value) {
+            // If found, append it to the title.
+            rimTitleWithSize = `${rim.title} - ${sizeOption.value}`;
+        }
+        // --- MODIFICATION END ---
+
 
         // Check for customer-supplied parts BEFORE doing any calculations.
         // Using .includes() is robust enough for "Your Own Hub", "Your Own Rim", etc.
@@ -471,7 +483,10 @@ function runCalculationEngine(buildRecipe, componentData) {
                     left: { geo: finalBerdLengthL.toFixed(2), rounded: applyRounding(finalBerdLengthL, 'Berd') },
                     right: { geo: finalBerdLengthR.toFixed(2), rounded: applyRounding(finalBerdLengthR, 'Berd') }
                 },
-                inputs: { rim: rim.title, hub: hub.title, spokes: spokes.title, finalErd: finalErd.toFixed(2), targetTension: getMeta(rim.variantId, rim.productId, 'rim_target_tension_kgf', true, 120), hubDimensions: hubDimensions }
+                // --- MODIFICATION START ---
+                // Use the new rimTitleWithSize variable here.
+                inputs: { rim: rimTitleWithSize, hub: hub.title, spokes: spokes.title, finalErd: finalErd.toFixed(2), targetTension: getMeta(rim.variantId, rim.productId, 'rim_target_tension_kgf', true, 120), hubDimensions: hubDimensions }
+                // --- MODIFICATION END ---
             };
         } else { // Steel spoke logic
             let erd = getMeta(rim.variantId, rim.productId, 'rim_erd', true); 
@@ -502,7 +517,10 @@ function runCalculationEngine(buildRecipe, componentData) {
                     left: { geo: lengthL.toFixed(2), stretch: calculateElongation(lengthL, tensionKgf, crossArea).toFixed(2), rounded: applyRounding(lengthL, 'Steel') },
                     right: { geo: lengthR.toFixed(2), stretch: calculateElongation(lengthR, tensionKgf, crossArea).toFixed(2), rounded: applyRounding(lengthR, 'Steel') }
                 },
-                inputs: { rim: rim.title, hub: hub.title, spokes: spokes.title, finalErd: finalErd.toFixed(2), targetTension: tensionKgf, hubDimensions: hubDimensions }
+                // --- MODIFICATION START ---
+                // Use the new rimTitleWithSize variable here as well.
+                inputs: { rim: rimTitleWithSize, hub: hub.title, spokes: spokes.title, finalErd: finalErd.toFixed(2), targetTension: tensionKgf, hubDimensions: hubDimensions }
+                // --- MODIFICATION END ---
             };
         }
     };
