@@ -415,20 +415,12 @@ function runCalculationEngine(buildRecipe, componentData) {
             return { calculationSuccessful: false, error: `Skipping ${position} wheel: Missing component.` }; 
         }
         
-        // --- MODIFICATION START ---
-        // Construct a more descriptive rim title that includes its size variant.
-        let rimTitleWithSize = rim.title; // Default to the product title.
-        // Find the 'Size' option from the selected variant options in the build recipe.
+        let rimTitleWithSize = rim.title;
         const sizeOption = rim.selectedOptions?.find(opt => opt.name === 'Size');
         if (sizeOption && sizeOption.value) {
-            // If found, append it to the title.
             rimTitleWithSize = `${rim.title} - ${sizeOption.value}`;
         }
-        // --- MODIFICATION END ---
 
-
-        // Check for customer-supplied parts BEFORE doing any calculations.
-        // Using .includes() is robust enough for "Your Own Hub", "Your Own Rim", etc.
         if (hub.title.includes('Your Own')) {
             return { calculationSuccessful: false, error: `Skipping calculation: Customer is supplying their own ${position} hub.` };
         }
@@ -436,7 +428,6 @@ function runCalculationEngine(buildRecipe, componentData) {
             return { calculationSuccessful: false, error: `Skipping calculation: Customer is supplying their own ${position} rim.` };
         }
 
-        // Restore the "smart" logic for determining the cross pattern.
         let crossL, crossR;
         let lacingAlert = null;
 
@@ -448,7 +439,6 @@ function runCalculationEngine(buildRecipe, componentData) {
             crossL = manualCrossOverride;
             crossR = manualCrossOverride;
         } else {
-            // If no override, use the standard default logic.
             const defaultCross = (spokeCount >= 28) ? 3 : 2;
             crossL = defaultCross;
             crossR = defaultCross;
@@ -468,7 +458,7 @@ function runCalculationEngine(buildRecipe, componentData) {
         };
             
         if (spokes.vendor === 'Berd') {
-            const finalErd = getMeta(rim.variantId, rim.productId, 'rim_erd', true) + (2 * getMeta(rim.variantId, rim.productId, 'rim_nipple_washer_thickness_mm', true));
+            const finalErd = getMeta(rim.variantId, rim.productId, 'rim_erd', true) + (2 * getMeta(rim.variantId, rim.productId, 'nipple_washer_thickness', true));
             const metalLengthL = calculateSpokeLength({ isLeft: true, hubType, baseCrossPattern: crossL, spokeCount, finalErd, hubFlangeDiameter: getMeta(hub.variantId, hub.productId, 'hub_flange_diameter_left', true), flangeOffset: getMeta(hub.variantId, hub.productId, 'hub_flange_offset_left', true), spOffset: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_left', true), hubSpokeHoleDiameter: getMeta(hub.variantId, hub.productId, 'hub_spoke_hole_diameter', true, 2.6) });
             const metalLengthR = calculateSpokeLength({ isLeft: false, hubType, baseCrossPattern: crossR, spokeCount, finalErd, hubFlangeDiameter: getMeta(hub.variantId, hub.productId, 'hub_flange_diameter_right', true), flangeOffset: getMeta(hub.variantId, hub.productId, 'hub_flange_offset_right', true), spOffset: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_right', true), hubSpokeHoleDiameter: getMeta(rim.variantId, rim.productId, 'hub_spoke_hole_diameter', true, 2.6) });
             const berdContext = { flangeL: getMeta(hub.variantId, hub.productId, 'hub_flange_offset_left', true), flangeR: getMeta(hub.variantId, hub.productId, 'hub_flange_offset_right', true), metalLengthL, metalLengthR };
@@ -483,16 +473,13 @@ function runCalculationEngine(buildRecipe, componentData) {
                     left: { geo: finalBerdLengthL.toFixed(2), rounded: applyRounding(finalBerdLengthL, 'Berd') },
                     right: { geo: finalBerdLengthR.toFixed(2), rounded: applyRounding(finalBerdLengthR, 'Berd') }
                 },
-                // --- MODIFICATION START ---
-                // Use the new rimTitleWithSize variable here.
                 inputs: { rim: rimTitleWithSize, hub: hub.title, spokes: spokes.title, finalErd: finalErd.toFixed(2), targetTension: getMeta(rim.variantId, rim.productId, 'rim_target_tension_kgf', true, 120), hubDimensions: hubDimensions }
-                // --- MODIFICATION END ---
             };
         } else { // Steel spoke logic
             let erd = getMeta(rim.variantId, rim.productId, 'rim_erd', true); 
             let finalErd = erd;
             if (getMeta(rim.variantId, rim.productId, 'rim_washer_policy') !== 'Not Compatible') {
-                finalErd += (2 * getMeta(rim.variantId, rim.productId, 'rim_nipple_washer_thickness_mm', true));
+                finalErd += (2 * getMeta(rim.variantId, rim.productId, 'nipple_washer_thickness', true));
             }
         
             if (!isLacingPossible(spokeCount, crossL) || !isLacingPossible(spokeCount, crossR)) {
@@ -507,7 +494,8 @@ function runCalculationEngine(buildRecipe, componentData) {
             const lengthR = calculateSpokeLength(paramsRight);
             
             const tensionKgf = getMeta(rim.variantId, rim.productId, 'rim_target_tension_kgf', true, 120);
-            const crossArea = getMeta(spokes.variantId, spokes.productId, 'spoke_cross_sectional_area_mm2', true);
+            // --- MODIFICATION: Using corrected metafield name 'spoke_cross_section_area_mm2' ---
+            const crossArea = getMeta(spokes.variantId, spokes.productId, 'spoke_cross_section_area_mm2', true);
             
             return {
                 calculationSuccessful: true,
@@ -517,16 +505,12 @@ function runCalculationEngine(buildRecipe, componentData) {
                     left: { geo: lengthL.toFixed(2), stretch: calculateElongation(lengthL, tensionKgf, crossArea).toFixed(2), rounded: applyRounding(lengthL, 'Steel') },
                     right: { geo: lengthR.toFixed(2), stretch: calculateElongation(lengthR, tensionKgf, crossArea).toFixed(2), rounded: applyRounding(lengthR, 'Steel') }
                 },
-                // --- MODIFICATION START ---
-                // Use the new rimTitleWithSize variable here as well.
                 inputs: { rim: rimTitleWithSize, hub: hub.title, spokes: spokes.title, finalErd: finalErd.toFixed(2), targetTension: tensionKgf, hubDimensions: hubDimensions }
-                // --- MODIFICATION END ---
             };
         }
     };
     
     try {
-        // Check for the exact buildType strings sent by the front-end builder.
         if (buildRecipe.buildType === 'Front') { 
             results.front = calculateForPosition('front');
         } else if (buildRecipe.buildType === 'Rear') {
