@@ -459,11 +459,22 @@ function runCalculationEngine(buildRecipe, componentData) {
             spo_l: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_left', true),
             spo_r: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_right', true)
         };
+
+        const rimOsb = getMeta(rim.variantId, rim.productId, 'rim_spoke_hole_offset', true); // Get the OSB value.
+        let effectiveFlangeL, effectiveFlangeR; // Declare variables for the adjusted offsets.
+
+        if (position === 'front') { // Logic to correctly calculate effective offsets.
+            effectiveFlangeL = hubDimensions.flange_l + rimOsb;
+            effectiveFlangeR = hubDimensions.flange_r - rimOsb;
+        } else { // rear
+            effectiveFlangeL = hubDimensions.flange_l - rimOsb;
+            effectiveFlangeR = hubDimensions.flange_r + rimOsb;
+        }
             
         if (spokes.vendor === 'Berd') {
             const finalErd = getMeta(rim.variantId, rim.productId, 'rim_erd', true) + (2 * getMeta(rim.variantId, rim.productId, 'nipple_washer_thickness', true));
-            const metalLengthL = calculateSpokeLength({ isLeft: true, hubType, baseCrossPattern: crossL, spokeCount, finalErd, hubFlangeDiameter: getMeta(hub.variantId, hub.productId, 'hub_flange_diameter_left', true), flangeOffset: getMeta(hub.variantId, hub.productId, 'hub_flange_offset_left', true), spOffset: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_left', true), hubSpokeHoleDiameter: getMeta(hub.variantId, hub.productId, 'hub_spoke_hole_diameter', true, 2.6) });
-            const metalLengthR = calculateSpokeLength({ isLeft: false, hubType, baseCrossPattern: crossR, spokeCount, finalErd, hubFlangeDiameter: getMeta(hub.variantId, hub.productId, 'hub_flange_diameter_right', true), flangeOffset: getMeta(hub.variantId, hub.productId, 'hub_flange_offset_right', true), spOffset: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_right', true), hubSpokeHoleDiameter: getMeta(rim.variantId, rim.productId, 'hub_spoke_hole_diameter', true, 2.6) });
+            const metalLengthL = calculateSpokeLength({ isLeft: true, hubType, baseCrossPattern: crossL, spokeCount, finalErd, hubFlangeDiameter: hubDimensions.pcd_l, flangeOffset: effectiveFlangeL, spOffset: hubDimensions.spo_l, hubSpokeHoleDiameter: hubDimensions.shd });
+            const metalLengthR = calculateSpokeLength({ isLeft: false, hubType, baseCrossPattern: crossR, spokeCount, finalErd, hubFlangeDiameter: hubDimensions.pcd_r, flangeOffset: effectiveFlangeR, spOffset: hubDimensions.spo_r, hubSpokeHoleDiameter: hubDimensions.shd });
             const berdContext = { flangeL: getMeta(hub.variantId, hub.productId, 'hub_flange_offset_left', true), flangeR: getMeta(hub.variantId, hub.productId, 'hub_flange_offset_right', true), metalLengthL, metalLengthR };
             const finalBerdLengthL = calculateBerdFinalLength(metalLengthL, hubType, true, berdContext);
             const finalBerdLengthR = calculateBerdFinalLength(metalLengthR, hubType, false, berdContext);
@@ -490,8 +501,8 @@ function runCalculationEngine(buildRecipe, componentData) {
             }
             
             const commonParams = { hubType, spokeCount, finalErd, rimSpokeHoleOffset: getMeta(rim.variantId, rim.productId, 'rim_spoke_hole_offset', true), hubSpokeHoleDiameter: getMeta(hub.variantId, hub.productId, 'hub_spoke_hole_diameter', true, 2.6) };
-            const paramsLeft = { ...commonParams, isLeft: true, baseCrossPattern: crossL, hubFlangeDiameter: getMeta(hub.variantId, hub.productId, 'hub_flange_diameter_left', true), flangeOffset: getMeta(hub.variantId, hub.productId, 'hub_flange_offset_left', true), spOffset: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_left', true) };
-            const paramsRight = { ...commonParams, isLeft: false, baseCrossPattern: crossR, hubFlangeDiameter: getMeta(hub.variantId, hub.productId, 'hub_flange_diameter_right', true), flangeOffset: getMeta(hub.variantId, hub.productId, 'hub_flange_offset_right', true), spOffset: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_right', true) };
+            const paramsLeft = { ...commonParams, isLeft: true, baseCrossPattern: crossL, hubFlangeDiameter: hubDimensions.pcd_l, flangeOffset: effectiveFlangeL, spOffset: hubDimensions.spo_l };
+            const paramsRight = { ...commonParams, isLeft: false, baseCrossPattern: crossR, hubFlangeDiameter: hubDimensions.pcd_r, flangeOffset: effectiveFlangeR, spOffset: hubDimensions.spo_r };
             
             const lengthL = calculateSpokeLength(paramsLeft);
             const lengthR = calculateSpokeLength(paramsRight);
