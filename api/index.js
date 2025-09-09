@@ -564,16 +564,18 @@ function formatNote(report) {
             wheelNote += `  ALERT: ${wheel.alert}\n`;
         }
         
-        let erdNote = `ERD: ${wheel.inputs.erd} mm`;
+        // --- THIS IS THE NEW FORMATTING LOGIC ---
+        let erdNote = `  ERD: ${wheel.inputs.erd} mm`;
         const totalWasherThickness = 2 * wheel.inputs.washerThickness;
-        if (totalWasherThickness > 0) {
-            erdNote += ` + ${totalWasherThickness.toFixed(1)} mm Washers (Policy: ${wheel.inputs.washerPolicy}) = ${wheel.inputs.finalErd} mm Final`;
+        if (wheel.inputs.washerPolicy !== 'Not Compatible' && totalWasherThickness > 0) {
+            erdNote += ` + (2x) ${wheel.inputs.washerThickness.toFixed(1)} mm Washers (Policy: ${wheel.inputs.washerPolicy}) = ${wheel.inputs.finalErd} mm Final`;
         } else {
-            erdNote += ` (Final)`;
+            erdNote += ` (Final: ${wheel.inputs.finalErd} mm)`;
         }
-        
+        // --- END OF NEW FORMATTING LOGIC ---
+
         wheelNote += `  Rim: ${wheel.inputs.rim}\n` +
-               `  ${erdNote}\n` + // <-- ADDED THE NEW ERD NOTE HERE
+               `${erdNote}\n` + // <-- THE NEW ERD NOTE IS ADDED HERE
                `  Hub: ${wheel.inputs.hub}\n` +
                `  Spokes: ${wheel.inputs.spokes}\n` +
                `  Target Tension: ${wheel.inputs.targetTension} kgf\n` +
@@ -646,12 +648,14 @@ async function sendEmailReport(report, orderData, buildRecipe) {
             hubDimensionsHtml += '</table>';
         }
 
-        const totalWasherThickness = 2 * wheel.inputs.washerThickness;
-        const erdBreakdownHtml = `
-            Base: ${wheel.inputs.erd} mm
-            ${totalWasherThickness > 0 ? `<br/>+ Washers: ${totalWasherThickness.toFixed(1)} mm (${wheel.inputs.washerPolicy})` : ''}
-            <br/><strong>Final: ${wheel.inputs.finalErd} mm</strong>
-        `;
+    // --- THIS IS THE NEW FORMATTING LOGIC ---
+    const totalWasherThickness = 2 * wheel.inputs.washerThickness;
+    let erdBreakdownHtml = `Base: ${wheel.inputs.erd} mm`;
+    if (wheel.inputs.washerPolicy !== 'Not Compatible' && totalWasherThickness > 0) {
+        erdBreakdownHtml += `<br/>+ (2x) ${wheel.inputs.washerThickness.toFixed(1)} mm Washers (${wheel.inputs.washerPolicy})`;
+    }
+    erdBreakdownHtml += `<br/><strong>Final: ${wheel.inputs.finalErd} mm</strong>`;
+    // --- END OF NEW FORMATTING LOGIC ---
         
     return `
         <div class="wheel-section">
@@ -666,7 +670,7 @@ async function sendEmailReport(report, orderData, buildRecipe) {
                 <tr><td>Rim</td><td>${wheel.inputs.rim}</td></tr>
                 <tr><td>Hub</td><td>${wheel.inputs.hub}</td></tr>
                 <tr><td>Spokes</td><td>${wheel.inputs.spokes}</td></tr>
-                <tr><td>Final Adjusted ERD</td><td><strong>${wheel.inputs.finalErd} mm</strong></td></tr>
+                <tr><td>ERD Breakdown</td><td>${erdBreakdownHtml}</td></tr>
                 <tr><td>Target Tension</td><td>${wheel.inputs.targetTension} kgf</td></tr>
             </table>
 
@@ -692,7 +696,7 @@ async function sendEmailReport(report, orderData, buildRecipe) {
     `;
 };
     
-    // --- Main HTML Structure ---
+    // --- Main HTML Structure (No changes needed below here, but provided for completeness) ---
     const emailHtml = `
         <!DOCTYPE html>
         <html>
