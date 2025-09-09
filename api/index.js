@@ -459,8 +459,6 @@ function runCalculationEngine(buildRecipe, componentData) {
             spo_l: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_left', true),
             spo_r: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_right', true)
         };
-            const rimWasherPolicy = getMeta(rim.variantId, rim.productId, 'rim_washer_policy') || 'N/A';
-            const nippleWasherThickness = getMeta(rim.variantId, rim.productId, 'nipple_washer_thickness', true);
             
         if (spokes.vendor === 'Berd') {
             const finalErd = getMeta(rim.variantId, rim.productId, 'rim_erd', true) + (2 * getMeta(rim.variantId, rim.productId, 'nipple_washer_thickness', true));
@@ -478,7 +476,7 @@ function runCalculationEngine(buildRecipe, componentData) {
                     left: { geo: finalBerdLengthL.toFixed(2), rounded: applyRounding(finalBerdLengthL, 'Berd') },
                     right: { geo: finalBerdLengthR.toFixed(2), rounded: applyRounding(finalBerdLengthR, 'Berd') }
                 },
-                inputs: { rim: rimTitleWithSize, hub: hub.title, spokes: spokes.title, finalEinputs: { rim: rimTitleWithSize, hub: hub.title, spokes: spokes.title, finalErd: finalErd.toFixed(2), targetTension: getMeta(rim.variantId, rim.productId, 'rim_target_tension_kgf', true, 120), hubDimensions: hubDimensions, rimWasherPolicy: rimWasherPolicy, nippleWasherThickness: nippleWasherThickness }rd: finalErd.toFixed(2), targetTension: getMeta(rim.variantId, rim.productId, 'rim_target_tension_kgf', true, 120), hubDimensions: hubDimensions }
+                inputs: { rim: rimTitleWithSize, hub: hub.title, spokes: spokes.title, finalErd: finalErd.toFixed(2), targetTension: getMeta(rim.variantId, rim.productId, 'rim_target_tension_kgf', true, 120), hubDimensions: hubDimensions }
             };
         } else { // Steel spoke logic
             let erd = getMeta(rim.variantId, rim.productId, 'rim_erd', true); 
@@ -491,26 +489,9 @@ function runCalculationEngine(buildRecipe, componentData) {
                 return { calculationSuccessful: false, error: `Lacing pattern ${crossL}/${crossR} is not geometrically possible.` };
             }
             
-            // --- MODIFICATION START: Correct Asymmetry Calculation ---
-            const rimSpokeHoleOffset = getMeta(rim.variantId, rim.productId, 'rim_spoke_hole_offset', true);
-            const rawFlangeL = getMeta(hub.variantId, hub.productId, 'hub_flange_offset_left', true);
-            const rawFlangeR = getMeta(hub.variantId, hub.productId, 'hub_flange_offset_right', true);
-
-            let effectiveFlangeL, effectiveFlangeR;
-            // Apply asymmetry based on wheel position, mirroring the customer-facing calculator's logic.
-            if (position === 'front') {
-                effectiveFlangeL = rawFlangeL + rimSpokeHoleOffset;
-                effectiveFlangeR = rawFlangeR - rimSpokeHoleOffset;
-            } else { // 'rear'
-                effectiveFlangeL = rawFlangeL - rimSpokeHoleOffset;
-                effectiveFlangeR = rawFlangeR + rimSpokeHoleOffset;
-            }
-            
-            const commonParams = { hubType, spokeCount, finalErd, hubSpokeHoleDiameter: getMeta(hub.variantId, hub.productId, 'hub_spoke_hole_diameter', true, 2.6) };
-            // Use the new 'effectiveFlange' values instead of the raw ones.
-            const paramsLeft = { ...commonParams, isLeft: true, baseCrossPattern: crossL, hubFlangeDiameter: getMeta(hub.variantId, hub.productId, 'hub_flange_diameter_left', true), flangeOffset: effectiveFlangeL, spOffset: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_left', true) };
-            const paramsRight = { ...commonParams, isLeft: false, baseCrossPattern: crossR, hubFlangeDiameter: getMeta(hub.variantId, hub.productId, 'hub_flange_diameter_right', true), flangeOffset: effectiveFlangeR, spOffset: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_right', true) };
-            // --- MODIFICATION END ---
+            const commonParams = { hubType, spokeCount, finalErd, rimSpokeHoleOffset: getMeta(rim.variantId, rim.productId, 'rim_spoke_hole_offset', true), hubSpokeHoleDiameter: getMeta(hub.variantId, hub.productId, 'hub_spoke_hole_diameter', true, 2.6) };
+            const paramsLeft = { ...commonParams, isLeft: true, baseCrossPattern: crossL, hubFlangeDiameter: getMeta(hub.variantId, hub.productId, 'hub_flange_diameter_left', true), flangeOffset: getMeta(hub.variantId, hub.productId, 'hub_flange_offset_left', true), spOffset: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_left', true) };
+            const paramsRight = { ...commonParams, isLeft: false, baseCrossPattern: crossR, hubFlangeDiameter: getMeta(hub.variantId, hub.productId, 'hub_flange_diameter_right', true), flangeOffset: getMeta(hub.variantId, hub.productId, 'hub_flange_offset_right', true), spOffset: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_right', true) };
             
             const lengthL = calculateSpokeLength(paramsLeft);
             const lengthR = calculateSpokeLength(paramsRight);
@@ -527,7 +508,7 @@ function runCalculationEngine(buildRecipe, componentData) {
                     left: { geo: lengthL.toFixed(2), stretch: calculateElongation(lengthL, tensionKgf, crossArea).toFixed(2), rounded: applyRounding(lengthL, 'Steel') },
                     right: { geo: lengthR.toFixed(2), stretch: calculateElongation(lengthR, tensionKgf, crossArea).toFixed(2), rounded: applyRounding(lengthR, 'Steel') }
                 },
-                inputs: { rim: rimTitleWithSize, hub: hub.title, spokes: spokes.title, finalErd: finalErd.toFixed(2), inputs: { rim: rimTitleWithSize, hub: hub.title, spokes: spokes.title, finalErd: finalErd.toFixed(2), targetTension: tensionKgf, hubDimensions: hubDimensions, rimWasherPolicy: rimWasherPolicy, nippleWasherThickness: nippleWasherThickness }targetTension: tensionKgf, hubDimensions: hubDimensions }
+                inputs: { rim: rimTitleWithSize, hub: hub.title, spokes: spokes.title, finalErd: finalErd.toFixed(2), targetTension: tensionKgf, hubDimensions: hubDimensions }
             };
         }
     };
@@ -567,11 +548,6 @@ function formatNote(report) {
         }
         
         wheelNote += `  Rim: ${wheel.inputs.rim}\n` +
-               `  Hub: ${wheel.inputs.hub}\n` +
-               `  Spokes: ${wheel.inputs.spokes}\n` +
-               `  Washer Policy: ${wheel.inputs.rimWasherPolicy} (${wheel.inputs.nippleWasherThickness}mm)\n` + // <-- ADD THIS LINE
-               `  Target Tension: ${wheel.inputs.targetTension} kgf\n` +
-               `  --- Calculated Lengths ---\n`;inputs.rim}\n` +
                `  Hub: ${wheel.inputs.hub}\n` +
                `  Spokes: ${wheel.inputs.spokes}\n` +
                `  Target Tension: ${wheel.inputs.targetTension} kgf\n` +
@@ -657,9 +633,6 @@ async function sendEmailReport(report, orderData, buildRecipe) {
                 <tr><td>Rim</td><td>${wheel.inputs.rim}</td></tr>
                 <tr><td>Hub</td><td>${wheel.inputs.hub}</td></tr>
                 <tr><td>Spokes</td><td>${wheel.inputs.spokes}</td></tr>
-                <!-- ADD THIS NEW ROW -->
-                <tr><td>Washer Policy</td><td><strong>${wheel.inputs.rimWasherPolicy}</strong> (${wheel.inputs.nippleWasherThickness}mm)</td></tr>
-                <!-- END OF ADDITION -->
                 <tr><td>Final Adjusted ERD</td><td><strong>${wheel.inputs.finalErd} mm</strong></td></tr>
                 <tr><td>Target Tension</td><td>${wheel.inputs.targetTension} kgf</td></tr>
             </table>
