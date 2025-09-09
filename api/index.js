@@ -191,7 +191,6 @@ async function handleOrderCreate(orderData) {
                 console.log("✅ Initial Build Report:", JSON.stringify(buildReport, null, 2));
 
                 for (const position of ['front', 'rear']) {
-                    // Check if the wheel for this position exists and was calculated.
                     const wheel = buildReport[position];
                     if (!wheel || !wheel.calculationSuccessful) continue; // Skip if no wheel or calc failed.
 
@@ -247,7 +246,6 @@ async function handleOrderCreate(orderData) {
 }
 
 async function handleOrderCancelled(orderData) {
-    // The unreliable 'if (!orderData.restock)' check has been removed.
 
     const wheelBuildLineItem = orderData.line_items.find(item => item.properties?.some(p => p.name === '_is_custom_wheel_build' && p.value === 'true'));
     if (!wheelBuildLineItem || !orderData.note || !orderData.note.includes("AUTOMATED SPOKE CALCULATION")) {
@@ -294,7 +292,7 @@ async function handleOrderCancelled(orderData) {
 
     for (const position of ['front', 'rear']) {
         const spokeComponent = buildRecipe.components[`${position}Spokes`];
-        if (!spokeComponent) continue; // Skip if no spokes for this position
+        if (!spokeComponent) continue; 
 
         const colorOption = spokeComponent.selectedOptions.find(opt => opt.name === 'Color');
         const selectedColor = colorOption ? colorOption.value : null;
@@ -305,7 +303,7 @@ async function handleOrderCancelled(orderData) {
         }
 
         // --- Smart Color Logic for Restocking ---
-        let inventoryColor = selectedColor; // Start with the selected color
+        let inventoryColor = selectedColor;
         if (spokeComponent.vendor === 'Berd' && selectedColor !== 'Black Berd' && selectedColor !== 'White Berd') {
             inventoryColor = 'White Berd'; // If it was a custom color, restock the 'White Berd' variant
         }
@@ -409,7 +407,7 @@ function runCalculationEngine(buildRecipe, componentData) {
             spo_r: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_right', true)
         };
         
-        // --- MODIFICATION: Calculate effective flanges early to use for BOTH spoke types ---
+        // --- Calculate effective flanges early to use for BOTH spoke types ---
         const rimAsymmetry = getMeta(rim.variantId, rim.productId, 'rim_spoke_hole_offset', true);
         const rawFlangeL = getMeta(hub.variantId, hub.productId, 'hub_flange_offset_left', true);
         const rawFlangeR = getMeta(hub.variantId, hub.productId, 'hub_flange_offset_right', true);
@@ -428,7 +426,6 @@ function runCalculationEngine(buildRecipe, componentData) {
             const washerThickness = getMeta(rim.variantId, rim.productId, 'nipple_washer_thickness', true);
             const finalErd = baseErd + (2 * washerThickness);
             
-            // --- MODIFICATION: Using corrected effective flanges for Berd calculation ---
             const metalLengthL = calculateSpokeLength({ isLeft: true, hubType, baseCrossPattern: crossL, spokeCount, finalErd, hubFlangeDiameter: getMeta(hub.variantId, hub.productId, 'hub_flange_diameter_left', true), flangeOffset: effectiveFlangeL, spOffset: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_left', true), hubSpokeHoleDiameter: getMeta(hub.variantId, hub.productId, 'hub_spoke_hole_diameter', true, 2.6) });
             const metalLengthR = calculateSpokeLength({ isLeft: false, hubType, baseCrossPattern: crossR, spokeCount, finalErd, hubFlangeDiameter: getMeta(hub.variantId, hub.productId, 'hub_flange_diameter_right', true), flangeOffset: effectiveFlangeR, spOffset: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_right', true), hubSpokeHoleDiameter: getMeta(rim.variantId, rim.productId, 'hub_spoke_hole_diameter', true, 2.6) });
             const berdContext = { flangeL: effectiveFlangeL, flangeR: effectiveFlangeR, metalLengthL, metalLengthR };
@@ -744,7 +741,6 @@ export default async function handler(req, res) {
     const orderData = JSON.parse(rawBody.toString());
     const eventTopic = req.headers['x-shopify-topic'];
 
-    // Route the request based on the event type
     switch (eventTopic) {
         case 'orders/create':
             console.log(`Handling new order: #${orderData.order_number}`);
