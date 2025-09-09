@@ -5,21 +5,6 @@ import { Resend } from 'resend';
 // --- Vercel Config ---
 export const config = { api: { bodyParser: false } };
 
-/**
- * Applies the correct rounding rule based on the spoke vendor.
- * @param {number} length - The raw calculated length.
- * @param {string} vendor - The vendor of the spoke (e.g., 'Berd' or another brand).
- * @returns {number} The final, orderable length.
- */
-function applyRounding(length, vendor) {
-    if (vendor === 'Berd') {
-        // Berd Puller Method: round to nearest whole, then subtract 2.
-        return Math.round(length) - 2;
-    }
-    // Steel Spoke Method: round up to the nearest even number.
-    return Math.ceil(length / 2) * 2;
-}
-
 async function getRawBody(req) {
   const chunks = [];
   for await (const chunk of req) {
@@ -79,48 +64,6 @@ async function fetchComponentData(buildRecipe) {
   }
 }
 
-function calculateElongation(spokeLength, tensionKgf, crossSectionalArea) {
-    if (!crossSectionalArea || crossSectionalArea === 0) return 0;
-    const YOUNG_MODULUS_STEEL_GPA = 210;
-    const tensionN = tensionKgf * 9.80665;
-    const modulusPa = YOUNG_MODULUS_STEEL_GPA * 1e9;
-    const elongationMeters = (tensionN * (spokeLength / 1000)) / (modulusPa * (crossSectionalArea / 1e6));
-    return elongationMeters * 1000;
-}
-
-function calculateSpokeLength(params) {
-    const { isLeft, hubType, baseCrossPattern, spokeCount, finalErd, hubFlangeDiameter, flangeOffset, spOffset, hubSpokeHoleDiameter } = params;
-    let effectiveCrossPattern = baseCrossPattern;
-    if (hubType === 'Straight Pull' && baseCrossPattern > 0) {
-        effectiveCrossPattern += 0.5;
-    }
-    const angle = (2 * Math.PI * effectiveCrossPattern) / (spokeCount / 2);
-    const finalZOffset = flangeOffset; // Asymmetry is handled in the finalErd
-    const term1 = Math.pow(finalZOffset, 2);
-    const term2 = Math.pow(hubFlangeDiameter / 2, 2);
-    const term3 = Math.pow(finalErd / 2, 2);
-    const term4 = 2 * (hubFlangeDiameter / 2) * (finalErd / 2) * Math.cos(angle);
-    const geometricLength = Math.sqrt(term1 + term2 + term3 - term4);
-
-    let finalLength;
-    // --- MODIFICATION: Only subtract spoke hole diameter for Classic Flange hubs ---
-    if (hubType === 'Classic Flange') {
-        finalLength = geometricLength - (hubSpokeHoleDiameter / 2);
-    } else if (hubType === 'Straight Pull') {
-        finalLength = geometricLength + spOffset;
-    } else { // For Hook Flange and any other types
-        finalLength = geometricLength;
-    }
-    return finalLength;
-}
-
-function isLacingPossible(spokeCount, crossPattern) {
-    if (crossPattern === 0) return true;
-    const angleBetweenHoles = 360 / (spokeCount / 2);
-    const lacingAngle = crossPattern * angleBetweenHoles;
-    return lacingAngle < 90;
-}
-
 async function findVariantForLengthAndColor(productId, length, color) {
     const query = `
       query getProductVariants($id: ID!) {
@@ -171,7 +114,6 @@ async function adjustInventory(inventoryItemId, quantityDelta, locationId, order
                     inventoryItemId: inventoryItemId,
                     locationId: locationId
                 }],
-                // This is the missing piece: a reference to the order that caused the change.
                 referenceDocumentUri: orderGid 
             }
         });
@@ -342,7 +284,6 @@ async function handleOrderCancelled(orderData) {
     let restockNote = "AUTOMATED RESTOCK COMPLETE\n--------------------------\n";
     let actionIndex = 0;
 
-    // THIS IS THE NEW, CORRECTED LOOP
     for (const position of ['front', 'rear']) {
         const spokeComponent = buildRecipe.components[`${position}Spokes`];
         if (!spokeComponent) continue; // Skip if no spokes for this position
@@ -355,12 +296,12 @@ async function handleOrderCancelled(orderData) {
             continue;
         }
 
-        // --- NEW: Smart Color Logic for Restocking ---
+        // --- Smart Color Logic for Restocking ---
         let inventoryColor = selectedColor; // Start with the selected color
         if (spokeComponent.vendor === 'Berd' && selectedColor !== 'Black Berd' && selectedColor !== 'White Berd') {
             inventoryColor = 'White Berd'; // If it was a custom color, restock the 'White Berd' variant
         }
-        // --- End of New Logic ---
+        // --- End of Logic ---
 
         // Process Left Side for this wheel
         if (actionIndex < restockActions.length) {
@@ -566,7 +507,6 @@ function formatNote(report) {
             wheelNote += `  ALERT: ${wheel.alert}\n`;
         }
 
-        // --- MODIFICATION START ---
         let rimLine = `  Rim: ${wheel.inputs.rim}`;
         if (wheel.inputs.rimAsymmetry && wheel.inputs.rimAsymmetry > 0) {
             rimLine += ` (Asym: ${wheel.inputs.rimAsymmetry.toFixed(1)} mm)`;
@@ -579,9 +519,8 @@ function formatNote(report) {
         } else {
             erdNote += ` (Final: ${wheel.inputs.finalErd} mm)`;
         }
-        // --- MODIFICATION END ---
 
-        wheelNote += `${rimLine}\n` + // <-- Use the new dynamic rimLine
+        wheelNote += `${rimLine}\n` + 
                `${erdNote}\n` + 
                `  Hub: ${wheel.inputs.hub}\n` +
                `  Spokes: ${wheel.inputs.spokes}\n` +
