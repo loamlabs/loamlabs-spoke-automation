@@ -458,9 +458,9 @@ function runCalculationEngine(buildRecipe, componentData) {
             shd: getMeta(hub.variantId, hub.productId, 'hub_spoke_hole_diameter', true, 2.6),
             spo_l: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_left', true),
             spo_r: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_right', true)
+        };
             const rimWasherPolicy = getMeta(rim.variantId, rim.productId, 'rim_washer_policy') || 'N/A';
             const nippleWasherThickness = getMeta(rim.variantId, rim.productId, 'nipple_washer_thickness', true);
-        };
             
         if (spokes.vendor === 'Berd') {
             const finalErd = getMeta(rim.variantId, rim.productId, 'rim_erd', true) + (2 * getMeta(rim.variantId, rim.productId, 'nipple_washer_thickness', true));
