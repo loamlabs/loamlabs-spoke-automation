@@ -8,10 +8,26 @@ import {
     calculateBerdFinalLength
 } from '../_lib/calculator.js';
 
+// --- CORS Middleware function ---
+// This function sets the required headers to allow cross-origin requests.
+const allowCors = (fn) => async (req, res) => {
+    res.setHeader('Access-Control-Allow-Credentials', true);
+    res.setHeader('Access-Control-Allow-Origin', '*'); // Or you can be more specific: 'https://loamlabsusa.com'
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, x-internal-secret');
+    
+    // --- Handle preflight requests ---
+    // The browser sends an OPTIONS request first to check if the server allows the actual request.
+    if (req.method === 'OPTIONS') {
+        res.status(204).end();
+        return;
+    }
+    return await fn(req, res);
+};
+
 // This is the main handler for our new endpoint
-export default async function handler(req, res) {
+async function handler(req, res) {
     // --- Security Check ---
-    // We only allow POST requests with a valid secret key.
     const expectedSecret = process.env.INTERNAL_API_SECRET;
     const providedSecret = req.headers['x-internal-secret'];
 
@@ -25,38 +41,26 @@ export default async function handler(req, res) {
     try {
         const inputs = req.body;
 
-        // --- Simplified Calculation Runner (adapts test harness inputs) ---
-        // We assume a 'rear' wheel calculation context for asymmetry, as it's the most common.
+        // ... (The entire calculation logic is IDENTICAL and does not need to be changed) ...
         const effectiveFlangeL = inputs.flange_l - inputs.rimAsymmetry;
         const effectiveFlangeR = inputs.flange_r + inputs.rimAsymmetry;
-        
         let finalErd, washerPolicy;
-
         if (inputs.spokeVendor === 'Berd') {
             finalErd = inputs.rimErd + (2 * inputs.washerThickness);
             washerPolicy = "Mandatory (Berd)";
-        } else { // Steel
+        } else {
             washerPolicy = "Optional";
             finalErd = inputs.rimErd + (2 * inputs.washerThickness);
         }
-        
         if (!isLacingPossible(inputs.spokeCount, inputs.crossL) || !isLacingPossible(inputs.spokeCount, inputs.crossR)) {
             return res.status(400).json({ 
                 calculationSuccessful: false, 
                 error: `Lacing pattern ${inputs.crossL}/${inputs.crossR} is not geometrically possible for ${inputs.spokeCount}h.` 
             });
         }
-        
-        const commonParams = { 
-          hubType: inputs.hubType, 
-          spokeCount: inputs.spokeCount, 
-          finalErd, 
-          hubSpokeHoleDiameter: inputs.shd 
-        };
-
+        const commonParams = { hubType: inputs.hubType, spokeCount: inputs.spokeCount, finalErd, hubSpokeHoleDiameter: inputs.shd };
         const paramsLeft = { ...commonParams, isLeft: true, baseCrossPattern: inputs.crossL, hubFlangeDiameter: inputs.pcd_l, flangeOffset: effectiveFlangeL, spOffset: inputs.spo_l };
         const paramsRight = { ...commonParams, isLeft: false, baseCrossPattern: inputs.crossR, hubFlangeDiameter: inputs.pcd_r, flangeOffset: effectiveFlangeR, spOffset: inputs.spo_r };
-
         let result;
         if (inputs.spokeVendor === 'Berd') {
             const metalLengthL = calculateSpokeLength(paramsLeft);
@@ -64,17 +68,15 @@ export default async function handler(req, res) {
             const berdContext = { flangeL: effectiveFlangeL, flangeR: effectiveFlangeR, metalLengthL, metalLengthR };
             const finalBerdLengthL = calculateBerdFinalLength(metalLengthL, inputs.hubType, true, berdContext);
             const finalBerdLengthR = calculateBerdFinalLength(metalLengthR, inputs.hubType, false, berdContext);
-
             result = {
                 lengths: {
                     left: { geo: finalBerdLengthL.toFixed(4), rounded: applyRounding(finalBerdLengthL, 'Berd') },
                     right: { geo: finalBerdLengthR.toFixed(4), rounded: applyRounding(finalBerdLengthR, 'Berd') }
                 }
             };
-        } else { // Steel
+        } else {
             const lengthL = calculateSpokeLength(paramsLeft);
             const lengthR = calculateSpokeLength(paramsRight);
-            
             result = {
                 lengths: {
                     left: { geo: lengthL.toFixed(4), stretch: calculateElongation(lengthL, inputs.targetTension, inputs.crossSectionArea).toFixed(4), rounded: applyRounding(lengthL, 'Steel') },
@@ -82,13 +84,11 @@ export default async function handler(req, res) {
                 }
             };
         }
-        
         const finalReport = {
           calculationSuccessful: true,
           ...result,
           inputs: { ...inputs, effectiveFlangeL, effectiveFlangeR, finalErd, washerPolicy }
         };
-
         return res.status(200).json(finalReport);
 
     } catch (e) {
@@ -96,3 +96,6 @@ export default async function handler(req, res) {
       return res.status(500).json({ calculationSuccessful: false, error: e.message });
     }
 }
+
+// --- NEW: Wrap the handler with the CORS middleware ---
+export default allowCors(handler);
