@@ -489,9 +489,26 @@ function runCalculationEngine(buildRecipe, componentData) {
                 return { calculationSuccessful: false, error: `Lacing pattern ${crossL}/${crossR} is not geometrically possible.` };
             }
             
-            const commonParams = { hubType, spokeCount, finalErd, rimSpokeHoleOffset: getMeta(rim.variantId, rim.productId, 'rim_spoke_hole_offset', true), hubSpokeHoleDiameter: getMeta(hub.variantId, hub.productId, 'hub_spoke_hole_diameter', true, 2.6) };
-            const paramsLeft = { ...commonParams, isLeft: true, baseCrossPattern: crossL, hubFlangeDiameter: getMeta(hub.variantId, hub.productId, 'hub_flange_diameter_left', true), flangeOffset: getMeta(hub.variantId, hub.productId, 'hub_flange_offset_left', true), spOffset: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_left', true) };
-            const paramsRight = { ...commonParams, isLeft: false, baseCrossPattern: crossR, hubFlangeDiameter: getMeta(hub.variantId, hub.productId, 'hub_flange_diameter_right', true), flangeOffset: getMeta(hub.variantId, hub.productId, 'hub_flange_offset_right', true), spOffset: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_right', true) };
+            // --- MODIFICATION START: Correct Asymmetry Calculation ---
+            const rimSpokeHoleOffset = getMeta(rim.variantId, rim.productId, 'rim_spoke_hole_offset', true);
+            const rawFlangeL = getMeta(hub.variantId, hub.productId, 'hub_flange_offset_left', true);
+            const rawFlangeR = getMeta(hub.variantId, hub.productId, 'hub_flange_offset_right', true);
+
+            let effectiveFlangeL, effectiveFlangeR;
+            // Apply asymmetry based on wheel position, mirroring the customer-facing calculator's logic.
+            if (position === 'front') {
+                effectiveFlangeL = rawFlangeL + rimSpokeHoleOffset;
+                effectiveFlangeR = rawFlangeR - rimSpokeHoleOffset;
+            } else { // 'rear'
+                effectiveFlangeL = rawFlangeL - rimSpokeHoleOffset;
+                effectiveFlangeR = rawFlangeR + rimSpokeHoleOffset;
+            }
+            
+            const commonParams = { hubType, spokeCount, finalErd, hubSpokeHoleDiameter: getMeta(hub.variantId, hub.productId, 'hub_spoke_hole_diameter', true, 2.6) };
+            // Use the new 'effectiveFlange' values instead of the raw ones.
+            const paramsLeft = { ...commonParams, isLeft: true, baseCrossPattern: crossL, hubFlangeDiameter: getMeta(hub.variantId, hub.productId, 'hub_flange_diameter_left', true), flangeOffset: effectiveFlangeL, spOffset: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_left', true) };
+            const paramsRight = { ...commonParams, isLeft: false, baseCrossPattern: crossR, hubFlangeDiameter: getMeta(hub.variantId, hub.productId, 'hub_flange_diameter_right', true), flangeOffset: effectiveFlangeR, spOffset: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_right', true) };
+            // --- MODIFICATION END ---
             
             const lengthL = calculateSpokeLength(paramsLeft);
             const lengthR = calculateSpokeLength(paramsRight);
