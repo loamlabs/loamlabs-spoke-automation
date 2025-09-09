@@ -1,6 +1,10 @@
 // File: /_lib/calculator.js
 
-// --- THIS IS THE OFFICIAL BERD LOGIC from your GitHub history ---
+/**
+--- NEW ---
+Calculates the Berd-specific correction factors and returns the final length.
+@returns {number} The final Berd length (pre-rounding).
+*/
 export function calculateBerdFinalLength(metalLength, hubType, isLeft, { flangeL, flangeR, metalLengthL, metalLengthR }) {
     let hubConstant = 0.0;
     switch(hubType) {
