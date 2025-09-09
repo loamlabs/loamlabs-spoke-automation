@@ -1,14 +1,32 @@
 // File: /_lib/calculator.js
 
-// --- Berd-specific functions (placeholders if not available, update if you have the real logic) ---
-export function calculateBerdFinalLength(metalLength, hubType, isLeft, context) {
-    // This is a placeholder. If the real Berd logic exists, it should be placed here.
-    // For now, we'll assume the metal length is the value to be rounded for testing.
-    console.warn("Using placeholder Berd calculation logic.");
-    return metalLength;
+// --- THIS IS THE OFFICIAL BERD LOGIC from your GitHub history ---
+export function calculateBerdFinalLength(metalLength, hubType, isLeft, { flangeL, flangeR, metalLengthL, metalLengthR }) {
+    let hubConstant = 0.0;
+    switch(hubType) {
+        case 'Classic Flange': hubConstant = 9.0; break;
+        case 'Straight Pull':  hubConstant = 7.5; break;
+        case 'Hook Flange':    hubConstant = 2.0; break;
+    }
+
+    const angleLeft = flangeL / metalLengthL;
+    const angleRight = flangeR / metalLengthR;
+    let tensionPercent = (angleLeft < angleRight) ? (isLeft ? 100 : (angleLeft / angleRight * 100)) : (isLeft ? (angleRight / angleLeft * 100) : 100);
+    
+    const L = 2.5;
+    const tensionComp = 0.000444 * Math.pow(tensionPercent, 2) - 0.1231 * tensionPercent + L;
+    
+    let lengthAdder = 0.0;
+    if (metalLength < 200.0) lengthAdder = 4.0;
+    else if (metalLength < 220.0) lengthAdder = 3.0;
+    else if (metalLength < 240.0) lengthAdder = 2.0;
+    else if (metalLength < 260.0) lengthAdder = 1.0;
+
+    return metalLength + hubConstant + tensionComp + lengthAdder;
 }
 
-// --- Core Calculation Functions ---
+
+// --- Core Calculation Functions from your internal calculator file ---
 export function applyRounding(length, vendor) {
     if (vendor === 'Berd') {
         return Math.round(length) - 2;
@@ -56,7 +74,3 @@ export function isLacingPossible(spokeCount, crossPattern) {
     const lacingAngle = crossPattern * angleBetweenHoles;
     return lacingAngle < 90;
 }
-
-// NOTE: The main `runCalculationEngine` function depends on Shopify data structures
-// (`buildRecipe`, `componentData`). We will create a simplified version for our test
-// harness directly in the new API endpoint, as it's easier than mocking those complex objects.
