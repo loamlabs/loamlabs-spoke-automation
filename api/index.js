@@ -2,6 +2,14 @@
 import { createHmac } from 'crypto';
 import { Resend } from 'resend';
 
+import {
+    applyRounding,
+    calculateElongation,
+    calculateSpokeLength,
+    isLacingPossible,
+    calculateBerdFinalLength
+} from '../_lib/calculator.js';
+
 // --- Vercel Config ---
 export const config = { api: { bodyParser: false } };
 
