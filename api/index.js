@@ -461,7 +461,10 @@ function runCalculationEngine(buildRecipe, componentData) {
         };
             
         if (spokes.vendor === 'Berd') {
-            const finalErd = getMeta(rim.variantId, rim.productId, 'rim_erd', true) + (2 * getMeta(rim.variantId, rim.productId, 'nipple_washer_thickness', true));
+            const baseErd = getMeta(rim.variantId, rim.productId, 'rim_erd', true);
+            const washerThickness = getMeta(rim.variantId, rim.productId, 'nipple_washer_thickness', true);
+            const finalErd = baseErd + (2 * washerThickness);
+            
             const metalLengthL = calculateSpokeLength({ isLeft: true, hubType, baseCrossPattern: crossL, spokeCount, finalErd, hubFlangeDiameter: getMeta(hub.variantId, hub.productId, 'hub_flange_diameter_left', true), flangeOffset: getMeta(hub.variantId, hub.productId, 'hub_flange_offset_left', true), spOffset: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_left', true), hubSpokeHoleDiameter: getMeta(hub.variantId, hub.productId, 'hub_spoke_hole_diameter', true, 2.6) });
             const metalLengthR = calculateSpokeLength({ isLeft: false, hubType, baseCrossPattern: crossR, spokeCount, finalErd, hubFlangeDiameter: getMeta(hub.variantId, hub.productId, 'hub_flange_diameter_right', true), flangeOffset: getMeta(hub.variantId, hub.productId, 'hub_flange_offset_right', true), spOffset: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_right', true), hubSpokeHoleDiameter: getMeta(rim.variantId, rim.productId, 'hub_spoke_hole_diameter', true, 2.6) });
             const berdContext = { flangeL: getMeta(hub.variantId, hub.productId, 'hub_flange_offset_left', true), flangeR: getMeta(hub.variantId, hub.productId, 'hub_flange_offset_right', true), metalLengthL, metalLengthR };
@@ -476,26 +479,26 @@ function runCalculationEngine(buildRecipe, componentData) {
                     left: { geo: finalBerdLengthL.toFixed(2), rounded: applyRounding(finalBerdLengthL, 'Berd') },
                     right: { geo: finalBerdLengthR.toFixed(2), rounded: applyRounding(finalBerdLengthR, 'Berd') }
                 },
-                inputs: { rim: rimTitleWithSize, hub: hub.title, spokes: spokes.title, finalErd: finalErd.toFixed(2), targetTension: getMeta(rim.variantId, rim.productId, 'rim_target_tension_kgf', true, 120), hubDimensions: hubDimensions }
+                inputs: { rim: rimTitleWithSize, hub: hub.title, spokes: spokes.title, erd: baseErd, washerPolicy: "Mandatory (Berd)", washerThickness: washerThickness, finalErd: finalErd.toFixed(2), targetTension: getMeta(rim.variantId, rim.productId, 'rim_target_tension_kgf', true, 120), hubDimensions: hubDimensions }
             };
         } else { // Steel spoke logic
             let erd = getMeta(rim.variantId, rim.productId, 'rim_erd', true); 
+            const washerPolicy = getMeta(rim.variantId, rim.productId, 'rim_washer_policy');
+            const washerThickness = getMeta(rim.variantId, rim.productId, 'nipple_washer_thickness', true);
             let finalErd = erd;
-            if (getMeta(rim.variantId, rim.productId, 'rim_washer_policy') !== 'Not Compatible') {
-                finalErd += (2 * getMeta(rim.variantId, rim.productId, 'nipple_washer_thickness', true));
+            if (washerPolicy !== 'Not Compatible') {
+                finalErd += (2 * washerThickness);
             }
         
             if (!isLacingPossible(spokeCount, crossL) || !isLacingPossible(spokeCount, crossR)) {
                 return { calculationSuccessful: false, error: `Lacing pattern ${crossL}/${crossR} is not geometrically possible.` };
             }
             
-            // --- MODIFICATION START: Correct Asymmetry Calculation ---
             const rimSpokeHoleOffset = getMeta(rim.variantId, rim.productId, 'rim_spoke_hole_offset', true);
             const rawFlangeL = getMeta(hub.variantId, hub.productId, 'hub_flange_offset_left', true);
             const rawFlangeR = getMeta(hub.variantId, hub.productId, 'hub_flange_offset_right', true);
 
             let effectiveFlangeL, effectiveFlangeR;
-            // Apply asymmetry based on wheel position, mirroring the customer-facing calculator's logic.
             if (position === 'front') {
                 effectiveFlangeL = rawFlangeL + rimSpokeHoleOffset;
                 effectiveFlangeR = rawFlangeR - rimSpokeHoleOffset;
@@ -505,16 +508,13 @@ function runCalculationEngine(buildRecipe, componentData) {
             }
             
             const commonParams = { hubType, spokeCount, finalErd, hubSpokeHoleDiameter: getMeta(hub.variantId, hub.productId, 'hub_spoke_hole_diameter', true, 2.6) };
-            // Use the new 'effectiveFlange' values instead of the raw ones.
             const paramsLeft = { ...commonParams, isLeft: true, baseCrossPattern: crossL, hubFlangeDiameter: getMeta(hub.variantId, hub.productId, 'hub_flange_diameter_left', true), flangeOffset: effectiveFlangeL, spOffset: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_left', true) };
             const paramsRight = { ...commonParams, isLeft: false, baseCrossPattern: crossR, hubFlangeDiameter: getMeta(hub.variantId, hub.productId, 'hub_flange_diameter_right', true), flangeOffset: effectiveFlangeR, spOffset: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_right', true) };
-            // --- MODIFICATION END ---
             
             const lengthL = calculateSpokeLength(paramsLeft);
             const lengthR = calculateSpokeLength(paramsRight);
             
             const tensionKgf = getMeta(rim.variantId, rim.productId, 'rim_target_tension_kgf', true, 120);
-            // --- MODIFICATION: Using corrected metafield name 'spoke_cross_section_area_mm2' ---
             const crossArea = getMeta(spokes.variantId, spokes.productId, 'spoke_cross_section_area_mm2', true);
             
             return {
@@ -525,7 +525,7 @@ function runCalculationEngine(buildRecipe, componentData) {
                     left: { geo: lengthL.toFixed(2), stretch: calculateElongation(lengthL, tensionKgf, crossArea).toFixed(2), rounded: applyRounding(lengthL, 'Steel') },
                     right: { geo: lengthR.toFixed(2), stretch: calculateElongation(lengthR, tensionKgf, crossArea).toFixed(2), rounded: applyRounding(lengthR, 'Steel') }
                 },
-                inputs: { rim: rimTitleWithSize, hub: hub.title, spokes: spokes.title, finalErd: finalErd.toFixed(2), targetTension: tensionKgf, hubDimensions: hubDimensions }
+                inputs: { rim: rimTitleWithSize, hub: hub.title, spokes: spokes.title, erd: erd, washerPolicy: washerPolicy, washerThickness: washerThickness, finalErd: finalErd.toFixed(2), targetTension: tensionKgf, hubDimensions: hubDimensions }
             };
         }
     };
@@ -564,7 +564,16 @@ function formatNote(report) {
             wheelNote += `  ALERT: ${wheel.alert}\n`;
         }
         
+        let erdNote = `ERD: ${wheel.inputs.erd} mm`;
+        const totalWasherThickness = 2 * wheel.inputs.washerThickness;
+        if (totalWasherThickness > 0) {
+            erdNote += ` + ${totalWasherThickness.toFixed(1)} mm Washers (Policy: ${wheel.inputs.washerPolicy}) = ${wheel.inputs.finalErd} mm Final`;
+        } else {
+            erdNote += ` (Final)`;
+        }
+        
         wheelNote += `  Rim: ${wheel.inputs.rim}\n` +
+               `  ${erdNote}\n` + // <-- ADDED THE NEW ERD NOTE HERE
                `  Hub: ${wheel.inputs.hub}\n` +
                `  Spokes: ${wheel.inputs.spokes}\n` +
                `  Target Tension: ${wheel.inputs.targetTension} kgf\n` +
@@ -636,6 +645,13 @@ async function sendEmailReport(report, orderData, buildRecipe) {
             }
             hubDimensionsHtml += '</table>';
         }
+
+        const totalWasherThickness = 2 * wheel.inputs.washerThickness;
+        const erdBreakdownHtml = `
+            Base: ${wheel.inputs.erd} mm
+            ${totalWasherThickness > 0 ? `<br/>+ Washers: ${totalWasherThickness.toFixed(1)} mm (${wheel.inputs.washerPolicy})` : ''}
+            <br/><strong>Final: ${wheel.inputs.finalErd} mm</strong>
+        `;
         
     return `
         <div class="wheel-section">
