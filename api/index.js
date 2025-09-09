@@ -654,7 +654,8 @@ async function sendEmailReport(report, orderData, buildRecipe) {
             }
             hubDimensionsHtml += '</table>';
         }
-
+        
+    // --- Build Rim and ERD HTML with all data ---
     let rimHtml = wheel.inputs.rim;
     if (wheel.inputs.rimAsymmetry && wheel.inputs.rimAsymmetry > 0) {
         rimHtml += ` (Asym: ${wheel.inputs.rimAsymmetry.toFixed(1)} mm)`;
@@ -677,7 +678,7 @@ async function sendEmailReport(report, orderData, buildRecipe) {
 
             <h4>Key Inputs</h4>
             <table class="data-table">
-                <tr><td>Rim</td><td>${wheel.inputs.rim}</td></tr>
+                <tr><td>Rim</td><td>${rimHtml}</td></tr>
                 <tr><td>Hub</td><td>${wheel.inputs.hub}</td></tr>
                 <tr><td>Spokes</td><td>${wheel.inputs.spokes}</td></tr>
                 <tr><td>ERD Breakdown</td><td>${erdBreakdownHtml}</td></tr>
@@ -706,7 +707,7 @@ async function sendEmailReport(report, orderData, buildRecipe) {
     `;
 };
     
-    // --- Main HTML Structure (No changes needed below here, but provided for completeness) ---
+    // --- Main HTML Structure ---
     const emailHtml = `
         <!DOCTYPE html>
         <html>
