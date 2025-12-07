@@ -21,18 +21,51 @@ async function getRawBody(req) {
   return Buffer.concat(chunks);
 }
 
-async function shopifyAdminApiQuery(query, variables) {
+async function shopifyAdminApiQuery(query, variables, retries = 3, delay = 500) {
     const storeDomain = process.env.SHOPIFY_STORE_DOMAIN;
     const apiToken = process.env.SHOPIFY_ADMIN_API_TOKEN;
     const url = `https://${storeDomain}/admin/api/2024-07/graphql.json`;
-    const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Shopify-Access-Token': apiToken },
-        body: JSON.stringify({ query, variables }),
-    });
-    const result = await response.json();
-    if (result.errors) throw new Error(`Shopify API Error: ${JSON.stringify(result.errors)}`);
-    return result.data;
+
+    for (let i = 0; i < retries; i++) {
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json', 
+                    'X-Shopify-Access-Token': apiToken 
+                },
+                body: JSON.stringify({ query, variables }),
+            });
+
+            // 1. Handle HTTP Level Errors (e.g., 429 Rate Limit or 500 Server Error)
+            if (!response.ok) {
+                if (response.status === 429 || response.status >= 500) {
+                    throw new Error(`HTTP Error ${response.status}`);
+                }
+            }
+
+            const result = await response.json();
+            
+            // 2. Handle GraphQL Level Errors (e.g., Throttling)
+            if (result.errors) {
+                 const isThrottled = result.errors.some(e => e.message && e.message.includes('Throttled'));
+                 if (isThrottled) throw new Error('GraphQL Throttled');
+                 
+                 throw new Error(`Shopify GraphQL Error: ${JSON.stringify(result.errors)}`);
+            }
+            
+            return result.data;
+
+        } catch (error) {
+            console.warn(`⚠️ Shopify API Attempt ${i + 1} failed: ${error.message}`);
+            
+            // If this was the last attempt, stop trying and throw the error to the main log
+            if (i === retries - 1) throw error; 
+            
+            // Wait before retrying (Exponential backoff: 500ms -> 1000ms -> 2000ms)
+            await new Promise(res => setTimeout(res, delay * Math.pow(2, i)));
+        }
+    }
 }
 
 async function fetchComponentData(buildRecipe) {
