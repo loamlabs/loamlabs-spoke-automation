@@ -71,7 +71,7 @@ async function shopifyAdminApiQuery(query, variables, retries = 3, delay = 500) 
 async function fetchComponentData(buildRecipe) {
   const ids = new Set();
   
-  // 1. Collect IDs: We only check for variantId now, since productId is missing from the JSON
+  // Collect IDs (Variant Only)
   Object.values(buildRecipe.components).forEach(comp => {
     if (comp && comp.variantId) {
       ids.add(comp.variantId);
@@ -80,7 +80,6 @@ async function fetchComponentData(buildRecipe) {
 
   if (ids.size === 0) { return null; }
   
-  // 2. Query: We ask for the Variant's data AND its parent Product's data in one go
   const query = `
     query getComponentMetafields($ids: [ID!]!) {
       nodes(ids: $ids) {
@@ -103,33 +102,28 @@ async function fetchComponentData(buildRecipe) {
         if (node) {
             const mergedMetafields = {};
             
-            // A. Load Product Metafields first (The "Base" layer)
+            // 1. Load Product Metafields
             if (node.product && node.product.metafields) {
                  node.product.metafields.nodes.forEach(mf => { 
                      if (mf.namespace === 'custom') { mergedMetafields[mf.key] = mf.value; } 
                  });
             }
 
-            // B. Load Variant Metafields second (The "Override" layer)
+            // 2. Load Variant Metafields
             if (node.metafields) {
                 node.metafields.nodes.forEach(mf => { 
                     if (mf.namespace === 'custom') { mergedMetafields[mf.key] = mf.value; } 
                 });
             }
 
-            // C. Store the combined data under the VARIANT ID
-            // This tricks the rest of the script into finding everything it needs (ERD, etc.)
-            // just by looking up the Variant ID.
-            componentDataMap.set(node.id, mergedMetafields);
-            
-            // Optional: Map the Product ID too if we found it, just for safety
+            // --- THE FIX IS HERE ---
+            // 3. Save the Parent Product ID so we can use it later for inventory
             if (node.product && node.product.id) {
-                const productMetafields = {};
-                node.product.metafields.nodes.forEach(mf => { 
-                     if (mf.namespace === 'custom') { productMetafields[mf.key] = mf.value; } 
-                });
-                componentDataMap.set(node.product.id, productMetafields);
+                mergedMetafields['_parent_product_id'] = node.product.id;
             }
+            // -----------------------
+
+            componentDataMap.set(node.id, mergedMetafields);
         }
     });
     return componentDataMap;
@@ -272,7 +266,6 @@ async function handleOrderCreate(orderData) {
     // 1. Location ID Check
     let locationId = process.env.SHOPIFY_PRIMARY_LOCATION_ID; 
     if (!locationId) {
-        console.log("👉 DEBUG: Env Var missing, checking order data...");
         if (orderData.location_id) {
             locationId = orderData.location_id;
         } else {
@@ -280,51 +273,29 @@ async function handleOrderCreate(orderData) {
             locationId = await getPrimaryLocationId();
         }
     }
-    console.log(`👉 DEBUG: Location ID determined: ${locationId}`);
 
     if (!locationId) {
         console.error("CRITICAL: Could not determine any order location ID. Aborting inventory adjustments.");
         return;
     }
 
-    // 2. INSPECT LINE ITEMS (The X-Ray)
-    console.log(`👉 DEBUG: Inspecting ${orderData.line_items.length} line items...`);
-    
-    // We try/catch the finding logic to ensure it doesn't crash silently
-    let wheelBuildLineItem = null;
-    try {
-        wheelBuildLineItem = orderData.line_items.find(item => {
-            // Log every item to see what properties are actually coming through
-            const isCustom = item.properties?.some(p => p.name === '_is_custom_wheel_build' && p.value === 'true');
-            console.log(`   - Item: "${item.title}" | Properties: ${JSON.stringify(item.properties)} | Match? ${isCustom}`);
-            return isCustom;
-        });
-    } catch (err) {
-        console.error("🚨 CRASH during line item search:", err);
-    }
+    // 2. Find the Custom Build Item
+    const wheelBuildLineItem = orderData.line_items.find(item => item.properties?.some(p => p.name === '_is_custom_wheel_build' && p.value === 'true'));
 
     if (wheelBuildLineItem) {
-        console.log("👉 DEBUG: Found Custom Wheel Build Item. Extracting recipe...");
+        console.log("👉 DEBUG: Found Custom Wheel Build Item.");
         
         try {
             const buildProperty = wheelBuildLineItem.properties.find(p => p.name === '_build');
-            if (!buildProperty || !buildProperty.value) {
-                console.error("🚨 ERROR: '_build' property is missing or empty on the line item!");
-                return;
-            }
+            if (!buildProperty || !buildProperty.value) return;
 
-            console.log("👉 DEBUG: Parsing JSON recipe...");
             const buildRecipe = JSON.parse(buildProperty.value);
-            
-            console.log("👉 DEBUG: Fetching component data from Shopify...");
             const componentData = await fetchComponentData(buildRecipe);
             
             if (componentData) {
-                console.log("👉 DEBUG: Running calculation engine...");
                 let buildReport = runCalculationEngine(buildRecipe, componentData);
                 console.log("✅ Initial Build Report Generated.");
 
-                // Clear cache before starting processing
                 variantCache.clear();
 
                 for (const position of ['front', 'rear']) {
@@ -333,7 +304,22 @@ async function handleOrderCreate(orderData) {
 
                     const spokeComponent = buildRecipe.components[`${position}Spokes`];
                     const spokeCountPerSide = parseInt(buildRecipe.specs[`${position}SpokeCount`]?.replace('h', '')) / 2;
-                    const spokeProductId = spokeComponent?.productId;
+                    
+                    // --- FIX START ---
+                    // Try to get Product ID from JSON. If missing, get it from our fetched data.
+                    let spokeProductId = spokeComponent?.productId;
+                    if (!spokeProductId && spokeComponent?.variantId) {
+                        const spokeData = componentData.get(spokeComponent.variantId);
+                        spokeProductId = spokeData?.['_parent_product_id'];
+                    }
+
+                    if (!spokeProductId) {
+                         console.error(`🚨 Could not determine Product ID for ${position} spokes. Inventory adjustment skipped.`);
+                         wheel.inventory = { left: { status: 'FAIL: No Product ID' }, right: { status: 'FAIL: No Product ID' } };
+                         continue;
+                    }
+                    // --- FIX END ---
+
                     const colorOption = spokeComponent.selectedOptions.find(opt => opt.name === 'Color');
                     const selectedColor = colorOption ? colorOption.value : null;
 
@@ -368,14 +354,12 @@ async function handleOrderCreate(orderData) {
                 
                 await addNoteToOrder(orderData.admin_graphql_api_id, formatNote(buildReport));
                 await sendEmailReport(buildReport, orderData, buildRecipe);
-            } else {
-                console.error("🚨 ERROR: Component Data fetch returned null.");
             }
         } catch (error) {
             console.error("🚨 CRASH inside main logic:", error);
         }
     } else {
-        console.log('ℹ️ No custom wheel build found in this order. (Check item logs above to see why)');
+        console.log('ℹ️ No custom wheel build found in this order.');
     }
 }
 
