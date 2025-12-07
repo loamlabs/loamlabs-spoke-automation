@@ -261,8 +261,6 @@ async function getPrimaryLocationId() {
 }
 
 async function handleOrderCreate(orderData) {
-    console.log("👉 DEBUG: Starting handleOrderCreate...");
-
     // 1. Location ID Check
     let locationId = process.env.SHOPIFY_PRIMARY_LOCATION_ID; 
     if (!locationId) {
@@ -283,8 +281,6 @@ async function handleOrderCreate(orderData) {
     const wheelBuildLineItem = orderData.line_items.find(item => item.properties?.some(p => p.name === '_is_custom_wheel_build' && p.value === 'true'));
 
     if (wheelBuildLineItem) {
-        console.log("👉 DEBUG: Found Custom Wheel Build Item.");
-        
         try {
             const buildProperty = wheelBuildLineItem.properties.find(p => p.name === '_build');
             if (!buildProperty || !buildProperty.value) return;
@@ -294,8 +290,9 @@ async function handleOrderCreate(orderData) {
             
             if (componentData) {
                 let buildReport = runCalculationEngine(buildRecipe, componentData);
-                console.log("✅ Initial Build Report Generated.");
+                console.log("✅ Initial Build Report:", JSON.stringify(buildReport, null, 2));
 
+                // Clear cache before starting processing
                 variantCache.clear();
 
                 for (const position of ['front', 'rear']) {
@@ -305,7 +302,7 @@ async function handleOrderCreate(orderData) {
                     const spokeComponent = buildRecipe.components[`${position}Spokes`];
                     const spokeCountPerSide = parseInt(buildRecipe.specs[`${position}SpokeCount`]?.replace('h', '')) / 2;
                     
-                    // --- FIX START ---
+                    // --- SMART PRODUCT ID FINDER ---
                     // Try to get Product ID from JSON. If missing, get it from our fetched data.
                     let spokeProductId = spokeComponent?.productId;
                     if (!spokeProductId && spokeComponent?.variantId) {
@@ -318,7 +315,6 @@ async function handleOrderCreate(orderData) {
                          wheel.inventory = { left: { status: 'FAIL: No Product ID' }, right: { status: 'FAIL: No Product ID' } };
                          continue;
                     }
-                    // --- FIX END ---
 
                     const colorOption = spokeComponent.selectedOptions.find(opt => opt.name === 'Color');
                     const selectedColor = colorOption ? colorOption.value : null;
@@ -333,6 +329,7 @@ async function handleOrderCreate(orderData) {
                         inventoryColor = 'White Berd';
                     }
 
+                    // --- PARALLEL PROCESSING ---
                     const processSide = async (length) => {
                         const variant = await findVariantForLengthAndColor(spokeProductId, length, inventoryColor);
                         let status = "ACTION REQUIRED: Variant not found!";
