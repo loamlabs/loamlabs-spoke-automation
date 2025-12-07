@@ -105,7 +105,18 @@ async function fetchComponentData(buildRecipe) {
   }
 }
 
-async function findVariantForLengthAndColor(productId, length, color) {
+// --- CACHING LOGIC START ---
+const variantCache = new Map();
+
+async function getVariantsCached(productId) {
+    // If we already fetched this product in this request, return it immediately
+    if (variantCache.has(productId)) {
+        console.log(`⚡ Using cached variants for product ${productId}`);
+        return variantCache.get(productId);
+    }
+    
+    // Otherwise, ask Shopify
+    console.log(`🌐 Fetching variants from API for product ${productId}`);
     const query = `
       query getProductVariants($id: ID!) {
         product(id: $id) {
@@ -121,20 +132,32 @@ async function findVariantForLengthAndColor(productId, length, color) {
     `;
     try {
         const data = await shopifyAdminApiQuery(query, { id: productId });
-        const targetLengthStr = `${length}mm`;
-        const variant = data.product.variants.nodes.find(v => 
-            v.title.includes(color) && v.title.includes(targetLengthStr)
-        );
-        if (variant) {
-            return { variantId: variant.id, inventoryItemId: variant.inventoryItem.id };
-        }
-        console.warn(`Could not find variant for product ${productId} with color "${color}" and length "${targetLengthStr}"`);
-        return null;
+        const variants = data.product.variants.nodes;
+        variantCache.set(productId, variants); // Save to cache
+        return variants;
     } catch (error) {
-        console.error(`Error finding variant for product ${productId}:`, error);
-        return null;
+        console.error(`Error fetching variants for ${productId}:`, error);
+        return [];
     }
 }
+
+async function findVariantForLengthAndColor(productId, length, color) {
+    // We now use the Cached helper instead of a raw query
+    const variants = await getVariantsCached(productId);
+    const targetLengthStr = `${length}mm`;
+    
+    // Search the list we already downloaded
+    const variant = variants.find(v => 
+        v.title.includes(color) && v.title.includes(targetLengthStr)
+    );
+    
+    if (variant) {
+        return { variantId: variant.id, inventoryItemId: variant.inventoryItem.id };
+    }
+    console.warn(`Could not find variant for product ${productId} with color "${color}" and length "${targetLengthStr}"`);
+    return null;
+}
+// --- CACHING LOGIC END ---
 
 async function adjustInventory(inventoryItemId, quantityDelta, locationId, orderGid) {
     const mutation = `
@@ -210,10 +233,17 @@ async function getPrimaryLocationId() {
 }
 
 async function handleOrderCreate(orderData) {
-    let locationId = orderData.location_id;
+    // 1. Optimized Location ID Check (Checks Env Var first to prevent timeout)
+    let locationId = process.env.SHOPIFY_PRIMARY_LOCATION_ID; 
+    
     if (!locationId) {
-        console.warn("Order data did not contain a top-level location_id. Fetching primary store location as a fallback.");
-        locationId = await getPrimaryLocationId();
+        // If Env Var is missing, check the order data
+        if (orderData.location_id) {
+            locationId = orderData.location_id;
+        } else {
+            console.warn("Env var missing and Order has no location_id. Attempting API fallback...");
+            locationId = await getPrimaryLocationId();
+        }
     }
     
     if (!locationId) {
@@ -230,6 +260,9 @@ async function handleOrderCreate(orderData) {
             if (componentData) {
                 let buildReport = runCalculationEngine(buildRecipe, componentData);
                 console.log("✅ Initial Build Report:", JSON.stringify(buildReport, null, 2));
+
+                // Clear the cache at the start of a new order to ensure fresh data
+                variantCache.clear();
 
                 for (const position of ['front', 'rear']) {
                     const wheel = buildReport[position];
@@ -255,26 +288,27 @@ async function handleOrderCreate(orderData) {
                         inventoryColor = 'White Berd';
                     }
 
-                    const roundedL = wheel.lengths.left.rounded;
-                    const variantL = await findVariantForLengthAndColor(spokeProductId, roundedL, inventoryColor);
-                    let statusL = "ACTION REQUIRED: Variant not found!";
-                    if (variantL) {
-                        const success = await adjustInventory(variantL.inventoryItemId, -spokeCountPerSide, `gid://shopify/Location/${locationId}`, orderData.admin_graphql_api_id);
-                        statusL = success ? "Adjusted" : "FAILED to adjust";
-                    }
-
-                    const roundedR = wheel.lengths.right.rounded;
-                    const variantR = await findVariantForLengthAndColor(spokeProductId, roundedR, inventoryColor);
-                    let statusR = "ACTION REQUIRED: Variant not found!";
-                    if (variantR) {
-                        const success = await adjustInventory(variantR.inventoryItemId, -spokeCountPerSide, `gid://shopify/Location/${locationId}`, orderData.admin_graphql_api_id);
-                        statusR = success ? "Adjusted" : "FAILED to adjust";
-                    }
-                    
-                    wheel.inventory = {
-                        left: { length: roundedL, quantity: spokeCountPerSide, status: statusL },
-                        right: { length: roundedR, quantity: spokeCountPerSide, status: statusR }
+                    // --- PARALLEL PROCESSING START ---
+                    // We define a small helper task for a single side
+                    const processSide = async (length) => {
+                        const variant = await findVariantForLengthAndColor(spokeProductId, length, inventoryColor);
+                        let status = "ACTION REQUIRED: Variant not found!";
+                        
+                        if (variant) {
+                            const success = await adjustInventory(variant.inventoryItemId, -spokeCountPerSide, `gid://shopify/Location/${locationId}`, orderData.admin_graphql_api_id);
+                            status = success ? "Adjusted" : "FAILED to adjust";
+                        }
+                        return { length, quantity: spokeCountPerSide, status };
                     };
+
+                    // Execute both Left and Right simultaneously (Parallel)
+                    const [leftResult, rightResult] = await Promise.all([
+                        processSide(wheel.lengths.left.rounded),
+                        processSide(wheel.lengths.right.rounded)
+                    ]);
+
+                    wheel.inventory = { left: leftResult, right: rightResult };
+                    // --- PARALLEL PROCESSING END ---
                 }
                 
                 await addNoteToOrder(orderData.admin_graphql_api_id, formatNote(buildReport));
