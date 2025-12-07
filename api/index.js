@@ -70,32 +70,66 @@ async function shopifyAdminApiQuery(query, variables, retries = 3, delay = 500) 
 
 async function fetchComponentData(buildRecipe) {
   const ids = new Set();
+  
+  // 1. Collect IDs: We only check for variantId now, since productId is missing from the JSON
   Object.values(buildRecipe.components).forEach(comp => {
-    if (comp && comp.variantId && comp.productId) {
+    if (comp && comp.variantId) {
       ids.add(comp.variantId);
-      ids.add(comp.productId);
     }
   });
 
   if (ids.size === 0) { return null; }
   
+  // 2. Query: We ask for the Variant's data AND its parent Product's data in one go
   const query = `
     query getComponentMetafields($ids: [ID!]!) {
       nodes(ids: $ids) {
-        id
-        ... on ProductVariant { metafields(first: 50) { nodes { key namespace value } } }
-        ... on Product { metafields(first: 50) { nodes { key namespace value } } }
+        ... on ProductVariant {
+          id
+          metafields(first: 50) { nodes { key namespace value } }
+          product {
+            id
+            metafields(first: 50) { nodes { key namespace value } }
+          }
+        }
       }
     }
   `;
   try {
     const data = await shopifyAdminApiQuery(query, { ids: Array.from(ids) });
     const componentDataMap = new Map();
+    
     data.nodes.forEach(node => {
         if (node) {
-            const metafields = {};
-            node.metafields.nodes.forEach(mf => { if (mf.namespace === 'custom') { metafields[mf.key] = mf.value; } });
-            componentDataMap.set(node.id, metafields);
+            const mergedMetafields = {};
+            
+            // A. Load Product Metafields first (The "Base" layer)
+            if (node.product && node.product.metafields) {
+                 node.product.metafields.nodes.forEach(mf => { 
+                     if (mf.namespace === 'custom') { mergedMetafields[mf.key] = mf.value; } 
+                 });
+            }
+
+            // B. Load Variant Metafields second (The "Override" layer)
+            if (node.metafields) {
+                node.metafields.nodes.forEach(mf => { 
+                    if (mf.namespace === 'custom') { mergedMetafields[mf.key] = mf.value; } 
+                });
+            }
+
+            // C. Store the combined data under the VARIANT ID
+            // This tricks the rest of the script into finding everything it needs (ERD, etc.)
+            // just by looking up the Variant ID.
+            componentDataMap.set(node.id, mergedMetafields);
+            
+            // Optional: Map the Product ID too if we found it, just for safety
+            if (node.product && node.product.id) {
+                const productMetafields = {};
+                node.product.metafields.nodes.forEach(mf => { 
+                     if (mf.namespace === 'custom') { productMetafields[mf.key] = mf.value; } 
+                });
+                componentDataMap.set(node.product.id, productMetafields);
+            }
         }
     });
     return componentDataMap;
