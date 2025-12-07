@@ -233,11 +233,13 @@ async function getPrimaryLocationId() {
 }
 
 async function handleOrderCreate(orderData) {
-    // 1. Optimized Location ID Check (Checks Env Var first to prevent timeout)
+    console.log("👉 DEBUG: Starting handleOrderCreate..."); // LOG 1
+
+    // 1. Optimized Location ID Check
     let locationId = process.env.SHOPIFY_PRIMARY_LOCATION_ID; 
     
     if (!locationId) {
-        // If Env Var is missing, check the order data
+        console.log("👉 DEBUG: Env Var missing, checking order data..."); // LOG 2
         if (orderData.location_id) {
             locationId = orderData.location_id;
         } else {
@@ -246,6 +248,8 @@ async function handleOrderCreate(orderData) {
         }
     }
     
+    console.log(`👉 DEBUG: Location ID determined: ${locationId}`); // LOG 3
+
     if (!locationId) {
         console.error("CRITICAL: Could not determine any order location ID. Aborting inventory adjustments.");
     }
