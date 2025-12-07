@@ -370,23 +370,31 @@ async function handleOrderCreate(orderData) {
 }
 
 async function handleOrderCancelled(orderData) {
-
     const wheelBuildLineItem = orderData.line_items.find(item => item.properties?.some(p => p.name === '_is_custom_wheel_build' && p.value === 'true'));
+    
+    // Check if we should process this cancellation
     if (!wheelBuildLineItem || !orderData.note || !orderData.note.includes("AUTOMATED SPOKE CALCULATION")) {
         console.log("This is not a wheel build with an automated note. No restock needed.");
         return;
     }
 
-    let locationId = orderData.location_id;
+    // 1. Get Location ID (Optimized)
+    let locationId = process.env.SHOPIFY_PRIMARY_LOCATION_ID;
     if (!locationId) {
-        locationId = await getPrimaryLocationId();
+        if (orderData.location_id) {
+            locationId = orderData.location_id;
+        } else {
+             locationId = await getPrimaryLocationId();
+        }
     }
+
     if (!locationId) {
         console.error("CRITICAL: Could not determine location ID for restock. Aborting.");
         await addNoteToOrder(orderData.admin_graphql_api_id, "AUTOMATED RESTOCK FAILED: Could not determine location ID.");
         return;
     }
 
+    // 2. Parse the Note to see what needs restocking
     const note = orderData.note;
     const regex = /(Left|Right):\s*(\d+)\s*x\s*(\d+)mm\s*\(Adjusted\)/g;
     let match;
@@ -404,6 +412,7 @@ async function handleOrderCancelled(orderData) {
         return;
     }
     
+    // 3. Parse the JSON Recipe
     const buildProperty = wheelBuildLineItem?.properties.find(p => p.name === '_build');
     if (!buildProperty || !buildProperty.value) {
          console.log("Could not find the original build recipe. Aborting restock.");
@@ -411,12 +420,35 @@ async function handleOrderCancelled(orderData) {
     }
     const buildRecipe = JSON.parse(buildProperty.value);
 
+    // --- FIX: Fetch Component Data to get Parent Product IDs ---
+    const componentData = await fetchComponentData(buildRecipe);
+    // ----------------------------------------------------------
+
     let restockNote = "AUTOMATED RESTOCK COMPLETE\n--------------------------\n";
     let actionIndex = 0;
+
+    // Clear cache to ensure we get fresh inventory Item IDs
+    variantCache.clear();
 
     for (const position of ['front', 'rear']) {
         const spokeComponent = buildRecipe.components[`${position}Spokes`];
         if (!spokeComponent) continue; 
+
+        // --- FIX: Resolve Missing Product ID ---
+        let spokeProductId = spokeComponent.productId;
+        if (!spokeProductId && spokeComponent.variantId && componentData) {
+             const spokeData = componentData.get(spokeComponent.variantId);
+             spokeProductId = spokeData?.['_parent_product_id'];
+        }
+
+        if (!spokeProductId) {
+             console.error(`Could not determine Product ID for ${position} spokes during restock.`);
+             restockNote += `- ${position.toUpperCase()}: FAILED (Missing Product ID)\n`;
+             // Skip the restock actions for this wheel side to keep the index aligned
+             actionIndex += 2; 
+             continue;
+        }
+        // ---------------------------------------
 
         const colorOption = spokeComponent.selectedOptions.find(opt => opt.name === 'Color');
         const selectedColor = colorOption ? colorOption.value : null;
@@ -426,31 +458,29 @@ async function handleOrderCancelled(orderData) {
             continue;
         }
 
-        // --- Smart Color Logic for Restocking ---
         let inventoryColor = selectedColor;
         if (spokeComponent.vendor === 'Berd' && selectedColor !== 'Black Berd' && selectedColor !== 'White Berd') {
-            inventoryColor = 'White Berd'; // If it was a custom color, restock the 'White Berd' variant
+            inventoryColor = 'White Berd'; 
         }
-        // --- End of Logic ---
 
-        // Process Left Side for this wheel
+        // Process Left Side
         if (actionIndex < restockActions.length) {
             const action = restockActions[actionIndex++];
-            const variant = await findVariantForLengthAndColor(spokeComponent.productId, action.length, inventoryColor);
+            const variant = await findVariantForLengthAndColor(spokeProductId, action.length, inventoryColor);
             if (variant) {
-                const success = await adjustInventory(variant.inventoryItemId, action.quantity, `gid://shopify/Location/${locationId}`); // Positive number
+                const success = await adjustInventory(variant.inventoryItemId, action.quantity, `gid://shopify/Location/${locationId}`, orderData.admin_graphql_api_id);
                 const status = success ? "Restocked" : "FAILED";
                 restockNote += `- Left (${position}): ${action.quantity} x ${action.length}mm (${inventoryColor}) - ${status}\n`;
             } else {
                 restockNote += `- Left (${position}): ${action.quantity} x ${action.length}mm (${inventoryColor}) - FAILED (Variant not found)\n`;
             }
         }
-        // Process Right Side for this wheel
+        // Process Right Side
         if (actionIndex < restockActions.length) {
             const action = restockActions[actionIndex++];
-            const variant = await findVariantForLengthAndColor(spokeComponent.productId, action.length, inventoryColor);
+            const variant = await findVariantForLengthAndColor(spokeProductId, action.length, inventoryColor);
             if (variant) {
-                const success = await adjustInventory(variant.inventoryItemId, action.quantity, `gid://shopify/Location/${locationId}`); // Positive number
+                const success = await adjustInventory(variant.inventoryItemId, action.quantity, `gid://shopify/Location/${locationId}`, orderData.admin_graphql_api_id);
                 const status = success ? "Restocked" : "FAILED";
                 restockNote += `- Right (${position}): ${action.quantity} x ${action.length}mm (${inventoryColor}) - ${status}\n`;
             } else {
