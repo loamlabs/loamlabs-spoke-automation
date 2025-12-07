@@ -233,13 +233,12 @@ async function getPrimaryLocationId() {
 }
 
 async function handleOrderCreate(orderData) {
-    console.log("👉 DEBUG: Starting handleOrderCreate..."); // LOG 1
+    console.log("👉 DEBUG: Starting handleOrderCreate...");
 
-    // 1. Optimized Location ID Check
+    // 1. Location ID Check
     let locationId = process.env.SHOPIFY_PRIMARY_LOCATION_ID; 
-    
     if (!locationId) {
-        console.log("👉 DEBUG: Env Var missing, checking order data..."); // LOG 2
+        console.log("👉 DEBUG: Env Var missing, checking order data...");
         if (orderData.location_id) {
             locationId = orderData.location_id;
         } else {
@@ -247,30 +246,56 @@ async function handleOrderCreate(orderData) {
             locationId = await getPrimaryLocationId();
         }
     }
-    
-    console.log(`👉 DEBUG: Location ID determined: ${locationId}`); // LOG 3
+    console.log(`👉 DEBUG: Location ID determined: ${locationId}`);
 
     if (!locationId) {
         console.error("CRITICAL: Could not determine any order location ID. Aborting inventory adjustments.");
+        return;
     }
 
-    const wheelBuildLineItem = orderData.line_items.find(item => item.properties?.some(p => p.name === '_is_custom_wheel_build' && p.value === 'true'));
+    // 2. INSPECT LINE ITEMS (The X-Ray)
+    console.log(`👉 DEBUG: Inspecting ${orderData.line_items.length} line items...`);
+    
+    // We try/catch the finding logic to ensure it doesn't crash silently
+    let wheelBuildLineItem = null;
+    try {
+        wheelBuildLineItem = orderData.line_items.find(item => {
+            // Log every item to see what properties are actually coming through
+            const isCustom = item.properties?.some(p => p.name === '_is_custom_wheel_build' && p.value === 'true');
+            console.log(`   - Item: "${item.title}" | Properties: ${JSON.stringify(item.properties)} | Match? ${isCustom}`);
+            return isCustom;
+        });
+    } catch (err) {
+        console.error("🚨 CRASH during line item search:", err);
+    }
 
     if (wheelBuildLineItem) {
-        const buildProperty = wheelBuildLineItem.properties.find(p => p.name === '_build');
-        if (buildProperty?.value) {
-            const buildRecipe = JSON.parse(buildProperty.value);
-            const componentData = await fetchComponentData(buildRecipe);
-            if (componentData) {
-                let buildReport = runCalculationEngine(buildRecipe, componentData);
-                console.log("✅ Initial Build Report:", JSON.stringify(buildReport, null, 2));
+        console.log("👉 DEBUG: Found Custom Wheel Build Item. Extracting recipe...");
+        
+        try {
+            const buildProperty = wheelBuildLineItem.properties.find(p => p.name === '_build');
+            if (!buildProperty || !buildProperty.value) {
+                console.error("🚨 ERROR: '_build' property is missing or empty on the line item!");
+                return;
+            }
 
-                // Clear the cache at the start of a new order to ensure fresh data
+            console.log("👉 DEBUG: Parsing JSON recipe...");
+            const buildRecipe = JSON.parse(buildProperty.value);
+            
+            console.log("👉 DEBUG: Fetching component data from Shopify...");
+            const componentData = await fetchComponentData(buildRecipe);
+            
+            if (componentData) {
+                console.log("👉 DEBUG: Running calculation engine...");
+                let buildReport = runCalculationEngine(buildRecipe, componentData);
+                console.log("✅ Initial Build Report Generated.");
+
+                // Clear cache before starting processing
                 variantCache.clear();
 
                 for (const position of ['front', 'rear']) {
                     const wheel = buildReport[position];
-                    if (!wheel || !wheel.calculationSuccessful) continue; // Skip if no wheel or calc failed.
+                    if (!wheel || !wheel.calculationSuccessful) continue; 
 
                     const spokeComponent = buildRecipe.components[`${position}Spokes`];
                     const spokeCountPerSide = parseInt(buildRecipe.specs[`${position}SpokeCount`]?.replace('h', '')) / 2;
@@ -279,11 +304,7 @@ async function handleOrderCreate(orderData) {
                     const selectedColor = colorOption ? colorOption.value : null;
 
                     if (!selectedColor) {
-                        wheel.inventory = { left: { status: 'ACTION REQUIRED: Color not found' }, right: { status: 'ACTION REQUIRED: Color not found' } };
-                        continue;
-                    }
-                    if (!locationId) {
-                        wheel.inventory = { left: { status: 'FAILED: Location ID missing' }, right: { status: 'FAILED: Location ID missing' } };
+                        wheel.inventory = { left: { status: 'FAIL: No Color' }, right: { status: 'FAIL: No Color' } };
                         continue;
                     }
 
@@ -292,8 +313,6 @@ async function handleOrderCreate(orderData) {
                         inventoryColor = 'White Berd';
                     }
 
-                    // --- PARALLEL PROCESSING START ---
-                    // We define a small helper task for a single side
                     const processSide = async (length) => {
                         const variant = await findVariantForLengthAndColor(spokeProductId, length, inventoryColor);
                         let status = "ACTION REQUIRED: Variant not found!";
@@ -305,22 +324,24 @@ async function handleOrderCreate(orderData) {
                         return { length, quantity: spokeCountPerSide, status };
                     };
 
-                    // Execute both Left and Right simultaneously (Parallel)
                     const [leftResult, rightResult] = await Promise.all([
                         processSide(wheel.lengths.left.rounded),
                         processSide(wheel.lengths.right.rounded)
                     ]);
 
                     wheel.inventory = { left: leftResult, right: rightResult };
-                    // --- PARALLEL PROCESSING END ---
                 }
                 
                 await addNoteToOrder(orderData.admin_graphql_api_id, formatNote(buildReport));
                 await sendEmailReport(buildReport, orderData, buildRecipe);
+            } else {
+                console.error("🚨 ERROR: Component Data fetch returned null.");
             }
+        } catch (error) {
+            console.error("🚨 CRASH inside main logic:", error);
         }
     } else {
-        console.log('ℹ️ No custom wheel build found in this order.');
+        console.log('ℹ️ No custom wheel build found in this order. (Check item logs above to see why)');
     }
 }
 
