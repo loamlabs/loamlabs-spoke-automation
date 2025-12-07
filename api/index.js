@@ -145,7 +145,15 @@ async function addNoteToOrder(orderGid, note) {
 }
 
 async function getPrimaryLocationId() {
-    console.log("Fetching primary location ID as a fallback...");
+    // 1. Check for Environment Variable first (FASTEST & SAFEST)
+    if (process.env.SHOPIFY_PRIMARY_LOCATION_ID) {
+        console.log("Using Primary Location ID from Environment Variables.");
+        return process.env.SHOPIFY_PRIMARY_LOCATION_ID;
+    }
+
+    console.log("Fetching primary location ID as a fallback (API)...");
+    
+    // 2. If Env var is missing, try the API (Backup method)
     const query = `
         query {
             locations(first: 1, query: "is_primary:true AND status:active") {
@@ -163,7 +171,7 @@ async function getPrimaryLocationId() {
         }
         return null;
     } catch (error) {
-        console.error("🚨 Failed to fetch primary location ID:", error);
+        console.error("🚨 Failed to fetch primary location ID via API:", error);
         return null;
     }
 }
