@@ -349,7 +349,16 @@ async function handleOrderCreate(orderData) {
                     wheel.inventory = { left: leftResult, right: rightResult };
                 }
                 
-                await addNoteToOrder(orderData.admin_graphql_api_id, formatNote(buildReport));
+                // --- NOTE PRESERVATION LOGIC ---
+                let finalNote = formatNote(buildReport);
+                
+                // If the customer left a note, keep it and append our report below
+                if (orderData.note) {
+                    finalNote = orderData.note + "\n\n--------------------------------------------------\n\n" + finalNote;
+                }
+                
+                await addNoteToOrder(orderData.admin_graphql_api_id, finalNote);
+                // -------------------------------
                 await sendEmailReport(buildReport, orderData, buildRecipe);
             }
         } catch (error) {
