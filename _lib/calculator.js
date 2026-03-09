@@ -40,7 +40,7 @@ export function applyRounding(length, vendor, isPolylightX = false) {
         // Standard Polylight with your spoke puller tool (-2mm deduction)
         return Math.round(length) - 2;
     }
-    // Standard Steel rounding (Even numbers)
+    // Standard Steel rounding (Round up to nearest even number)
     return Math.ceil(length / 2) * 2;
 }
 
