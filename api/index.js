@@ -586,7 +586,7 @@ function runCalculationEngine(buildRecipe, componentData) {
             const finalErd = baseErd + (2 * washerThickness);
             
             const metalLengthL = calculateSpokeLength({ isLeft: true, hubType, baseCrossPattern: crossL, spokeCount, finalErd, hubFlangeDiameter: getMeta(hub.variantId, hub.productId, 'hub_flange_diameter_left', true), flangeOffset: effectiveFlangeL, spOffset: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_left', true), hubSpokeHoleDiameter: getMeta(hub.variantId, hub.productId, 'hub_spoke_hole_diameter', true, 2.6) });
-            const metalLengthR = calculateSpokeLength({ isLeft: false, hubType, baseCrossPattern: crossR, spokeCount, finalErd, hubFlangeDiameter: getMeta(hub.variantId, hub.productId, 'hub_flange_diameter_right', true), flangeOffset: effectiveFlangeR, spOffset: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_right', true), hubSpokeHoleDiameter: getMeta(rim.variantId, rim.productId, 'hub_spoke_hole_diameter', true, 2.6) });
+            const metalLengthR = calculateSpokeLength({ isLeft: false, hubType, baseCrossPattern: crossR, spokeCount, finalErd, hubFlangeDiameter: getMeta(hub.variantId, hub.productId, 'hub_flange_diameter_right', true), flangeOffset: effectiveFlangeR, spOffset: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_right', true), hubSpokeHoleDiameter: getMeta(hub.variantId, hub.productId, 'hub_spoke_hole_diameter', true, 2.6) });
             const berdContext = { flangeL: effectiveFlangeL, flangeR: effectiveFlangeR, metalLengthL, metalLengthR };
             const finalBerdLengthL = calculateBerdFinalLength(metalLengthL, hubType, true, berdContext);
             const finalBerdLengthR = calculateBerdFinalLength(metalLengthR, hubType, false, berdContext);
@@ -598,18 +598,15 @@ function runCalculationEngine(buildRecipe, componentData) {
                 lengths: {
                     left: { 
                         geo: finalBerdLengthL.toFixed(2), 
-                        // PASS the isPolylightX variable to the function
                         rounded: applyRounding(finalBerdLengthL, 'Berd', isPolylightX) 
                     },
                     right: { 
                         geo: finalBerdLengthR.toFixed(2), 
-                        // PASS the isPolylightX variable to the function
                         rounded: applyRounding(finalBerdLengthR, 'Berd', isPolylightX) 
                     }
                 },
                 inputs: { rim: rimTitleWithSize, hub: hub.title, spokes: spokes.title, rimAsymmetry: rimAsymmetry, erd: baseErd, washerPolicy: "Mandatory (Berd)", washerThickness: washerThickness, finalErd: finalErd.toFixed(2), targetTension: getMeta(rim.variantId, rim.productId, 'rim_target_tension_kgf', true, 120), hubDimensions: hubDimensions }
             };
-        }
         } else { // Steel spoke logic
             let erd = getMeta(rim.variantId, rim.productId, 'rim_erd', true); 
             const washerPolicy = getMeta(rim.variantId, rim.productId, 'rim_washer_policy');
