@@ -605,7 +605,18 @@ function runCalculationEngine(buildRecipe, componentData) {
                         rounded: applyRounding(finalBerdLengthR, 'Berd', isPolylightX) 
                     }
                 },
-                inputs: { rim: rimTitleWithSize, hub: hub.title, spokes: spokes.title, rimAsymmetry: rimAsymmetry, erd: baseErd, washerPolicy: "Mandatory (Berd)", washerThickness: washerThickness, finalErd: finalErd.toFixed(2), targetTension: getMeta(rim.variantId, rim.productId, 'rim_target_tension_kgf', true, 120), hubDimensions: hubDimensions }
+                inputs: { 
+                    rim: rimTitleWithSize, 
+                    hub: hub.title, 
+                    spokes: spokes.title, 
+                    rimAsymmetry: rimAsymmetry, 
+                    erd: baseErd, 
+                    washerPolicy: "Mandatory (Berd)", 
+                    washerThickness: washerThickness, 
+                    finalErd: finalErd.toFixed(2), 
+                    targetTension: getMeta(rim.variantId, rim.productId, 'rim_target_tension_kgf', true, 120), 
+                    hubDimensions: hubDimensions 
+                }
             };
         } else { // Steel spoke logic
             let erd = getMeta(rim.variantId, rim.productId, 'rim_erd', true); 
