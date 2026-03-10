@@ -532,17 +532,27 @@ function runCalculationEngine(buildRecipe, componentData) {
             return { calculationSuccessful: false, error: `Skipping calculation: Customer is supplying their own ${position} rim.` };
         }
 
+        // --- DETERMINING CROSS PATTERN ---
         let crossL, crossR;
         let lacingAlert = null;
 
         const hubLacingPolicy = getMeta(hub.variantId, hub.productId, 'hub_lacing_policy');
         const manualCrossOverride = getMeta(hub.variantId, hub.productId, 'hub_manual_cross_value', true, 0);
 
-        if (hubLacingPolicy === 'Use Manual Override Field' && manualCrossOverride > 0) {
+        // PRIORITY 1: Manual Override (Warranty/Special cases)
+        if (hubLacingPolicy === 'Use Manual Override Field' && manualCrossOverride >= 0) {
             lacingAlert = `Hub policy override applied. Using ${manualCrossOverride}-cross.`;
             crossL = manualCrossOverride;
             crossR = manualCrossOverride;
-        } else {
+        } 
+        // PRIORITY 2: Front Rim Brake Default (RADIAL)
+        else if (position === 'front' && buildRecipe.specs.brakeStyle === 'Rim Brake') {
+            lacingAlert = "Front Rim Brake detected. Defaulting to Radial (0-cross) lacing.";
+            crossL = 0;
+            crossR = 0;
+        } 
+        // PRIORITY 3: Standard Defaults (Disc or Rear wheels)
+        else {
             const defaultCross = (spokeCount >= 28) ? 3 : 2;
             crossL = defaultCross;
             crossR = defaultCross;
