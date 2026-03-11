@@ -545,12 +545,12 @@ function runCalculationEngine(buildRecipe, componentData) {
             crossL = manualCrossOverride;
             crossR = manualCrossOverride;
         } 
-        // PRIORITY 2: Front Rim Brake Default (RADIAL)
-        else if (position === 'front' && buildRecipe.specs.brakeStyle === 'Rim Brake') {
-            lacingAlert = "Front Rim Brake detected. Defaulting to Radial (0-cross) lacing.";
+        // PRIORITY 2: Front Rim Brake Default (RADIAL - ONLY for low spoke counts)
+        else if (position === 'front' && buildRecipe.specs.brakeStyle === 'Rim Brake' && spokeCount <= 24) {
+            lacingAlert = "Front Rim Brake (<=24h) detected. Defaulting to Radial (0-cross) lacing.";
             crossL = 0;
             crossR = 0;
-        } 
+        }
         // PRIORITY 3: Standard Defaults (Disc or Rear wheels)
         else {
             const defaultCross = (spokeCount >= 28) ? 3 : 2;
