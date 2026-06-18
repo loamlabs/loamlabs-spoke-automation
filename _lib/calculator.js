@@ -66,28 +66,17 @@ export function calculateSpokeLength(params) {
     } = params;
 
     if (hubType === 'Straight Pull') {
-        /**
-         * TANGENTIAL OFFSET METHOD
-         * Used for Straight Pull hubs where the offset (d) is known.
-         */
-        const R = finalErd / 2;             // Rim Radius
-        const r = hubFlangeDiameter / 2;    // Hub Flange Radius
-        const d = spOffset;                 // Tangential Offset
-        const f = flangeOffset;             // Center-to-flange
+        // --- TANGENTIAL MATH (Physics-based) ---
+        const R = finalErd / 2;
+        const r = hubFlangeDiameter / 2;
+        const d = spOffset;
+        const f = flangeOffset;
 
-        // Radial travel distance in the hub plane
         const radialComponent = Math.sqrt(R * R - d * d) - Math.sqrt(r * r - d * d);
-
-        // 3D Hypotenuse (includes lateral offset)
-        const geometricLength = Math.sqrt(Math.pow(radialComponent, 2) + Math.pow(f, 2));
-
-        return geometricLength;
+        return Math.sqrt(Math.pow(radialComponent, 2) + Math.pow(f, 2));
 
     } else {
-        /**
-         * LAW OF COSINES METHOD
-         * Used for J-Bend (Classic) and Hook Flange.
-         */
+        // --- LAW OF COSINES (Angle-based for J-Bend & Hook Flange) ---
         const angle = (2 * Math.PI * baseCrossPattern) / (spokeCount / 2);
         
         const term1 = Math.pow(flangeOffset, 2);
@@ -98,10 +87,12 @@ export function calculateSpokeLength(params) {
         const geometricLength = Math.sqrt(term1 + term2 + term3 - term4);
 
         if (hubType === 'Classic Flange') {
+            // Subtract half the hole diameter for the elbow seat
             return geometricLength - (hubSpokeHoleDiameter / 2);
         }
         
-        return geometricLength; // Hook Flange/Other
+        // For Hook Flange, we return the full length (no elbow deduction)
+        return geometricLength;
     }
 }
 
