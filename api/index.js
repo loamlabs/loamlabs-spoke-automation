@@ -637,9 +637,13 @@ function runCalculationEngine(buildRecipe, componentData) {
                 finalErd += (2 * washerThickness);
             }
         
-            if (!isLacingPossible(spokeCount, crossL) || !isLacingPossible(spokeCount, crossR)) {
-                return { calculationSuccessful: false, error: `Lacing pattern ${crossL}/${crossR} is not geometrically possible.` };
-            }
+            // Only run the interference/angle check for J-Bend/Classic hubs.
+// Straight Pull hubs have physically fixed exit angles that don't rely on this check.
+if (hubType !== 'Straight Pull') {
+    if (!isLacingPossible(spokeCount, crossL) || !isLacingPossible(spokeCount, crossR)) {
+        return { calculationSuccessful: false, error: `Lacing pattern ${crossL}/${crossR} is not geometrically possible.` };
+    }
+}
             
             const commonParams = { hubType, spokeCount, finalErd, hubSpokeHoleDiameter: getMeta(hub.variantId, hub.productId, 'hub_spoke_hole_diameter', true, 2.6) };
             const paramsLeft = { ...commonParams, isLeft: true, baseCrossPattern: crossL, hubFlangeDiameter: getMeta(hub.variantId, hub.productId, 'hub_flange_diameter_left', true), flangeOffset: effectiveFlangeL, spOffset: getMeta(hub.variantId, hub.productId, 'hub_sp_offset_spoke_hole_left', true) };
