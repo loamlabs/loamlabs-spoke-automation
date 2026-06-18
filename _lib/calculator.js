@@ -54,28 +54,55 @@ export function calculateElongation(spokeLength, tensionKgf, crossSectionalArea)
 }
 
 export function calculateSpokeLength(params) {
-    const { isLeft, hubType, baseCrossPattern, spokeCount, finalErd, hubFlangeDiameter, flangeOffset, spOffset, hubSpokeHoleDiameter } = params;
-    let effectiveCrossPattern = baseCrossPattern;
-    if (hubType === 'Straight Pull' && baseCrossPattern > 0) {
-        effectiveCrossPattern += 0.5;
-    }
-    const angle = (2 * Math.PI * effectiveCrossPattern) / (spokeCount / 2);
-    const finalZOffset = flangeOffset;
-    const term1 = Math.pow(finalZOffset, 2);
-    const term2 = Math.pow(hubFlangeDiameter / 2, 2);
-    const term3 = Math.pow(finalErd / 2, 2);
-    const term4 = 2 * (hubFlangeDiameter / 2) * (finalErd / 2) * Math.cos(angle);
-    const geometricLength = Math.sqrt(term1 + term2 + term3 - term4);
+    const { 
+        hubType, 
+        baseCrossPattern, 
+        spokeCount, 
+        finalErd, 
+        hubFlangeDiameter, 
+        flangeOffset, 
+        spOffset = 0, 
+        hubSpokeHoleDiameter = 2.6 
+    } = params;
 
-    let finalLength;
-    if (hubType === 'Classic Flange') {
-        finalLength = geometricLength - (hubSpokeHoleDiameter / 2);
-    } else if (hubType === 'Straight Pull') {
-        finalLength = geometricLength + spOffset;
+    if (hubType === 'Straight Pull') {
+        /**
+         * TANGENTIAL OFFSET METHOD
+         * Used for Straight Pull hubs where the offset (d) is known.
+         */
+        const R = finalErd / 2;             // Rim Radius
+        const r = hubFlangeDiameter / 2;    // Hub Flange Radius
+        const d = spOffset;                 // Tangential Offset
+        const f = flangeOffset;             // Center-to-flange
+
+        // Radial travel distance in the hub plane
+        const radialComponent = Math.sqrt(R * R - d * d) - Math.sqrt(r * r - d * d);
+
+        // 3D Hypotenuse (includes lateral offset)
+        const geometricLength = Math.sqrt(Math.pow(radialComponent, 2) + Math.pow(f, 2));
+
+        return geometricLength;
+
     } else {
-        finalLength = geometricLength;
+        /**
+         * LAW OF COSINES METHOD
+         * Used for J-Bend (Classic) and Hook Flange.
+         */
+        const angle = (2 * Math.PI * baseCrossPattern) / (spokeCount / 2);
+        
+        const term1 = Math.pow(flangeOffset, 2);
+        const term2 = Math.pow(hubFlangeDiameter / 2, 2);
+        const term3 = Math.pow(finalErd / 2, 2);
+        const term4 = 2 * (hubFlangeDiameter / 2) * (finalErd / 2) * Math.cos(angle);
+        
+        const geometricLength = Math.sqrt(term1 + term2 + term3 - term4);
+
+        if (hubType === 'Classic Flange') {
+            return geometricLength - (hubSpokeHoleDiameter / 2);
+        }
+        
+        return geometricLength; // Hook Flange/Other
     }
-    return finalLength;
 }
 
 export function isLacingPossible(spokeCount, crossPattern) {
