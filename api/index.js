@@ -637,11 +637,14 @@ function runCalculationEngine(buildRecipe, componentData) {
                 finalErd += (2 * washerThickness);
             }
         
-            // Only run the interference/angle check for J-Bend/Classic hubs.
-// Straight Pull hubs have physically fixed exit angles that don't rely on this check.
+            // This ensures J-Bend AND Hook Flange are checked for safety.
+// Straight Pull is excluded because it uses tangential geometry.
 if (hubType !== 'Straight Pull') {
     if (!isLacingPossible(spokeCount, crossL) || !isLacingPossible(spokeCount, crossR)) {
-        return { calculationSuccessful: false, error: `Lacing pattern ${crossL}/${crossR} is not geometrically possible.` };
+        return { 
+            calculationSuccessful: false, 
+            error: `Lacing pattern ${crossL}/${crossR} is not geometrically possible for this ${hubType} hub.` 
+        };
     }
 }
             
