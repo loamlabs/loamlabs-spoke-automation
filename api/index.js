@@ -691,15 +691,35 @@ if (hubType !== 'Straight Pull') {
 
 function formatNote(report) {
     let note = "AUTOMATED SPOKE CALCULATION & INVENTORY\n";
+    
+    // --- NEW: QUICK-SCAN SUMMARY AT THE TOP ---
+    note += "--------------------------------------------------\n";
+    note += "FINAL SPOKE SUMMARY:\n";
+    
+    const addSummaryLine = (wheel, position) => {
+        if (wheel && wheel.calculationSuccessful) {
+            const left = wheel.inventory.left;
+            const right = wheel.inventory.right;
+            return `${position.toUpperCase()}:  L: ${left.quantity}x${left.length}mm  |  R: ${right.quantity}x${right.length}mm\n`;
+        }
+        return "";
+    };
+
+    note += addSummaryLine(report.front, 'Front');
+    note += addSummaryLine(report.rear, 'Rear');
+    note += "--------------------------------------------------\n";
+    // ------------------------------------------
+
     const formatSide = (wheel, position) => {
         if (!wheel) return ``;
-        if (!wheel.calculationSuccessful) return `\n${position.toUpperCase()} WHEEL: CALC FAILED - ${wheel.error}`;
+        if (!wheel.calculationSuccessful) return `\n${position.toUpperCase()} WHEEL:\nCALC FAILED - ${wheel.error}\n`;
         
         let crossText = (typeof wheel.crossPattern === 'object') 
             ? `L:${wheel.crossPattern.left}-Cross, R:${wheel.crossPattern.right}-Cross`
             : `${wheel.crossPattern}-Cross`;
 
-        let wheelNote = `\n${position.toUpperCase()} WHEEL (${crossText}):\n`;
+        // Added line break after "WHEEL" as requested
+        let wheelNote = `\n${position.toUpperCase()} WHEEL\n(${crossText}):\n`;
         
         if (wheel.alert) {
             wheelNote += `  ALERT: ${wheel.alert}\n`;
@@ -735,13 +755,18 @@ function formatNote(report) {
         
         wheelNote += `  --- Inventory Adjustments ---\n` +
                `  Left: ${wheel.inventory.left.quantity} x ${wheel.inventory.left.length}mm (${wheel.inventory.left.status})\n` +
-               `  Right: ${wheel.inventory.right.quantity} x ${wheel.inventory.right.length}mm (${wheel.inventory.right.status})`;
+               `  Right: ${wheel.inventory.right.quantity} x ${wheel.inventory.right.length}mm (${wheel.inventory.right.status})\n`;
         
         return wheelNote;
     };
+
     note += formatSide(report.front, 'Front');
     note += formatSide(report.rear, 'Rear');
-    if (report.errors && report.errors.length > 0) { note += `\n\nWARNINGS:\n- ${report.errors.join('\n- ')}`; }
+
+    if (report.errors && report.errors.length > 0) { 
+        note += `\n\nWARNINGS:\n- ${report.errors.join('\n- ')}`; 
+    }
+    
     return note;
 }
 
