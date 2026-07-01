@@ -553,10 +553,12 @@ function runCalculationEngine(buildRecipe, componentData) {
         }
         // PRIORITY 3: Standard Defaults (Disc or Rear wheels)
         else {
-            const defaultCross = (spokeCount >= 28) ? 3 : 2;
-            crossL = defaultCross;
-            crossR = defaultCross;
-        }
+    // If no specific policy exists, use standard geometric defaults.
+    // Straight pull hubs are almost never radial, so we default to 2 or 3 crosses.
+    const defaultCross = (spokeCount >= 28) ? 3 : 2;
+    crossL = defaultCross;
+    crossR = defaultCross;
+}
         
         const hubType = getMeta(hub.variantId, hub.productId, 'hub_type');
 
