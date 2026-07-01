@@ -65,35 +65,39 @@ export function calculateSpokeLength(params) {
         hubSpokeHoleDiameter = 2.6 
     } = params;
 
-    if (hubType === 'Straight Pull') {
-        // --- TANGENTIAL MATH (Physics-based) ---
-        const R = finalErd / 2;
-        const r = hubFlangeDiameter / 2;
-        const d = spOffset;
-        const f = flangeOffset;
+    const R = finalErd / 2;
+    const r = hubFlangeDiameter / 2;
+    const f = flangeOffset;
 
-        const radialComponent = Math.sqrt(R * R - d * d) - Math.sqrt(r * r - d * d);
-        return Math.sqrt(Math.pow(radialComponent, 2) + Math.pow(f, 2));
-
-    } else {
-        // --- LAW OF COSINES (Angle-based for J-Bend & Hook Flange) ---
-        const angle = (2 * Math.PI * baseCrossPattern) / (spokeCount / 2);
-        
-        const term1 = Math.pow(flangeOffset, 2);
-        const term2 = Math.pow(hubFlangeDiameter / 2, 2);
-        const term3 = Math.pow(finalErd / 2, 2);
-        const term4 = 2 * (hubFlangeDiameter / 2) * (finalErd / 2) * Math.cos(angle);
-        
-        const geometricLength = Math.sqrt(term1 + term2 + term3 - term4);
-
-        if (hubType === 'Classic Flange') {
-            // Subtract half the hole diameter for the elbow seat
-            return geometricLength - (hubSpokeHoleDiameter / 2);
-        }
-        
-        // For Hook Flange, we return the full length (no elbow deduction)
-        return geometricLength;
+    // --- STEP 1: Determine the Effective Cross ---
+    // For Straight Pull, we add 0.5 to the cross pattern from the database.
+    // This accounts for the spoke exiting the flange at a tangent.
+    let effectiveCross = baseCrossPattern;
+    if (hubType === 'Straight Pull' && baseCrossPattern > 0) {
+        effectiveCross = parseFloat(baseCrossPattern) + 0.5;
     }
+    
+    const angle = (2 * Math.PI * effectiveCross) / (spokeCount / 2);
+    
+    // --- STEP 2: Calculate path via Law of Cosines ---
+    const term1 = Math.pow(f, 2);
+    const term2 = Math.pow(r, 2);
+    const term3 = Math.pow(R, 2);
+    const term4 = 2 * r * R * Math.cos(angle);
+    
+    const geometricLength = Math.sqrt(term1 + term2 + term3 - term4);
+
+    // --- STEP 3: Apply Hub-Specific Seating Corrections ---
+    if (hubType === 'Straight Pull') {
+        // Add the 'spOffset' (the internal hub seating length)
+        return geometricLength + spOffset;
+    } else if (hubType === 'Classic Flange') {
+        // Subtract half the hole diameter for J-bend elbow seat
+        return geometricLength - (hubSpokeHoleDiameter / 2);
+    }
+    
+    // For Hook Flange, return the raw geometric path
+    return geometricLength;
 }
 
 export function isLacingPossible(spokeCount, crossPattern) {
