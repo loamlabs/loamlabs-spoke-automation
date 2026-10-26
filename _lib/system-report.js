@@ -301,7 +301,8 @@ export async function sendSystemEmail(o) {
     if (!res.ok) throw new Error(`Resend ${res.status}: ${json && (json.message || json.error) ? (json.message || JSON.stringify(json.error)) : 'send failed'}`);
     return json;
   };
-  const base = { from, to: [to], reply_to: replyTo, subject: report.subject };
+  // REVIEW: a subject can never carry a line break (header injection), whatever the order number / name looked like.
+  const base = { from, to: [to], reply_to: replyTo, subject: String(report.subject).replace(/[\r\n]+/g, ' ') };
 
   if (report.images.length) {
     try {
