@@ -18,7 +18,14 @@
 export const RIM_COLOR = '#3b4148';   // .lls-preview .lls-rim (light) and --rim of the light theme
 export const EDGE_COLOR = '#8e939a';  // thin dark edge around every spoke (opaque; the Studio's 32% black edge over white, a little darker)
 
-function f(n) { return Number(n).toFixed(2); }
+// REVIEW: every number written into the SVG must be finite and sane. Coordinates in the 1e8 range (rim_erd = 0.0001 from a tampered
+// _build) made @resvg/resvg-js panic inside tiny-skia, which aborts the whole Node process; a thrown RangeError is caught per image instead.
+const MAX_COORD = 1e6;
+function f(n) {
+  n = Number(n);
+  if (!isFinite(n) || Math.abs(n) > MAX_COORD) throw new RangeError(`wheel drawing value out of range (${n})`);
+  return n.toFixed(2);
+}
 function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 
 // '#rrggbb' mixed toward another '#rrggbb' by t (0..1); opaque result. Unknown input returns the base unchanged.

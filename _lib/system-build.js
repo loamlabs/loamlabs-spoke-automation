@@ -54,6 +54,16 @@ export const POSITIONS = ['front', 'rear'];
 export function hexFor(name) { return SYSTEM_COLOR_HEX[name] || NEUTRAL_HEX; }
 export function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
 
+// REVIEW: bounds for everything the customer's _build can put into the drawing. Out-of-range geometry made the native renderer
+// panic (tiny-skia unwrap on a None value at rim_erd = 0.0001, which aborts the whole Node process) and a spoke count like
+// "99999999h" allocated arrays until the process died. Values outside these ranges are treated as absent (sample geometry).
+export const MAX_SPOKES = 64;                 // I9 sells 24h / 28h / 32h; 64 leaves room without letting the O(n^2) lacing run away
+export const ERD_RANGE_MM = [200, 800];       // 12" to 36" rims
+export const PCD_RANGE_MM = [15, 150];        // flange diameters
+export const MAX_NAME_CHARS = 40;             // color names ("Turquoise" is 9); longer values are cut, which keeps notes and emails bounded
+export const MAX_TITLE_CHARS = 200;           // component titles copied from the recipe
+export function clip(s, max) { s = String(s == null ? '' : s); return s.length > max ? s.slice(0, max) + '…' : s; }
+
 function propValue(lineItem, name) {
   const p = Array.isArray(lineItem?.properties) ? lineItem.properties.find((x) => x && x.name === name) : null;
   return p ? p.value : undefined;
@@ -122,7 +132,7 @@ export function hubModelOf(recipe, pos) {
 export function spokeCountOf(recipe, pos) {
   const raw = recipe?.specs?.[pos + 'SpokeCount'];
   const n = parseInt(String(raw == null ? '' : raw).replace(/\D/g, ''), 10);
-  return isFinite(n) && n > 0 ? n : 0;
+  return isFinite(n) && n > 0 && n <= MAX_SPOKES ? n : 0; // REVIEW: 0 = unknown, the caller falls back to the model's default count
 }
 
 // Same split as the theme (i9-system.js sideCounts): 2:1 rear high side = drive, front high side = rotor.
@@ -140,10 +150,13 @@ function optionValue(comp, name) {
   const o = Array.isArray(comp?.selectedOptions) ? comp.selectedOptions.find((x) => x && String(x.name).toLowerCase() === name.toLowerCase()) : null;
   return o ? o.value : null;
 }
-function metaNumber(meta, key) {
-  const v = meta ? meta[key] : undefined;
+// A positive number from a metafield / recipe field, or null; REVIEW: with an optional [min, max] range (out of range = null).
+function metaNumber(meta, key, range) {
+  const v = meta && typeof meta === 'object' ? meta[key] : undefined;
   const n = parseFloat(v);
-  return isFinite(n) && n > 0 ? n : null;
+  if (!isFinite(n) || n <= 0) return null;
+  if (range && (n < range[0] || n > range[1])) return null;
+  return n;
 }
 
 // Metafields for a component (componentData is the webhook's Map variantId -> merged product+variant metafields, or null).
@@ -162,16 +175,17 @@ export function wheelConfigFor(recipe, pos, componentData) {
   const n = sideCounts(model, pos, total);
   const hubMeta = metaFor(componentData, recipe.components?.[pos + 'Hub']);
   const rimMeta = metaFor(componentData, recipe.components?.[pos + 'Rim']);
-  const pcdDrive = metaNumber(hubMeta, 'hub_flange_diameter_right'), pcdRotor = metaNumber(hubMeta, 'hub_flange_diameter_left');
+  const pcdDrive = metaNumber(hubMeta, 'hub_flange_diameter_right', PCD_RANGE_MM), pcdRotor = metaNumber(hubMeta, 'hub_flange_diameter_left', PCD_RANGE_MM);
   const rimComp = recipe.components?.[pos + 'Rim'];
-  const erd = metaNumber(rimMeta, 'rim_erd') || metaNumber(rimComp, 'rim_erd'); // metafield first, then the copy the theme put in the recipe
+  const erdMeta = metaNumber(rimMeta, 'rim_erd', ERD_RANGE_MM);
+  const erd = erdMeta || metaNumber(rimComp, 'rim_erd', ERD_RANGE_MM); // metafield first, then the copy the theme put in the recipe (customer-controlled: range-checked)
   return {
     hubName: model.label,
     erd: erd || sample.erd,
     rimHoles: total,
     drive: { n: n.drive, pcd: pcdDrive || sample[pos].drive.pcd, cross: sample[pos].drive.cross },
     rotor: { n: n.rotor, pcd: pcdRotor || sample[pos].rotor.pcd, cross: sample[pos].rotor.cross },
-    source: { erd: metaNumber(rimMeta, 'rim_erd') ? 'metafield' : (erd ? 'recipe' : 'sample'), pcdDrive: pcdDrive ? 'metafield' : 'sample', pcdRotor: pcdRotor ? 'metafield' : 'sample', cross: 'sample' }
+    source: { erd: erdMeta ? 'metafield' : (erd ? 'recipe' : 'sample'), pcdDrive: pcdDrive ? 'metafield' : 'sample', pcdRotor: pcdRotor ? 'metafield' : 'sample', cross: 'sample' }
   };
 }
 
@@ -183,15 +197,15 @@ export function spokeColorsFor(recipe, pos, cfg) {
   const warnings = [];
   const value = recipe?.system?.studio;
   const comp = recipe?.components?.[pos + 'Spokes'];
-  const fallbackBase = comp?.selectedColor || optionValue(comp, 'Color') || 'Black';
+  const fallbackBase = clip(comp?.selectedColor || optionValue(comp, 'Color') || 'Black', MAX_NAME_CHARS);
   const out = { drive: [], rotor: [], base: {}, fromStudio: !!(value && value.spokes && value.spokes[pos]) };
   SIDES.forEach((side) => {
     const n = cfg[side].n;
     let base = value?.base?.[pos]?.[side];
-    if (!base) base = fallbackBase;
+    base = base ? clip(base, MAX_NAME_CHARS) : fallbackBase;
     out.base[side] = base;
     const arr = value?.spokes?.[pos]?.[side];
-    if (Array.isArray(arr) && arr.length === n) out[side] = arr.map((c) => (c == null ? base : String(c)));
+    if (Array.isArray(arr) && arr.length === n) out[side] = arr.map((c) => (c == null ? base : clip(c, MAX_NAME_CHARS)));
     else {
       if (Array.isArray(arr)) warnings.push(`${cap(pos)} ${side} side: Studio spoke map has ${arr.length} entries but the wheel has ${n} ${side}-side spokes; drawn as all ${base}.`);
       out[side] = filled(n, base);
@@ -212,7 +226,7 @@ export function countColors(names) {
 export function rimTitleOf(comp) {
   if (!comp) return 'n/a';
   const size = optionValue(comp, 'Size');
-  return size ? `${comp.title} - ${size}` : String(comp.title || 'n/a');
+  return clip(size ? `${comp.title} - ${size}` : String(comp.title || 'n/a'), MAX_TITLE_CHARS);
 }
 
 // Spoke lines in the ORDER (one per color per wheel), to cross-check the Studio counts: { color: qty }.
@@ -222,7 +236,7 @@ export function cartSpokeCounts(orderData, pos) {
   items.filter(isSystemSpokeLineItem).forEach((li) => {
     const wheel = String(propValue(li, 'Wheel') || '').toLowerCase();
     if (wheel && wheel !== pos) return;
-    const color = String(li.variant_title || '').split('/')[0].trim() || 'unknown';
+    const color = clip(String(li.variant_title || '').split('/')[0].trim() || 'unknown', MAX_NAME_CHARS);
     out[color] = (out[color] || 0) + (Number(li.quantity) || 0);
   });
   return out;
@@ -249,9 +263,11 @@ export function systemWheels(recipe, componentData, orderData) {
     const cfg = wheelConfigFor(recipe, pos, componentData);
     const colors = spokeColorsFor(recipe, pos, cfg);
     const warnings = colors.warnings.slice();
+    const rawCount = recipe?.specs?.[pos + 'SpokeCount'];
+    if (rawCount != null && rawCount !== '' && !spokeCountOf(recipe, pos)) warnings.push(`${cap(pos)} wheel: spoke count "${clip(rawCount, 20)}" in the recipe is not usable (1 to ${MAX_SPOKES}); drawn as ${cfg.rimHoles}h.`);
     // the hub color the customer bought (the hub variant) wins over the Studio's copy of it; a difference is reported
-    const boughtHubColor = optionValue(hub, 'Color');
-    const studioHubColor = recipe?.system?.studio?.hubColor?.[pos] || null;
+    const boughtHubColor = optionValue(hub, 'Color') ? clip(optionValue(hub, 'Color'), MAX_NAME_CHARS) : null;
+    const studioHubColor = recipe?.system?.studio?.hubColor?.[pos] ? clip(recipe.system.studio.hubColor[pos], MAX_NAME_CHARS) : null;
     const hubColor = boughtHubColor || studioHubColor || 'Black';
     if (boughtHubColor && studioHubColor && boughtHubColor !== studioHubColor) warnings.push(`${cap(pos)} hub: ordered ${boughtHubColor} but the Studio value says ${studioHubColor}; drawn ${boughtHubColor}.`);
     if (!model) warnings.push(`${cap(pos)} hub: could not tell Solix from Hydra2 (specs.systemHub / hub title); Hydra2 geometry assumed.`);
@@ -271,9 +287,9 @@ export function systemWheels(recipe, componentData, orderData) {
     return {
       position: pos, label: cap(pos),
       hubModel: model ? model.label : 'System',
-      hubTitle: hub?.title || 'n/a', hubVariantTitle: hub?.variantTitle || null,
+      hubTitle: clip(hub?.title || 'n/a', MAX_TITLE_CHARS), hubVariantTitle: hub?.variantTitle ? clip(hub.variantTitle, MAX_TITLE_CHARS) : null,
       hubColor, hubColorHex: hexFor(hubColor),
-      freehub: pos === 'rear' ? (hub?.spec_freehub || recipe?.specs?.freehubType || null) : null,
+      freehub: pos === 'rear' ? ((hub?.spec_freehub || recipe?.specs?.freehubType) ? clip(hub?.spec_freehub || recipe?.specs?.freehubType, MAX_NAME_CHARS) : null) : null,
       rimTitle: rimTitleOf(rim),
       spokeCountLabel: `${cfg.rimHoles}h${ratioLabel} (${cfg.drive.n} drive / ${cfg.rotor.n} rotor)`,
       total: cfg.rimHoles,
