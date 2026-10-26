@@ -32,18 +32,21 @@ function countsText(list, times = TIMES) { return list.map((c) => `${c.color} ${
 // The three images of a multi-color wheel, all spokes at full color and opacity. High-tension side: front = rotor, rear = drive.
 //   a) high-tension side spokes only   b) low-tension side spokes only   c) all spokes, viewed from the high-tension side
 // Order in the email: a, b, c; front wheel first, then rear.
+// A wheel that is ONE solid color gets only c): a single all-spokes image (same view, same caption style), no side-only images.
 export function highSideOf(position) { return position === 'front' ? 'rotor' : 'drive'; }
 export function lowSideOf(position) { return position === 'front' ? 'drive' : 'rotor'; }
-export function imageSpecsFor(position) {
+export function imageSpecsFor(position, solid = false) {
   const P = cap(position), high = highSideOf(position), low = lowSideOf(position);
+  const all = { cid: `${position}-all-spokes`, caption: `${P} wheel, all spokes (${high} side view)`, sides: ['drive', 'rotor'], pov: high };
+  if (solid) return [all];
   return [
     { cid: `${position}-${high}-only`, caption: `${P} wheel, ${high} side spokes only`, sides: [high], pov: high },
     { cid: `${position}-${low}-only`, caption: `${P} wheel, ${low} side spokes only`, sides: [low], pov: low },
-    { cid: `${position}-all-spokes`, caption: `${P} wheel, all spokes (${high} side view)`, sides: ['drive', 'rotor'], pov: high }
+    all
   ];
 }
 
-// Renders the three images of a multi-color wheel. Each failure becomes an imageErrors line; nothing throws.
+// Renders the images of a wheel: three for a multi-color wheel, one (all spokes) for a solid-color wheel. Each failure becomes an imageErrors line; nothing throws.
 async function renderWheelImages(wheel, renderPng, width) {
   const images = [], errors = [];
   let geom;
@@ -54,7 +57,7 @@ async function renderWheelImages(wheel, renderPng, width) {
     return { images, errors };
   }
   const colorsHex = { drive: wheel.colors.drive.map(hexFor), rotor: wheel.colors.rotor.map(hexFor) };
-  for (const spec of imageSpecsFor(wheel.position)) {
+  for (const spec of imageSpecsFor(wheel.position, !wheel.isMultiColor)) {
     try {
       const svg = wheelSvg({ config: wheel.config, geom, colorsHex, hubHex: wheel.hubColorHex, pov: spec.pov, sides: spec.sides, size: width });
       const png = await renderPng(svg, { width });
@@ -111,13 +114,10 @@ function wheelHtml(w, images, imageErrors, opts) {
   const internal = !!(opts && opts.internal), lengths = opts && opts.lengths;
   const imgs = images.filter((i) => i.position === w.position);
   const errs = imageErrors.filter((e) => e.startsWith(`${w.label} wheel`));
-  let visual;
-  if (!w.isMultiColor) {
-    visual = `<p><strong>${esc(w.label)} wheel: all ${esc(w.counts.all[0] ? w.counts.all[0].color : 'n/a')}</strong>${internal ? ' (one color, no image)' : ''}</p>`;
-  } else {
-    visual = imgs.map((i) => `<img class="wheel-img" src="cid:${i.cid}" width="${IMAGE_WIDTH_PX}" alt="${esc(i.caption)}"><p class="caption">${esc(i.caption)}</p>`).join('');
-    if (internal) visual += errs.map((e) => `<p class="failed">${esc(e)}</p>`).join('');
-  }
+  // A solid-color wheel shows its "all <color>" line and then its one all-spokes image; a multi-color wheel shows its three images.
+  const solidLine = w.isMultiColor ? '' : `<p><strong>${esc(w.label)} wheel: all ${esc(w.counts.all[0] ? w.counts.all[0].color : 'n/a')}</strong></p>`;
+  let visual = solidLine + imgs.map((i) => `<img class="wheel-img" src="cid:${i.cid}" width="${IMAGE_WIDTH_PX}" alt="${esc(i.caption)}"><p class="caption">${esc(i.caption)}</p>`).join('');
+  if (internal) visual += errs.map((e) => `<p class="failed">${esc(e)}</p>`).join('');
   const warnings = internal ? w.warnings.map((t) => `<p class="alert"><strong>NOTE:</strong> ${esc(t)}</p>`).join('') : '';
   const feeRow = internal ? `<tr><td>Custom color fee</td><td>${w.isMultiColor ? (w.feeLines ? `${w.feeLines} ${TIMES_HTML} ${esc(SYSTEM_FEE.name)} line on the order` : 'expected, none found on the order') : 'not applicable (one color)'}</td></tr>` : '';
   return `
@@ -179,7 +179,6 @@ export async function buildSystemReport(o) {
   const images = [], imageErrors = [], lengthsByPos = {};
   for (const w of wheels) {
     lengthsByPos[w.position] = lengthsFor(w, lengthCalculator);
-    if (!w.isMultiColor) continue;
     const r = await renderWheelImages(w, renderPng, width);
     images.push(...r.images); imageErrors.push(...r.errors);
   }

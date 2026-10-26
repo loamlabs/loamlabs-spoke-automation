@@ -254,5 +254,14 @@ standardOrder('rimbrake-front-own-rear-hub', {
   }
 });
 
+// 8) Solix 24h wheel set: custom front (Orange x16 + Purple x8) and a SOLID Black rear. Generated after the Standard samples on purpose, so their ids do not move.
+systemOrder('solix-24h-wheelset-front-custom-rear-solid', {
+  buildType: 'Wheel Set', model: 'Solix', orderNumber: 90009,
+  wheels: {
+    front: { model: 'Solix', total: 24, hubColor: 'Purple', base: 'Purple', paint: pairs(3, 0, 'Orange', 'Purple') }, // 2 x 1 in Orange over a Purple base: Orange x16, Purple x8
+    rear: { model: 'Solix', total: 24, hubColor: 'Purple', base: 'Black', paint: solid('Black') }                      // solid Black x24 (no fee line)
+  }
+});
+
 fs.writeFileSync(path.join(outStandard, 'mock-shopify.json'), JSON.stringify(mock, null, 2) + '\n');
 console.log('wrote samples to', outSystem, 'and', outStandard);

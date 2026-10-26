@@ -107,11 +107,12 @@ test('System front-only and rear-only orders: 200, nothing deducted, 3 images fo
   }
 });
 
-test('System single-color wheel: no image for it, email still sent', async () => {
+test('System solid front wheel: one all-spokes image for it (not the side-only images), email still sent', async () => {
   const r = await runWebhook(INDEX, 'orders/create', loadSample('system', 'solix-single-color-front'));
   assert.equal(r.status, 200);
-  assert.deepEqual(r.restEmails[0].attachments.map((a) => a.content_id), ['rear-drive-only', 'rear-rotor-only', 'rear-all-spokes']);
+  assert.deepEqual(r.restEmails[0].attachments.map((a) => a.content_id), ['front-all-spokes', 'rear-drive-only', 'rear-rotor-only', 'rear-all-spokes']);
   assert.ok(r.restEmails[0].html.includes('Front wheel: all Black'));
+  assert.equal(r.restEmails[0].html.includes('one color, no image'), false);
 });
 
 test('System order cancelled: nothing restocked, no note, no Shopify mutation, NO email (not even with the customer flag on)', async () => {

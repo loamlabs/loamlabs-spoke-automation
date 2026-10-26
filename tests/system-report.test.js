@@ -11,7 +11,7 @@ import { SYSTEM_SAMPLES } from '../samples/index.js';
 
 const fakePng = async (svg) => Buffer.from('PNG:' + svg.length); // no native renderer needed for most tests
 const recipeOf = (name) => { const o = loadSample('system', name); return { order: o, recipe: findSystemBuildRecipe(o).recipe }; };
-const SYSTEM_SAMPLE_NAMES = ['solix-24h-wheelset-multicolor', 'hydra2-wheelset-28f-32r', 'hydra2-wheelset-32f-32r', 'hydra2-front-28h-only', 'hydra2-front-32h-only', 'hydra2-rear-32h-only', 'solix-single-color-front', 'hydra2-rear-32h-all-different'];
+const SYSTEM_SAMPLE_NAMES = ['solix-24h-wheelset-multicolor', 'hydra2-wheelset-28f-32r', 'hydra2-wheelset-32f-32r', 'hydra2-front-28h-only', 'hydra2-front-32h-only', 'hydra2-rear-32h-only', 'solix-single-color-front', 'hydra2-rear-32h-all-different', 'solix-24h-wheelset-front-custom-rear-solid'];
 
 test('System builds are recognized, Standard builds are not; the sample list is the real-wheel list (no Hydra2 28h rear)', () => {
   assert.deepEqual(Object.keys(SYSTEM_SAMPLES).sort(), [...SYSTEM_SAMPLE_NAMES].sort());
@@ -107,7 +107,7 @@ test('report: 3 images per multi-color wheel in order a, b, c, front wheel first
 
   const single = recipeOf('solix-single-color-front');
   const r2 = await buildSystemReport({ recipe: single.recipe, orderData: single.order, renderPng: fakePng });
-  assert.deepEqual(r2.images.map((i) => i.cid), ['rear-drive-only', 'rear-rotor-only', 'rear-all-spokes'], 'only the multi-color rear wheel gets images');
+  assert.deepEqual(r2.images.map((i) => i.cid), ['front-all-spokes', 'rear-drive-only', 'rear-rotor-only', 'rear-all-spokes'], 'the solid front wheel gets ONE all-spokes image, the custom rear wheel three');
   assert.ok(r2.html.includes('Front wheel: all Black'));
 });
 
