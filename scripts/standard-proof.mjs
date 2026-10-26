@@ -23,9 +23,13 @@ let beforeDir = arg('--before-dir');
 if (!beforeDir) {
   const ref = arg('--before') || 'origin/main';
   beforeDir = fs.mkdtempSync(path.join(os.tmpdir(), 'spoke-before-'));
-  fs.mkdirSync(path.join(beforeDir, 'api')); fs.mkdirSync(path.join(beforeDir, '_lib'));
-  for (const f of ['api/index.js', '_lib/calculator.js']) fs.writeFileSync(path.join(beforeDir, f), execFileSync('git', ['show', `${ref}:${f}`], { cwd: root }));
-  // the old code imports 'resend' (mocked by the harness loader) and nothing else
+  // the whole api/ and _lib/ tree of the ref (the baseline may include the System modules; the original pre-System code has only index.js and calculator.js)
+  const files = execFileSync('git', ['ls-tree', '-r', '--name-only', ref, 'api', '_lib'], { cwd: root }).toString().split('\n').filter((f) => /\.js$/.test(f));
+  for (const f of files) {
+    fs.mkdirSync(path.dirname(path.join(beforeDir, f)), { recursive: true });
+    fs.writeFileSync(path.join(beforeDir, f), execFileSync('git', ['show', `${ref}:${f}`], { cwd: root, maxBuffer: 64 * 1024 * 1024 }));
+  }
+  // the code imports 'resend' (mocked by the harness loader); @resvg/resvg-js is only loaded lazily by the System path, which a Standard order never reaches
   console.log(`before = ${ref} (extracted to ${beforeDir})`);
 }
 const afterDir = root;

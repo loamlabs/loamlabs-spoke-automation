@@ -8,6 +8,7 @@ import hydraFront32 from './system/hydra2-front-32h-only.json' with { type: 'jso
 import hydraRear32 from './system/hydra2-rear-32h-only.json' with { type: 'json' };
 import solixSingle from './system/solix-single-color-front.json' with { type: 'json' };
 import hydraRearAllDifferent from './system/hydra2-rear-32h-all-different.json' with { type: 'json' };
+import solixFrontCustomRearSolid from './system/solix-24h-wheelset-front-custom-rear-solid.json' with { type: 'json' };
 
 export const SYSTEM_SAMPLES = {
   'solix-24h-wheelset-multicolor': solix24,
@@ -17,5 +18,6 @@ export const SYSTEM_SAMPLES = {
   'hydra2-front-32h-only': hydraFront32,
   'hydra2-rear-32h-only': hydraRear32,
   'solix-single-color-front': solixSingle,
-  'hydra2-rear-32h-all-different': hydraRearAllDifferent
+  'hydra2-rear-32h-all-different': hydraRearAllDifferent,
+  'solix-24h-wheelset-front-custom-rear-solid': solixFrontCustomRearSolid
 };
