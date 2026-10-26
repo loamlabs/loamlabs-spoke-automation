@@ -75,7 +75,7 @@ test('custom FRONT wheel only (front-only build): three images, unchanged', asyn
   assert.equal(imgTags(customer.html), 3);
 });
 
-test('BOTH wheels solid: two images in total, one per wheel; the customer email is still only built when a wheel has 2+ colors', async () => {
+test('BOTH wheels solid: two images in total, one per wheel; the customer email is built too (every System build gets it)', async () => {
   const { report, customer } = await reportFor('solix-24h-wheelset-multicolor', { solid: { front: 'Orange', rear: 'Black' } });
   assert.ok(report.wheels.every((w) => !w.isMultiColor));
   assert.deepEqual(cidsOf(report), ['front-all-spokes', 'rear-all-spokes']);
@@ -83,7 +83,9 @@ test('BOTH wheels solid: two images in total, one per wheel; the customer email 
   assert.equal(imgTags(report.html), 2);
   assert.ok(report.html.includes('Front wheel: all Orange') && report.html.includes('Rear wheel: all Black'));
   assert.equal(report.html.includes('one color, no image'), false);
-  assert.equal(customer, null, 'send rule unchanged: no wheel with 2+ colors means no customer email');
+  assert.ok(customer, 'rule changed: a build with no multi-color wheel still gets the customer email');
+  assert.equal(imgTags(customer.html), 2);
+  assert.deepEqual(customer.images.map((i) => i.cid), ['front-all-spokes', 'rear-all-spokes']);
 });
 
 test('BOTH wheels custom: six images, unchanged', async () => {

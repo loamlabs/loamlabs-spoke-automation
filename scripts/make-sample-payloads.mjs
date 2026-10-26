@@ -263,5 +263,15 @@ systemOrder('solix-24h-wheelset-front-custom-rear-solid', {
   }
 });
 
+// 9) Solix 24h wheel set with BOTH wheels one solid color (Black x24 front, Black x24 rear): no fee line, one all-spokes image per wheel. Generated after the
+// Standard samples on purpose, so their ids do not move.
+systemOrder('solix-24h-wheelset-both-solid-black', {
+  buildType: 'Wheel Set', model: 'Solix', orderNumber: 90010,
+  wheels: {
+    front: { model: 'Solix', total: 24, hubColor: 'Purple', base: 'Black', paint: solid('Black') },
+    rear: { model: 'Solix', total: 24, hubColor: 'Purple', base: 'Black', paint: solid('Black') }
+  }
+});
+
 fs.writeFileSync(path.join(outStandard, 'mock-shopify.json'), JSON.stringify(mock, null, 2) + '\n');
 console.log('wrote samples to', outSystem, 'and', outStandard);

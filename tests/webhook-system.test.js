@@ -70,7 +70,7 @@ test('flag on: order.email missing -> falls back to customer.email; no address a
   assert.ok(r.logs.some(([, m]) => m.includes('no customer email address')));
 });
 
-test('flag on but no wheel has more than one color: no customer email', async () => {
+test('flag on and no wheel has more than one color (both solid): the customer email IS sent, with one image per wheel', async () => {
   const order = loadSample('system', 'solix-single-color-front');
   const recipeProp = order.line_items[0].properties.find((p) => p.name === '_build');
   const recipe = JSON.parse(recipeProp.value);
@@ -78,7 +78,8 @@ test('flag on but no wheel has more than one color: no customer email', async ()
   recipeProp.value = JSON.stringify(recipe);
   const r = await runWebhook(INDEX, 'orders/create', order, { env: { SYSTEM_CUSTOMER_EMAIL: 'on' } });
   assert.equal(r.status, 200);
-  assert.equal(r.restEmails.filter(isCustomerMail).length, 0);
+  assert.equal(r.restEmails.filter(isCustomerMail).length, 1);
+  assert.deepEqual(r.restEmails.filter(isCustomerMail)[0].attachments.map((a) => a.content_id), ['front-all-spokes', 'rear-all-spokes']);
   assert.equal(r.restEmails.filter(isInternalMail).length, 1);
 });
 
@@ -156,7 +157,7 @@ test('Resend rejecting the customer attachments: the customer gets the text-only
   assert.equal(customer.length, 1, 'only the text-only retry was recorded as accepted');
   assert.equal(customer[0].attachments, undefined);
   assert.equal(/image failed|attachment|rejected|<img/i.test(customer[0].html), false);
-  assert.ok(customer[0].html.includes('Here are the spoke colors you designed for your wheels.'));
+  assert.ok(customer[0].html.includes('Here are the spoke colors for your wheels.'));
 });
 
 test('Standard order still deducts inventory through the SDK email path (System code and the customer flag not in the way)', async () => {
