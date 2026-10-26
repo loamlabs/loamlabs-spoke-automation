@@ -103,7 +103,7 @@ async function handler(req, res) {
         // Customer version: test sends go to the builder address only, never to the sample's / order's customer address.
         if (body.customer === true) {
             const customer = buildCustomerEmail({ wheels: report.wheels, images: report.images, orderData });
-            if (!customer) return res.status(200).json({ ...summary, customer: true, sent: false, reason: 'no wheel with more than one spoke color (the webhook sends no customer email for this order)' });
+            if (!customer) return res.status(200).json({ ...summary, customer: true, sent: false, reason: 'the build has no wheels (the webhook sends no customer email for this order)' });
             const testCustomer = { ...customer, subject: `[Customer version test] ${customer.subject}` };
             const customerSummary = { ...summary, customer: true, subject: testCustomer.subject, note: undefined, warnings: undefined, lengths: undefined };
             if (body.send === false) return res.status(200).json({ ...customerSummary, sent: false, html: testCustomer.html });

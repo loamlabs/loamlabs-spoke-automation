@@ -5,7 +5,7 @@
 //
 //   const report = await buildSystemReport({ recipe, orderData, componentData });   // { subject, html, note, wheels, images, imageErrors, warnings }
 //   await sendSystemEmail({ report, to, apiKey });                                   // inline images via content ids (cid:), falls back to text-only
-//   const customer = buildCustomerEmail({ wheels: report.wheels, images: report.images, orderData });   // null unless a wheel has 2+ colors
+//   const customer = buildCustomerEmail({ wheels: report.wheels, images: report.images, orderData });   // built for every System build (null only when the build has no wheels)
 //   await sendCustomerEmailIfEnabled({ customer, orderData });                       // only when env SYSTEM_CUSTOMER_EMAIL === 'on'
 
 import { systemWheels, hexFor, SYSTEM_FEE } from './system-build.js';
@@ -239,11 +239,11 @@ export function customerFirstName(orderData) {
 
 /**
  * The customer version of the report: greeting, one sentence, per wheel the component details, the color tables and the same images.
- * No lengths, no warnings, no fee/mismatch/geometry-source text, no build id, no inventory text. null when no wheel has 2+ colors.
+ * No lengths, no warnings, no fee/mismatch/geometry-source text, no build id, no inventory text. Built for EVERY System build, solid-color wheels included (each solid wheel shows its one all-spokes image); null only when the build has no wheels.
  * Returns { subject, html, fallbackHtml, images, wheels } - fallbackHtml is the same email without images (used if Resend rejects the attachments).
  */
 export function buildCustomerEmail({ wheels, images, orderData }) {
-  if (!wheels || !wheels.some((w) => w.isMultiColor)) return null;
+  if (!wheels || !wheels.length) return null; // every System build gets the customer email (when the flag is on), whatever the colors
   const orderData_ = orderData || {};
   const orderNumber = orderNumberOf(orderData_);
   const first = customerFirstName(orderData_);
@@ -333,7 +333,7 @@ export async function sendSystemEmail(o) {
  */
 export async function sendCustomerEmailIfEnabled({ customer, orderData, env = process.env, send = sendSystemEmail, log = console.log }) {
   try {
-    if (!customer) return { sent: false, reason: 'no wheel with more than one spoke color' };
+    if (!customer) return { sent: false, reason: 'the build has no wheels' };
     if (env[CUSTOMER_EMAIL_FLAG] !== 'on') {
       log(`I9-SYSTEM: customer spoke-color email not sent (${CUSTOMER_EMAIL_FLAG} is not "on").`);
       return { sent: false, reason: 'flag off' };

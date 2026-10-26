@@ -11,7 +11,7 @@ import { SYSTEM_SAMPLES } from '../samples/index.js';
 
 const fakePng = async (svg) => Buffer.from('PNG:' + svg.length); // no native renderer needed for most tests
 const recipeOf = (name) => { const o = loadSample('system', name); return { order: o, recipe: findSystemBuildRecipe(o).recipe }; };
-const SYSTEM_SAMPLE_NAMES = ['solix-24h-wheelset-multicolor', 'hydra2-wheelset-28f-32r', 'hydra2-wheelset-32f-32r', 'hydra2-front-28h-only', 'hydra2-front-32h-only', 'hydra2-rear-32h-only', 'solix-single-color-front', 'hydra2-rear-32h-all-different', 'solix-24h-wheelset-front-custom-rear-solid'];
+const SYSTEM_SAMPLE_NAMES = ['solix-24h-wheelset-multicolor', 'hydra2-wheelset-28f-32r', 'hydra2-wheelset-32f-32r', 'hydra2-front-28h-only', 'hydra2-front-32h-only', 'hydra2-rear-32h-only', 'solix-single-color-front', 'hydra2-rear-32h-all-different', 'solix-24h-wheelset-front-custom-rear-solid', 'solix-24h-wheelset-both-solid-black'];
 
 test('System builds are recognized, Standard builds are not; the sample list is the real-wheel list (no Hydra2 28h rear)', () => {
   assert.deepEqual(Object.keys(SYSTEM_SAMPLES).sort(), [...SYSTEM_SAMPLE_NAMES].sort());
@@ -231,7 +231,7 @@ test('customer email: greeting, one sentence, component details, color tables, t
   assert.ok(c.fallbackHtml.includes('Here are the spoke colors you designed'));
 });
 
-test('customer email: only for orders with a multi-color wheel; a single-color wheel keeps just its text line; no name -> "Hi,"', async () => {
+test('customer email: built for every System build (solid wheels included), null only without wheels; a solid wheel keeps its text line; no name -> "Hi,"', async () => {
   const solo = recipeOf('hydra2-front-32h-only'), single = recipeOf('solix-single-color-front');
   const report = await buildSystemReport({ recipe: single.recipe, orderData: single.order, renderPng: fakePng });
   const c = buildCustomerEmail({ wheels: report.wheels, images: report.images, orderData: single.order });
@@ -241,7 +241,10 @@ test('customer email: only for orders with a multi-color wheel; a single-color w
   allSingle.system.studio.spokes.rear.drive = allSingle.system.studio.spokes.rear.drive.map(() => 'Black');
   const o2 = JSON.parse(JSON.stringify(single.order));
   const wheels = systemWheels(allSingle, null, o2);
-  assert.equal(buildCustomerEmail({ wheels, images: [], orderData: o2 }), null, 'no multi-color wheel -> no customer email');
+  assert.ok(wheels.every((w) => !w.isMultiColor));
+  const both = buildCustomerEmail({ wheels, images: [], orderData: o2 });
+  assert.ok(both && both.html.includes('Front wheel: all Black') && both.html.includes('Rear wheel: all Black'), 'both wheels solid -> the customer email is still built');
+  assert.equal(buildCustomerEmail({ wheels: [], images: [], orderData: o2 }), null, 'only a build without wheels gets none');
   const nameless = JSON.parse(JSON.stringify(solo.order)); delete nameless.customer.first_name;
   const r2 = await buildSystemReport({ recipe: solo.recipe, orderData: nameless, renderPng: fakePng });
   assert.ok(buildCustomerEmail({ wheels: r2.wheels, images: r2.images, orderData: nameless }).html.includes('<p>Hi,</p>'));
