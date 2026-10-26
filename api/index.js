@@ -296,7 +296,9 @@ async function handleSystemOrderCreate(orderData, buildRecipe) {
             return;
         }
         console.log(`I9-SYSTEM: System build detected on order #${orderData.order_number}; skipping Length Variant inventory.`);
-        const componentData = await fetchComponentData(buildRecipe); // metafields for the hub flange / rim ERD (null is fine: sample geometry)
+        // metafields for the hub flange / rim ERD (null is fine: sample geometry). REVIEW: a recipe whose components is not an object
+        // (tampered _build) used to throw inside fetchComponentData and drop the whole report; now it is reported with sample geometry.
+        const componentData = buildRecipe.components && typeof buildRecipe.components === 'object' ? await fetchComponentData(buildRecipe) : null;
         const report = await buildSystemReport({ recipe: buildRecipe, orderData, componentData });
         report.warnings.forEach(w => console.warn('I9-SYSTEM note:', w));
         report.imageErrors.forEach(e => console.error('I9-SYSTEM image:', e));
