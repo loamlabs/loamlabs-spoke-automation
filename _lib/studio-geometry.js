@@ -7,7 +7,7 @@
 // the two cannot silently drift. If you change the lacing in the theme, port the change here (and vice versa) and run the tests.
 //
 // Everything below the "ported" line is the theme code with the minimum of edits (ESM export, no DOM, no palettes).
-// Last synced with the theme commit c54dcb9 (agent-b-integration): LACING_PHASE_HOLES = { 'front:32': -2, 'front:24': -4, 'rear:24': 2 }.
+// Last synced with the theme commit 597e2b9 (agent-b-integration): LACING_PHASE_HOLES = { 'front:32': -2, 'front:24': -4, 'rear:24': 2, 'rear:28': 2 }.
 //
 //   geometry(config) -> { front?: { drive: [spoke], rotor: [spoke] }, rear?: {...} }
 //   spoke = { hub, rim, rimIndex, rank, vrank, sweep }
@@ -141,9 +141,12 @@ function assignMajority(n, cross, holes, phase) {
 //   Hydra2 front 32h : -2  the valve stem sits between parallel spokes (2 holes counter-clockwise, drive-side view)
 //   Solix front 24h  : -4  clockwise 4 holes (60 degrees) seen from the ROTOR side, to match photos of real wheels
 //   Solix rear 24h   : +2  clockwise 2 holes (30 degrees) seen from the DRIVE side, to match photos of real wheels
+//   Hydra2 rear 28h  : +2  (not sold today) 2 holes clockwise seen from the DRIVE side, chosen by Jerry from a sample image. On a 28h hub
+//                      +2 and -2 draw the same wheel (14 spokes per side = 7-fold lacing symmetry); only spoke numbering k differs. The
+//                      PCD and crossing used for it are SAMPLE numbers: recheck if I9 releases a real 28h rear with different ones.
 // When the step is a whole number of hub holes the spokes are re-counted from the hub holes (k = 0 is the hub hole at the usual start angle);
 // otherwise the hub holes turn with the lacing and spoke index k is kept.
-var LACING_PHASE_HOLES = { 'front:32': -2, 'front:24': -4, 'rear:24': 2 };
+var LACING_PHASE_HOLES = { 'front:32': -2, 'front:24': -4, 'rear:24': 2, 'rear:28': 2 };
 function rotateLacing(list, stepDeg) {
   var n = list.length, pitch = 360 / n, q = Math.round(stepDeg / pitch), whole = Math.abs(stepDeg - q * pitch) < 1e-6;
   return list.map(function (_, k) {

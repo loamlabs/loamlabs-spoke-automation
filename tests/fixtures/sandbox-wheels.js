@@ -6,6 +6,7 @@ export const SANDBOX_WHEELS = {
   hydra2Front28: { wheels: { front: { erd: 590, rimHoles: 28, drive: { n: 14, pcd: 46, cross: 2 }, rotor: { n: 14, pcd: 46, cross: 2 } } } },
   hydra2Front32: { wheels: { front: { erd: 590, rimHoles: 32, drive: { n: 16, pcd: 46, cross: 2 }, rotor: { n: 16, pcd: 46, cross: 2 } } } },
   hydra2Front32x3: { wheels: { front: { erd: 590, rimHoles: 32, drive: { n: 16, pcd: 46, cross: 3 }, rotor: { n: 16, pcd: 46, cross: 3 } } } }, // the theme test's own variant
+  hydra2Rear28: { wheels: { rear: { erd: 590, rimHoles: 28, drive: { n: 14, pcd: 54, cross: 3 }, rotor: { n: 14, pcd: 54, cross: 3 } } } }, // 'rear:28' lacing phase; not sold, geometry check only (no sample order)
   hydra2Rear32: { wheels: { rear: { erd: 590, rimHoles: 32, drive: { n: 16, pcd: 54, cross: 3 }, rotor: { n: 16, pcd: 54, cross: 3 } } } },
   // both wheels in one config, as the real Studio gets them
   solixSet: { wheels: {
