@@ -58,7 +58,7 @@ async function handler(req, res) {
         const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
         let orderData, recipe;
         if (body.sample) {
-            orderData = SYSTEM_SAMPLES[body.sample];
+            orderData = Object.prototype.hasOwnProperty.call(SYSTEM_SAMPLES, body.sample) ? SYSTEM_SAMPLES[body.sample] : null;
             if (!orderData) return res.status(400).json({ error: `unknown sample "${body.sample}"`, samples: Object.keys(SYSTEM_SAMPLES) });
             orderData = JSON.parse(JSON.stringify(orderData));
             recipe = findSystemBuildRecipe(orderData)?.recipe;

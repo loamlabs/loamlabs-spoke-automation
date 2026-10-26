@@ -51,7 +51,10 @@ export const POSITIONS = ['front', 'rear'];
 
 /* ------------------------------------------------------------------ detection */
 
-export function hexFor(name) { return SYSTEM_COLOR_HEX[name] || NEUTRAL_HEX; }
+// REVIEW: own-property lookups only. A color or hub name like "constructor" / "__proto__" from the customer's _build used to return
+// Object.prototype members (a function ended up inside a style attribute, and the hub model label became "undefined").
+const own = (obj, key) => Object.prototype.hasOwnProperty.call(obj, key);
+export function hexFor(name) { return own(SYSTEM_COLOR_HEX, name) ? SYSTEM_COLOR_HEX[name] : NEUTRAL_HEX; }
 export function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
 
 // REVIEW: bounds for everything the customer's _build can put into the drawing. Out-of-range geometry made the native renderer
@@ -122,7 +125,7 @@ export function systemPositions(recipe) {
 
 export function hubModelOf(recipe, pos) {
   const name = recipe?.specs?.systemHub;
-  if (name && SYSTEM_HUB_MODELS[name]) return SYSTEM_HUB_MODELS[name];
+  if (typeof name === 'string' && own(SYSTEM_HUB_MODELS, name)) return SYSTEM_HUB_MODELS[name];
   const hub = recipe?.components?.[pos + 'Hub'];
   const text = [hub?.wheelModel, hub?.title].filter(Boolean).join(' ');
   for (const m of Object.values(SYSTEM_HUB_MODELS)) if (m.match.test(text)) return m;
@@ -231,7 +234,7 @@ export function rimTitleOf(comp) {
 
 // Spoke lines in the ORDER (one per color per wheel), to cross-check the Studio counts: { color: qty }.
 export function cartSpokeCounts(orderData, pos) {
-  const out = {};
+  const out = Object.create(null); // REVIEW: keyed by color names from the order; a prototype-less object keeps "constructor" / "__proto__" honest
   const items = Array.isArray(orderData?.line_items) ? orderData.line_items : [];
   items.filter(isSystemSpokeLineItem).forEach((li) => {
     const wheel = String(propValue(li, 'Wheel') || '').toLowerCase();
