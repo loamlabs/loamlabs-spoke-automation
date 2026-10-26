@@ -14,7 +14,7 @@
   "financial_status": "paid",
   "line_items": [
     {
-      "id": 15054,
+      "id": 15053,
       "title": "Custom Wheel Build",
       "name": "Custom Wheel Build",
       "variant_title": null,
@@ -41,7 +41,7 @@
         },
         {
           "name": "_build",
-          "value": "{\"step\":3,\"buildType\":\"Rear\",\"ridingStyle\":\"trail\",\"ridingStyleDisplay\":\"Trail\",\"spokeInterface\":\"system\",\"system\":{\"v\":1,\"studioOpened\":true,\"studio\":{\"v\":1,\"hubColor\":{\"rear\":\"Silver\"},\"base\":{\"rear\":{\"drive\":\"Black\",\"rotor\":\"Black\"}},\"spokes\":{\"rear\":{\"drive\":[\"Purple\",\"Black\",\"Purple\",\"Black\",\"Purple\",\"Black\",\"Purple\",\"Black\",\"Purple\",\"Black\",\"Purple\",\"Black\",\"Purple\",\"Black\",\"Purple\",\"Black\"],\"rotor\":[\"Black\",\"Purple\",\"Black\",\"Purple\",\"Black\",\"Purple\",\"Black\",\"Purple\",\"Black\",\"Purple\",\"Black\",\"Purple\",\"Black\",\"Purple\",\"Black\",\"Purple\"]}},\"accent\":\"Orange\"}},\"customerSupplied\":{\"front\":{},\"rear\":{}},\"specs\":{\"brakeStyle\":\"6-Bolt\",\"systemHub\":\"Hydra2\",\"freehubType\":\"HG\",\"rearSpokeCount\":\"32h\",\"rearHubSpacing\":\"12x148mm\",\"rearWheelSize\":\"29\\\"\"},\"components\":{\"rearRim\":{\"variantId\":\"gid://shopify/ProductVariant/4049\",\"title\":\"Industry Nine Enduro S Carbon\",\"variantTitle\":\"29\\\" / 32h\",\"sku\":\"RIM-rear\",\"price\":520,\"vendor\":\"Industry Nine\",\"selectedOptions\":[{\"name\":\"Size\",\"value\":\"29\\\"\"},{\"name\":\"Spoke Count\",\"value\":\"32h\"}],\"quantityAvailable\":5,\"leadTimeDays\":0,\"weight_g\":460,\"rim_erd\":\"590\"},\"rearHub\":{\"variantId\":\"gid://shopify/ProductVariant/5049\",\"title\":\"Industry Nine Hydra2 SYSTEM Rear Hub - 6-Bolt\",\"variantTitle\":\"32h / Silver / 12x148mm\",\"sku\":\"HUB-rear\",\"price\":460,\"vendor\":\"Industry Nine\",\"spec_spoke_count\":\"32h\",\"spec_brake_interface\":[\"6-Bolt\"],\"spec_hub_spacing\":\"12x148mm\",\"spec_freehub\":\"HG\",\"selectedOptions\":[{\"name\":\"Spoke Count\",\"value\":\"32h\"},{\"name\":\"Color\",\"value\":\"Silver\"},{\"name\":\"Hub Spacing\",\"value\":\"12x148mm\"}],\"leadTimeDays\":0,\"wheelModel\":\"Industry Nine Hydra2 SYSTEM\",\"quantityAvailable\":3,\"weight_g\":290},\"rearSpokes\":{\"variantId\":\"gid://shopify/ProductVariant/7000\",\"title\":\"Industry Nine SYSTEM Spokes\",\"variantTitle\":\"Black / -\",\"sku\":\"I9-SYS-BLA\",\"price\":80,\"unitPrice\":2.5,\"vendor\":\"Industry Nine\",\"selectedOptions\":[{\"name\":\"Color\",\"value\":\"Black\"},{\"name\":\"Length\",\"value\":\"-\"}],\"quantityAvailable\":500,\"leadTimeDays\":0,\"wheelModel\":null,\"selectedColor\":\"Black\",\"weight_g\":5.95,\"i9\":true},\"rearNipples\":null,\"rearValveStem\":null,\"rearAssemblyService\":null,\"rearTubelessTape\":null,\"rearRequiredAddons\":[{\"name\":\"Custom Spoke Color Configuration\",\"price\":25,\"variantGid\":\"gid://shopify/ProductVariant/67791816196403\",\"costInCents\":2500,\"i9Fee\":true}],\"rearComponentFreehub\":null},\"selectedOptionalAddons\":{},\"buildId\":\"LL-90006-SYS\",\"_ui\":{\"activeVendor\":{},\"valveStemExplicitlyRemoved\":false,\"step2AutoSelected\":{}}}"
+          "value": "{\"step\":3,\"buildType\":\"Rear\",\"ridingStyle\":\"trail\",\"ridingStyleDisplay\":\"Trail\",\"spokeInterface\":\"system\",\"system\":{\"v\":1,\"studioOpened\":true,\"studio\":{\"v\":1,\"hubColor\":{\"rear\":\"Silver\"},\"base\":{\"rear\":{\"drive\":\"Black\",\"rotor\":\"Black\"}},\"spokes\":{\"rear\":{\"drive\":[\"Purple\",\"Black\",\"Purple\",\"Black\",\"Purple\",\"Black\",\"Purple\",\"Black\",\"Purple\",\"Black\",\"Purple\",\"Black\",\"Purple\",\"Black\",\"Purple\",\"Black\"],\"rotor\":[\"Black\",\"Purple\",\"Black\",\"Purple\",\"Black\",\"Purple\",\"Black\",\"Purple\",\"Black\",\"Purple\",\"Black\",\"Purple\",\"Black\",\"Purple\",\"Black\",\"Purple\"]}},\"accent\":\"Orange\"}},\"customerSupplied\":{\"front\":{},\"rear\":{}},\"specs\":{\"brakeStyle\":\"6-Bolt\",\"systemHub\":\"Hydra2\",\"freehubType\":\"HG\",\"rearSpokeCount\":\"32h\",\"rearHubSpacing\":\"12x148mm\",\"rearWheelSize\":\"29\\\"\"},\"components\":{\"rearRim\":{\"variantId\":\"gid://shopify/ProductVariant/4048\",\"title\":\"Industry Nine Enduro S Carbon\",\"variantTitle\":\"29\\\" / 32h\",\"sku\":\"RIM-rear\",\"price\":520,\"vendor\":\"Industry Nine\",\"selectedOptions\":[{\"name\":\"Size\",\"value\":\"29\\\"\"},{\"name\":\"Spoke Count\",\"value\":\"32h\"}],\"quantityAvailable\":5,\"leadTimeDays\":0,\"weight_g\":460,\"rim_erd\":\"590\"},\"rearHub\":{\"variantId\":\"gid://shopify/ProductVariant/5048\",\"title\":\"Industry Nine Hydra2 SYSTEM Rear Hub - 6-Bolt\",\"variantTitle\":\"32h / Silver / 12x148mm\",\"sku\":\"HUB-rear\",\"price\":460,\"vendor\":\"Industry Nine\",\"spec_spoke_count\":\"32h\",\"spec_brake_interface\":[\"6-Bolt\"],\"spec_hub_spacing\":\"12x148mm\",\"spec_freehub\":\"HG\",\"selectedOptions\":[{\"name\":\"Spoke Count\",\"value\":\"32h\"},{\"name\":\"Color\",\"value\":\"Silver\"},{\"name\":\"Hub Spacing\",\"value\":\"12x148mm\"}],\"leadTimeDays\":0,\"wheelModel\":\"Industry Nine Hydra2 SYSTEM\",\"quantityAvailable\":3,\"weight_g\":290},\"rearSpokes\":{\"variantId\":\"gid://shopify/ProductVariant/7000\",\"title\":\"Industry Nine SYSTEM Spokes\",\"variantTitle\":\"Black / -\",\"sku\":\"I9-SYS-BLA\",\"price\":80,\"unitPrice\":2.5,\"vendor\":\"Industry Nine\",\"selectedOptions\":[{\"name\":\"Color\",\"value\":\"Black\"},{\"name\":\"Length\",\"value\":\"-\"}],\"quantityAvailable\":500,\"leadTimeDays\":0,\"wheelModel\":null,\"selectedColor\":\"Black\",\"weight_g\":5.95,\"i9\":true},\"rearNipples\":null,\"rearValveStem\":null,\"rearAssemblyService\":null,\"rearTubelessTape\":null,\"rearRequiredAddons\":[{\"name\":\"Custom Spoke Color Configuration\",\"price\":25,\"variantGid\":\"gid://shopify/ProductVariant/67791816196403\",\"costInCents\":2500,\"i9Fee\":true}],\"rearComponentFreehub\":null},\"selectedOptionalAddons\":{},\"buildId\":\"LL-90006-SYS\",\"_ui\":{\"activeVendor\":{},\"valveStemExplicitlyRemoved\":false,\"step2AutoSelected\":{}}}"
         },
         {
           "name": "Rear Spoke Colors",
@@ -66,15 +66,15 @@
       ]
     },
     {
-      "id": 15049,
+      "id": 15048,
       "title": "Industry Nine Enduro S Carbon",
       "name": "Industry Nine Enduro S Carbon - 29\" / 32h",
       "variant_title": "29\" / 32h",
       "quantity": 1,
       "price": "0.00",
       "sku": null,
-      "product_id": 90050,
-      "variant_id": 91050,
+      "product_id": 90049,
+      "variant_id": 91049,
       "properties": [
         {
           "name": "_BuildID",
@@ -91,15 +91,15 @@
       ]
     },
     {
-      "id": 15050,
+      "id": 15049,
       "title": "Industry Nine Hydra2 SYSTEM Rear Hub - 6-Bolt",
       "name": "Industry Nine Hydra2 SYSTEM Rear Hub - 6-Bolt - 32h / Silver / 12x148mm",
       "variant_title": "32h / Silver / 12x148mm",
       "quantity": 1,
       "price": "0.00",
       "sku": null,
-      "product_id": 90051,
-      "variant_id": 91051,
+      "product_id": 90050,
+      "variant_id": 91050,
       "properties": [
         {
           "name": "_BuildID",
@@ -120,7 +120,7 @@
       ]
     },
     {
-      "id": 15051,
+      "id": 15050,
       "title": "Industry Nine SYSTEM Spokes",
       "name": "Industry Nine SYSTEM Spokes - Purple / -",
       "variant_title": "Purple / -",
@@ -145,7 +145,7 @@
       ]
     },
     {
-      "id": 15052,
+      "id": 15051,
       "title": "Industry Nine SYSTEM Spokes",
       "name": "Industry Nine SYSTEM Spokes - Black / -",
       "variant_title": "Black / -",
@@ -170,7 +170,7 @@
       ]
     },
     {
-      "id": 15053,
+      "id": 15052,
       "title": "Custom Spoke Color Configuration",
       "name": "Custom Spoke Color Configuration",
       "variant_title": "Default Title",

@@ -3,19 +3,149 @@
   "rear": {
    "drive": [
     {
-     "hub": 45,
-     "rim": 112.5,
-     "rimIndex": 7,
-     "rank": 7,
-     "vrank": 19,
+     "hub": 22.5,
+     "rim": 82.5,
+     "rimIndex": 5,
+     "rank": 5,
+     "vrank": 17,
      "sweep": 1
     },
     {
+     "hub": 45,
+     "rim": 322.5,
+     "rimIndex": 21,
+     "rank": 21,
+     "vrank": 9,
+     "sweep": -1
+    },
+    {
      "hub": 67.5,
+     "rim": 127.5,
+     "rimIndex": 8,
+     "rank": 8,
+     "vrank": 20,
+     "sweep": 1
+    },
+    {
+     "hub": 90,
      "rim": 7.5,
      "rimIndex": 0,
      "rank": 0,
      "vrank": 12,
+     "sweep": -1
+    },
+    {
+     "hub": 112.5,
+     "rim": 172.5,
+     "rimIndex": 11,
+     "rank": 11,
+     "vrank": 23,
+     "sweep": 1
+    },
+    {
+     "hub": 135,
+     "rim": 52.5,
+     "rimIndex": 3,
+     "rank": 3,
+     "vrank": 15,
+     "sweep": -1
+    },
+    {
+     "hub": 157.5,
+     "rim": 217.5,
+     "rimIndex": 14,
+     "rank": 14,
+     "vrank": 2,
+     "sweep": 1
+    },
+    {
+     "hub": 180,
+     "rim": 97.5,
+     "rimIndex": 6,
+     "rank": 6,
+     "vrank": 18,
+     "sweep": -1
+    },
+    {
+     "hub": 202.5,
+     "rim": 262.5,
+     "rimIndex": 17,
+     "rank": 17,
+     "vrank": 5,
+     "sweep": 1
+    },
+    {
+     "hub": 225,
+     "rim": 142.5,
+     "rimIndex": 9,
+     "rank": 9,
+     "vrank": 21,
+     "sweep": -1
+    },
+    {
+     "hub": 247.5,
+     "rim": 307.5,
+     "rimIndex": 20,
+     "rank": 20,
+     "vrank": 8,
+     "sweep": 1
+    },
+    {
+     "hub": 270,
+     "rim": 187.5,
+     "rimIndex": 12,
+     "rank": 12,
+     "vrank": 0,
+     "sweep": -1
+    },
+    {
+     "hub": 292.5,
+     "rim": 352.5,
+     "rimIndex": 23,
+     "rank": 23,
+     "vrank": 11,
+     "sweep": 1
+    },
+    {
+     "hub": 315,
+     "rim": 232.5,
+     "rimIndex": 15,
+     "rank": 15,
+     "vrank": 3,
+     "sweep": -1
+    },
+    {
+     "hub": 337.5,
+     "rim": 37.5,
+     "rimIndex": 2,
+     "rank": 2,
+     "vrank": 14,
+     "sweep": 1
+    },
+    {
+     "hub": 0,
+     "rim": 277.5,
+     "rimIndex": 18,
+     "rank": 18,
+     "vrank": 6,
+     "sweep": -1
+    }
+   ],
+   "rotor": [
+    {
+     "hub": 0,
+     "rim": 67.5,
+     "rimIndex": 4,
+     "rank": 4,
+     "vrank": 16,
+     "sweep": 1
+    },
+    {
+     "hub": 45,
+     "rim": 22.5,
+     "rimIndex": 1,
+     "rank": 1,
+     "vrank": 13,
      "sweep": -1
     },
     {
@@ -27,27 +157,11 @@
      "sweep": 1
     },
     {
-     "hub": 112.5,
-     "rim": 52.5,
-     "rimIndex": 3,
-     "rank": 3,
-     "vrank": 15,
-     "sweep": -1
-    },
-    {
      "hub": 135,
-     "rim": 202.5,
-     "rimIndex": 13,
-     "rank": 13,
-     "vrank": 1,
-     "sweep": 1
-    },
-    {
-     "hub": 157.5,
-     "rim": 97.5,
-     "rimIndex": 6,
-     "rank": 6,
-     "vrank": 18,
+     "rim": 112.5,
+     "rimIndex": 7,
+     "rank": 7,
+     "vrank": 19,
      "sweep": -1
     },
     {
@@ -59,27 +173,11 @@
      "sweep": 1
     },
     {
-     "hub": 202.5,
-     "rim": 142.5,
-     "rimIndex": 9,
-     "rank": 9,
-     "vrank": 21,
-     "sweep": -1
-    },
-    {
      "hub": 225,
-     "rim": 292.5,
-     "rimIndex": 19,
-     "rank": 19,
-     "vrank": 7,
-     "sweep": 1
-    },
-    {
-     "hub": 247.5,
-     "rim": 187.5,
-     "rimIndex": 12,
-     "rank": 12,
-     "vrank": 0,
+     "rim": 202.5,
+     "rimIndex": 13,
+     "rank": 13,
+     "vrank": 1,
      "sweep": -1
     },
     {
@@ -91,109 +189,11 @@
      "sweep": 1
     },
     {
-     "hub": 292.5,
-     "rim": 232.5,
-     "rimIndex": 15,
-     "rank": 15,
-     "vrank": 3,
-     "sweep": -1
-    },
-    {
      "hub": 315,
-     "rim": 22.5,
-     "rimIndex": 1,
-     "rank": 1,
-     "vrank": 13,
-     "sweep": 1
-    },
-    {
-     "hub": 337.5,
-     "rim": 277.5,
-     "rimIndex": 18,
-     "rank": 18,
-     "vrank": 6,
-     "sweep": -1
-    },
-    {
-     "hub": 0,
-     "rim": 67.5,
-     "rimIndex": 4,
-     "rank": 4,
-     "vrank": 16,
-     "sweep": 1
-    },
-    {
-     "hub": 22.5,
-     "rim": 322.5,
-     "rimIndex": 21,
-     "rank": 21,
-     "vrank": 9,
-     "sweep": -1
-    }
-   ],
-   "rotor": [
-    {
-     "hub": 45,
-     "rim": 82.5,
-     "rimIndex": 5,
-     "rank": 5,
-     "vrank": 17,
-     "sweep": 1
-    },
-    {
-     "hub": 90,
-     "rim": 37.5,
-     "rimIndex": 2,
-     "rank": 2,
-     "vrank": 14,
-     "sweep": -1
-    },
-    {
-     "hub": 135,
-     "rim": 172.5,
-     "rimIndex": 11,
-     "rank": 11,
-     "vrank": 23,
-     "sweep": 1
-    },
-    {
-     "hub": 180,
-     "rim": 127.5,
-     "rimIndex": 8,
-     "rank": 8,
-     "vrank": 20,
-     "sweep": -1
-    },
-    {
-     "hub": 225,
-     "rim": 262.5,
-     "rimIndex": 17,
-     "rank": 17,
-     "vrank": 5,
-     "sweep": 1
-    },
-    {
-     "hub": 270,
-     "rim": 217.5,
-     "rimIndex": 14,
-     "rank": 14,
-     "vrank": 2,
-     "sweep": -1
-    },
-    {
-     "hub": 315,
-     "rim": 352.5,
-     "rimIndex": 23,
-     "rank": 23,
-     "vrank": 11,
-     "sweep": 1
-    },
-    {
-     "hub": 0,
-     "rim": 307.5,
-     "rimIndex": 20,
-     "rank": 20,
-     "vrank": 8,
+     "rim": 292.5,
+     "rimIndex": 19,
+     "rank": 19,
+     "vrank": 7,
      "sweep": -1
     }
    ]
@@ -204,76 +204,76 @@
    "drive": [
     {
      "hub": 315,
-     "rim": 352.5,
-     "rimIndex": 23,
-     "rank": 23,
-     "vrank": 11,
+     "rim": 337.5,
+     "rimIndex": 22,
+     "rank": 22,
+     "vrank": 10,
      "sweep": 1
     },
     {
      "hub": 0,
-     "rim": 307.5,
-     "rimIndex": 20,
-     "rank": 20,
-     "vrank": 8,
+     "rim": 292.5,
+     "rimIndex": 19,
+     "rank": 19,
+     "vrank": 7,
      "sweep": -1
     },
     {
      "hub": 45,
-     "rim": 82.5,
-     "rimIndex": 5,
-     "rank": 5,
-     "vrank": 17,
+     "rim": 67.5,
+     "rimIndex": 4,
+     "rank": 4,
+     "vrank": 16,
      "sweep": 1
     },
     {
      "hub": 90,
-     "rim": 37.5,
-     "rimIndex": 2,
-     "rank": 2,
-     "vrank": 14,
+     "rim": 22.5,
+     "rimIndex": 1,
+     "rank": 1,
+     "vrank": 13,
      "sweep": -1
     },
     {
      "hub": 135,
-     "rim": 172.5,
-     "rimIndex": 11,
-     "rank": 11,
-     "vrank": 23,
+     "rim": 157.5,
+     "rimIndex": 10,
+     "rank": 10,
+     "vrank": 22,
      "sweep": 1
     },
     {
      "hub": 180,
-     "rim": 127.5,
-     "rimIndex": 8,
-     "rank": 8,
-     "vrank": 20,
+     "rim": 112.5,
+     "rimIndex": 7,
+     "rank": 7,
+     "vrank": 19,
      "sweep": -1
     },
     {
      "hub": 225,
-     "rim": 262.5,
-     "rimIndex": 17,
-     "rank": 17,
-     "vrank": 5,
+     "rim": 247.5,
+     "rimIndex": 16,
+     "rank": 16,
+     "vrank": 4,
      "sweep": 1
     },
     {
      "hub": 270,
-     "rim": 217.5,
-     "rimIndex": 14,
-     "rank": 14,
-     "vrank": 2,
+     "rim": 202.5,
+     "rimIndex": 13,
+     "rank": 13,
+     "vrank": 1,
      "sweep": -1
     }
    ],
    "rotor": [
     {
      "hub": 315,
-     "rim": 22.5,
-     "rimIndex": 1,
-     "rank": 1,
-     "vrank": 13,
+     "rim": 37.5,
+     "rimIndex": 2,
+     "rank": 2,
+     "vrank": 14,
      "sweep": 1
     },
     {
@@ -286,10 +286,10 @@
     },
     {
      "hub": 0,
-     "rim": 67.5,
-     "rimIndex": 4,
-     "rank": 4,
-     "vrank": 16,
+     "rim": 82.5,
+     "rimIndex": 5,
+     "rank": 5,
+     "vrank": 17,
      "sweep": 1
     },
     {
@@ -302,10 +302,10 @@
     },
     {
      "hub": 45,
-     "rim": 112.5,
-     "rimIndex": 7,
-     "rank": 7,
-     "vrank": 19,
+     "rim": 127.5,
+     "rimIndex": 8,
+     "rank": 8,
+     "vrank": 20,
      "sweep": 1
     },
     {
@@ -318,10 +318,10 @@
     },
     {
      "hub": 90,
-     "rim": 157.5,
-     "rimIndex": 10,
-     "rank": 10,
-     "vrank": 22,
+     "rim": 172.5,
+     "rimIndex": 11,
+     "rank": 11,
+     "vrank": 23,
      "sweep": 1
     },
     {
@@ -334,10 +334,10 @@
     },
     {
      "hub": 135,
-     "rim": 202.5,
-     "rimIndex": 13,
-     "rank": 13,
-     "vrank": 1,
+     "rim": 217.5,
+     "rimIndex": 14,
+     "rank": 14,
+     "vrank": 2,
      "sweep": 1
     },
     {
@@ -350,10 +350,10 @@
     },
     {
      "hub": 180,
-     "rim": 247.5,
-     "rimIndex": 16,
-     "rank": 16,
-     "vrank": 4,
+     "rim": 262.5,
+     "rimIndex": 17,
+     "rank": 17,
+     "vrank": 5,
      "sweep": 1
     },
     {
@@ -366,10 +366,10 @@
     },
     {
      "hub": 225,
-     "rim": 292.5,
-     "rimIndex": 19,
-     "rank": 19,
-     "vrank": 7,
+     "rim": 307.5,
+     "rimIndex": 20,
+     "rank": 20,
+     "vrank": 8,
      "sweep": 1
     },
     {
@@ -382,10 +382,10 @@
     },
     {
      "hub": 270,
-     "rim": 337.5,
-     "rimIndex": 22,
-     "rank": 22,
-     "vrank": 10,
+     "rim": 352.5,
+     "rimIndex": 23,
+     "rank": 23,
+     "vrank": 11,
      "sweep": 1
     },
     {
@@ -1660,76 +1660,76 @@
    "drive": [
     {
      "hub": 315,
-     "rim": 352.5,
-     "rimIndex": 23,
-     "rank": 23,
-     "vrank": 11,
+     "rim": 337.5,
+     "rimIndex": 22,
+     "rank": 22,
+     "vrank": 10,
      "sweep": 1
     },
     {
      "hub": 0,
-     "rim": 307.5,
-     "rimIndex": 20,
-     "rank": 20,
-     "vrank": 8,
+     "rim": 292.5,
+     "rimIndex": 19,
+     "rank": 19,
+     "vrank": 7,
      "sweep": -1
     },
     {
      "hub": 45,
-     "rim": 82.5,
-     "rimIndex": 5,
-     "rank": 5,
-     "vrank": 17,
+     "rim": 67.5,
+     "rimIndex": 4,
+     "rank": 4,
+     "vrank": 16,
      "sweep": 1
     },
     {
      "hub": 90,
-     "rim": 37.5,
-     "rimIndex": 2,
-     "rank": 2,
-     "vrank": 14,
+     "rim": 22.5,
+     "rimIndex": 1,
+     "rank": 1,
+     "vrank": 13,
      "sweep": -1
     },
     {
      "hub": 135,
-     "rim": 172.5,
-     "rimIndex": 11,
-     "rank": 11,
-     "vrank": 23,
+     "rim": 157.5,
+     "rimIndex": 10,
+     "rank": 10,
+     "vrank": 22,
      "sweep": 1
     },
     {
      "hub": 180,
-     "rim": 127.5,
-     "rimIndex": 8,
-     "rank": 8,
-     "vrank": 20,
+     "rim": 112.5,
+     "rimIndex": 7,
+     "rank": 7,
+     "vrank": 19,
      "sweep": -1
     },
     {
      "hub": 225,
-     "rim": 262.5,
-     "rimIndex": 17,
-     "rank": 17,
-     "vrank": 5,
+     "rim": 247.5,
+     "rimIndex": 16,
+     "rank": 16,
+     "vrank": 4,
      "sweep": 1
     },
     {
      "hub": 270,
-     "rim": 217.5,
-     "rimIndex": 14,
-     "rank": 14,
-     "vrank": 2,
+     "rim": 202.5,
+     "rimIndex": 13,
+     "rank": 13,
+     "vrank": 1,
      "sweep": -1
     }
    ],
    "rotor": [
     {
      "hub": 315,
-     "rim": 22.5,
-     "rimIndex": 1,
-     "rank": 1,
-     "vrank": 13,
+     "rim": 37.5,
+     "rimIndex": 2,
+     "rank": 2,
+     "vrank": 14,
      "sweep": 1
     },
     {
@@ -1742,10 +1742,10 @@
     },
     {
      "hub": 0,
-     "rim": 67.5,
-     "rimIndex": 4,
-     "rank": 4,
-     "vrank": 16,
+     "rim": 82.5,
+     "rimIndex": 5,
+     "rank": 5,
+     "vrank": 17,
      "sweep": 1
     },
     {
@@ -1758,10 +1758,10 @@
     },
     {
      "hub": 45,
-     "rim": 112.5,
-     "rimIndex": 7,
-     "rank": 7,
-     "vrank": 19,
+     "rim": 127.5,
+     "rimIndex": 8,
+     "rank": 8,
+     "vrank": 20,
      "sweep": 1
     },
     {
@@ -1774,10 +1774,10 @@
     },
     {
      "hub": 90,
-     "rim": 157.5,
-     "rimIndex": 10,
-     "rank": 10,
-     "vrank": 22,
+     "rim": 172.5,
+     "rimIndex": 11,
+     "rank": 11,
+     "vrank": 23,
      "sweep": 1
     },
     {
@@ -1790,10 +1790,10 @@
     },
     {
      "hub": 135,
-     "rim": 202.5,
-     "rimIndex": 13,
-     "rank": 13,
-     "vrank": 1,
+     "rim": 217.5,
+     "rimIndex": 14,
+     "rank": 14,
+     "vrank": 2,
      "sweep": 1
     },
     {
@@ -1806,10 +1806,10 @@
     },
     {
      "hub": 180,
-     "rim": 247.5,
-     "rimIndex": 16,
-     "rank": 16,
-     "vrank": 4,
+     "rim": 262.5,
+     "rimIndex": 17,
+     "rank": 17,
+     "vrank": 5,
      "sweep": 1
     },
     {
@@ -1822,10 +1822,10 @@
     },
     {
      "hub": 225,
-     "rim": 292.5,
-     "rimIndex": 19,
-     "rank": 19,
-     "vrank": 7,
+     "rim": 307.5,
+     "rimIndex": 20,
+     "rank": 20,
+     "vrank": 8,
      "sweep": 1
     },
     {
@@ -1838,10 +1838,10 @@
     },
     {
      "hub": 270,
-     "rim": 337.5,
-     "rimIndex": 22,
-     "rank": 22,
-     "vrank": 10,
+     "rim": 352.5,
+     "rimIndex": 23,
+     "rank": 23,
+     "vrank": 11,
      "sweep": 1
     },
     {
@@ -1857,19 +1857,149 @@
   "rear": {
    "drive": [
     {
-     "hub": 45,
-     "rim": 112.5,
-     "rimIndex": 7,
-     "rank": 7,
-     "vrank": 19,
+     "hub": 22.5,
+     "rim": 82.5,
+     "rimIndex": 5,
+     "rank": 5,
+     "vrank": 17,
      "sweep": 1
     },
     {
+     "hub": 45,
+     "rim": 322.5,
+     "rimIndex": 21,
+     "rank": 21,
+     "vrank": 9,
+     "sweep": -1
+    },
+    {
      "hub": 67.5,
+     "rim": 127.5,
+     "rimIndex": 8,
+     "rank": 8,
+     "vrank": 20,
+     "sweep": 1
+    },
+    {
+     "hub": 90,
      "rim": 7.5,
      "rimIndex": 0,
      "rank": 0,
      "vrank": 12,
+     "sweep": -1
+    },
+    {
+     "hub": 112.5,
+     "rim": 172.5,
+     "rimIndex": 11,
+     "rank": 11,
+     "vrank": 23,
+     "sweep": 1
+    },
+    {
+     "hub": 135,
+     "rim": 52.5,
+     "rimIndex": 3,
+     "rank": 3,
+     "vrank": 15,
+     "sweep": -1
+    },
+    {
+     "hub": 157.5,
+     "rim": 217.5,
+     "rimIndex": 14,
+     "rank": 14,
+     "vrank": 2,
+     "sweep": 1
+    },
+    {
+     "hub": 180,
+     "rim": 97.5,
+     "rimIndex": 6,
+     "rank": 6,
+     "vrank": 18,
+     "sweep": -1
+    },
+    {
+     "hub": 202.5,
+     "rim": 262.5,
+     "rimIndex": 17,
+     "rank": 17,
+     "vrank": 5,
+     "sweep": 1
+    },
+    {
+     "hub": 225,
+     "rim": 142.5,
+     "rimIndex": 9,
+     "rank": 9,
+     "vrank": 21,
+     "sweep": -1
+    },
+    {
+     "hub": 247.5,
+     "rim": 307.5,
+     "rimIndex": 20,
+     "rank": 20,
+     "vrank": 8,
+     "sweep": 1
+    },
+    {
+     "hub": 270,
+     "rim": 187.5,
+     "rimIndex": 12,
+     "rank": 12,
+     "vrank": 0,
+     "sweep": -1
+    },
+    {
+     "hub": 292.5,
+     "rim": 352.5,
+     "rimIndex": 23,
+     "rank": 23,
+     "vrank": 11,
+     "sweep": 1
+    },
+    {
+     "hub": 315,
+     "rim": 232.5,
+     "rimIndex": 15,
+     "rank": 15,
+     "vrank": 3,
+     "sweep": -1
+    },
+    {
+     "hub": 337.5,
+     "rim": 37.5,
+     "rimIndex": 2,
+     "rank": 2,
+     "vrank": 14,
+     "sweep": 1
+    },
+    {
+     "hub": 0,
+     "rim": 277.5,
+     "rimIndex": 18,
+     "rank": 18,
+     "vrank": 6,
+     "sweep": -1
+    }
+   ],
+   "rotor": [
+    {
+     "hub": 0,
+     "rim": 67.5,
+     "rimIndex": 4,
+     "rank": 4,
+     "vrank": 16,
+     "sweep": 1
+    },
+    {
+     "hub": 45,
+     "rim": 22.5,
+     "rimIndex": 1,
+     "rank": 1,
+     "vrank": 13,
      "sweep": -1
     },
     {
@@ -1881,27 +2011,11 @@
      "sweep": 1
     },
     {
-     "hub": 112.5,
-     "rim": 52.5,
-     "rimIndex": 3,
-     "rank": 3,
-     "vrank": 15,
-     "sweep": -1
-    },
-    {
      "hub": 135,
-     "rim": 202.5,
-     "rimIndex": 13,
-     "rank": 13,
-     "vrank": 1,
-     "sweep": 1
-    },
-    {
-     "hub": 157.5,
-     "rim": 97.5,
-     "rimIndex": 6,
-     "rank": 6,
-     "vrank": 18,
+     "rim": 112.5,
+     "rimIndex": 7,
+     "rank": 7,
+     "vrank": 19,
      "sweep": -1
     },
     {
@@ -1913,27 +2027,11 @@
      "sweep": 1
     },
     {
-     "hub": 202.5,
-     "rim": 142.5,
-     "rimIndex": 9,
-     "rank": 9,
-     "vrank": 21,
-     "sweep": -1
-    },
-    {
      "hub": 225,
-     "rim": 292.5,
-     "rimIndex": 19,
-     "rank": 19,
-     "vrank": 7,
-     "sweep": 1
-    },
-    {
-     "hub": 247.5,
-     "rim": 187.5,
-     "rimIndex": 12,
-     "rank": 12,
-     "vrank": 0,
+     "rim": 202.5,
+     "rimIndex": 13,
+     "rank": 13,
+     "vrank": 1,
      "sweep": -1
     },
     {
@@ -1945,109 +2043,11 @@
      "sweep": 1
     },
     {
-     "hub": 292.5,
-     "rim": 232.5,
-     "rimIndex": 15,
-     "rank": 15,
-     "vrank": 3,
-     "sweep": -1
-    },
-    {
      "hub": 315,
-     "rim": 22.5,
-     "rimIndex": 1,
-     "rank": 1,
-     "vrank": 13,
-     "sweep": 1
-    },
-    {
-     "hub": 337.5,
-     "rim": 277.5,
-     "rimIndex": 18,
-     "rank": 18,
-     "vrank": 6,
-     "sweep": -1
-    },
-    {
-     "hub": 0,
-     "rim": 67.5,
-     "rimIndex": 4,
-     "rank": 4,
-     "vrank": 16,
-     "sweep": 1
-    },
-    {
-     "hub": 22.5,
-     "rim": 322.5,
-     "rimIndex": 21,
-     "rank": 21,
-     "vrank": 9,
-     "sweep": -1
-    }
-   ],
-   "rotor": [
-    {
-     "hub": 45,
-     "rim": 82.5,
-     "rimIndex": 5,
-     "rank": 5,
-     "vrank": 17,
-     "sweep": 1
-    },
-    {
-     "hub": 90,
-     "rim": 37.5,
-     "rimIndex": 2,
-     "rank": 2,
-     "vrank": 14,
-     "sweep": -1
-    },
-    {
-     "hub": 135,
-     "rim": 172.5,
-     "rimIndex": 11,
-     "rank": 11,
-     "vrank": 23,
-     "sweep": 1
-    },
-    {
-     "hub": 180,
-     "rim": 127.5,
-     "rimIndex": 8,
-     "rank": 8,
-     "vrank": 20,
-     "sweep": -1
-    },
-    {
-     "hub": 225,
-     "rim": 262.5,
-     "rimIndex": 17,
-     "rank": 17,
-     "vrank": 5,
-     "sweep": 1
-    },
-    {
-     "hub": 270,
-     "rim": 217.5,
-     "rimIndex": 14,
-     "rank": 14,
-     "vrank": 2,
-     "sweep": -1
-    },
-    {
-     "hub": 315,
-     "rim": 352.5,
-     "rimIndex": 23,
-     "rank": 23,
-     "vrank": 11,
-     "sweep": 1
-    },
-    {
-     "hub": 0,
-     "rim": 307.5,
-     "rimIndex": 20,
-     "rank": 20,
-     "vrank": 8,
+     "rim": 292.5,
+     "rimIndex": 19,
+     "rank": 19,
+     "vrank": 7,
      "sweep": -1
     }
    ]

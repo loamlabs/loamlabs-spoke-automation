@@ -7,7 +7,7 @@
 // the two cannot silently drift. If you change the lacing in the theme, port the change here (and vice versa) and run the tests.
 //
 // Everything below the "ported" line is the theme code with the minimum of edits (ESM export, no DOM, no palettes).
-// Last synced with the theme commit 597e2b9 (agent-b-integration): LACING_PHASE_HOLES = { 'front:32': -2, 'front:24': -4, 'rear:24': 2, 'rear:28': 2 }.
+// Last synced with the theme commit e7f7c70 (agent-b-integration): LACING_PHASE_HOLES = { 'front:32': -2, 'rear:28': 2 } plus the explicit LACING_2TO1_24H table for the Solix 24h wheels.
 //
 //   geometry(config) -> { front?: { drive: [spoke], rotor: [spoke] }, rear?: {...} }
 //   spoke = { hub, rim, rimIndex, rank, vrank, sweep }
@@ -139,20 +139,40 @@ function assignMajority(n, cross, holes, phase) {
 //           positive = clockwise seen from the DRIVE side, negative = counter-clockwise seen from the drive side
 //           (= clockwise seen from the ROTOR side, because the rotor view is the mirror image).
 //   Hydra2 front 32h : -2  the valve stem sits between parallel spokes (2 holes counter-clockwise, drive-side view)
-//   Solix front 24h  : -4  clockwise 4 holes (60 degrees) seen from the ROTOR side, to match photos of real wheels
-//   Solix rear 24h   : +2  clockwise 2 holes (30 degrees) seen from the DRIVE side, to match photos of real wheels
+//   (Solix 24h 2:1 front and rear are NOT here any more: their lacing is the explicit LACING_2TO1_24H table below.)
 //   Hydra2 rear 28h  : +2  (not sold today) 2 holes clockwise seen from the DRIVE side, chosen by Jerry from a sample image. On a 28h hub
 //                      +2 and -2 draw the same wheel (14 spokes per side = 7-fold lacing symmetry); only spoke numbering k differs. The
 //                      PCD and crossing used for it are SAMPLE numbers: recheck if I9 releases a real 28h rear with different ones.
 // When the step is a whole number of hub holes the spokes are re-counted from the hub holes (k = 0 is the hub hole at the usual start angle);
 // otherwise the hub holes turn with the lacing and spoke index k is kept.
-var LACING_PHASE_HOLES = { 'front:32': -2, 'front:24': -4, 'rear:24': 2, 'rear:28': 2 };
+var LACING_PHASE_HOLES = { 'front:32': -2, 'rear:28': 2 };
 function rotateLacing(list, stepDeg) {
   var n = list.length, pitch = 360 / n, q = Math.round(stepDeg / pitch), whole = Math.abs(stepDeg - q * pitch) < 1e-6;
   return list.map(function (_, k) {
     var o = list[whole ? (((k - q) % n) + n) % n : k];
     return { hub: (((o.hub + stepDeg) % 360) + 360) % 360, rim: (((o.rim + stepDeg) % 360) + 360) % 360, s: o.s };
   });
+}
+
+// Solix 24h 2:1 lacing as measured on real I9 System wheels (Jerry, approved from a render). Angles are drive-view degrees, clockwise from 12 o'clock;
+// rim holes sit at 7.5, 22.5 ... 352.5 and the valve at 180 (between holes 172.5 and 187.5). Spoke k of a side has its hub hole at
+// hub0 + k * (360 / spokes on that side); an EVEN k leans one way (s = +1, rim = hub + pos) and an ODD k the other way (s = -1, rim = hub + neg).
+// Which rim holes belong to which side simply follows from rim = hub + sweep. Keyed by the position, the side that carries the 16 spokes is
+// 'major' (high tension: front = rotor side, rear = drive side) and the 8-spoke side 'minor' (low tension).
+//   front: the 8 low-tension (drive) rim holes are 22.5, 67.5, ... 337.5 (every 45); the valve sits between two HIGH-tension holes (172.5, 187.5).
+//   rear : the exact mirror image, left to right (every rim angle a -> 360 - a, every sweep changes sign, high tension = drive side).
+// Only used for an exact 24h 2:1 wheel (16 + 8 spokes); every other wheel keeps the generic lacing above.
+var LACING_2TO1_24H = {
+  front: { major: { hub0: 315, pos: 82.5, neg: -60 }, minor: { hub0: 315, pos: 22.5, neg: -67.5 } },
+  rear: { major: { hub0: 22.5, pos: 60, neg: -82.5 }, minor: { hub0: 0, pos: 67.5, neg: -22.5 } }
+};
+function lacingFromTable(spec, n) {
+  var out = [], k, pitch = 360 / n;
+  for (k = 0; k < n; k++) {
+    var s = k % 2 === 0 ? 1 : -1, hub = (((spec.hub0 + k * pitch) % 360) + 360) % 360;
+    out.push({ hub: hub, rim: (((hub + (s > 0 ? spec.pos : spec.neg)) % 360) + 360) % 360, s: s });
+  }
+  return out;
 }
 
 function buildGeom(W) {
@@ -171,8 +191,11 @@ function buildGeom(W) {
       var sym = assignMajority(w[big].n, w[big].cross, h[big], big === 'drive' ? 15 : rotorPhase);
       if (sym) G[key][big] = sym;
     }
-    var phaseHoles = LACING_PHASE_HOLES[key + ':' + w.rimHoles];
-    if (phaseHoles) SIDES.forEach(function (side) { G[key][side] = rotateLacing(G[key][side], phaseHoles * 360 / w.rimHoles); });
+    var table = LACING_2TO1_24H[key], phaseHoles = LACING_PHASE_HOLES[key + ':' + w.rimHoles];
+    if (table && w.rimHoles === 24 && w[big].n === 16 && w[small].n === 8) {
+      G[key][big] = lacingFromTable(table.major, 16);
+      G[key][small] = lacingFromTable(table.minor, 8);
+    } else if (phaseHoles) SIDES.forEach(function (side) { G[key][side] = rotateLacing(G[key][side], phaseHoles * 360 / w.rimHoles); });
     // rank = this spoke's position (0..N-1) among ALL spokes of the wheel (both sides together), counting clockwise around the
     // rim from 12 o'clock, drive-side point of view. rimIndex = hole number on the whole rim.
     var all = [];
@@ -200,4 +223,4 @@ export function geometry(config) {
   return out;
 }
 
-export const STUDIO_GEOMETRY_CONSTANTS = { MAJORITY_ODD_TAKES_LOWER, LACING_PHASE_HOLES };
+export const STUDIO_GEOMETRY_CONSTANTS = { MAJORITY_ODD_TAKES_LOWER, LACING_PHASE_HOLES, LACING_2TO1_24H };

@@ -13,7 +13,7 @@ import path from 'node:path';
 import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
 import { geometry } from '../_lib/studio-geometry.js';
-import { SANDBOX_WHEELS } from './fixtures/sandbox-wheels.js';
+import { SANDBOX_WHEELS, GOLDEN_WHEELS } from './fixtures/sandbox-wheels.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const fixturePath = path.join(here, 'fixtures', 'studio-geometry.json');
@@ -43,6 +43,15 @@ test('vendored geometry equals the LIVE theme LoamStudio.geometry (reads the dev
     const theirs = plain(Studio.geometry(cfg)), ours = plain(geometry(cfg));
     assert.deepEqual(ours, theirs, `geometry drifted from the theme for ${name}`);
   }
+});
+
+test('vendored geometry equals the theme golden file for every wheel except the Solix 24h 2:1 pair (those did not change)', (t) => {
+  if (process.env.LOAM_THEME_DIR === 'skip') { t.skip('LOAM_THEME_DIR=skip'); return; }
+  const goldenFile = path.join(themeDir, 'tests', 'fixtures', 'spoke-studio-geometry-non-24h-2to1.json');
+  assert.ok(fs.existsSync(goldenFile), `theme golden file not found at ${goldenFile}`);
+  const golden = JSON.parse(fs.readFileSync(goldenFile, 'utf8'));
+  for (const [name, cfg] of Object.entries(GOLDEN_WHEELS)) assert.deepEqual(plain(geometry(cfg)), golden[name], `${name}: geometry differs from the theme golden file`);
+  assert.deepEqual(Object.keys(GOLDEN_WHEELS).sort(), Object.keys(golden).sort(), 'the golden file and GOLDEN_WHEELS list the same wheels');
 });
 
 test('geometry sanity: one spoke per rim hole, spoke arrays sized like the Studio value', () => {
