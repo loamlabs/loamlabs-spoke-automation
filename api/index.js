@@ -9,6 +9,9 @@ import {
     isLacingPossible,
     calculateBerdFinalLength
 } from '../_lib/calculator.js';
+// I9-SYSTEM: Industry Nine System builds (Spoke Color Studio) take their own report path; Standard builds are untouched.
+import { findSystemBuildRecipe } from '../_lib/system-build.js';
+import { buildSystemReport, sendSystemEmail } from '../_lib/system-report.js';
 
 // --- Vercel Config ---
 export const config = { api: { bodyParser: false } };
@@ -260,9 +263,46 @@ async function getPrimaryLocationId() {
     }
 }
 
+// I9-SYSTEM: a System build has one spoke product ("Industry Nine SYSTEM Spokes", Color only, length "-"), so there is no Length
+// Variant to deduct and no spoke length yet. This path never touches inventory (not for the spokes, not for the "Custom Spoke Color
+// Configuration" fee line); it writes the color report to the order note and emails Jerry the report with the wheel images.
+// It never throws: every failure is logged and the webhook still answers 200 (Shopify must not retry).
+async function handleSystemOrderCreate(orderData, buildRecipe) {
+    try {
+        console.log(`I9-SYSTEM: System build detected on order #${orderData.order_number}; skipping Length Variant inventory.`);
+        const componentData = await fetchComponentData(buildRecipe); // metafields for the hub flange / rim ERD (null is fine: sample geometry)
+        const report = await buildSystemReport({ recipe: buildRecipe, orderData, componentData });
+        report.warnings.forEach(w => console.warn('I9-SYSTEM note:', w));
+        report.imageErrors.forEach(e => console.error('I9-SYSTEM image:', e));
+
+        // same note preservation as the Standard path
+        let finalNote = report.note;
+        if (orderData.note) {
+            finalNote = orderData.note + "\n\n--------------------------------------------------\n\n" + finalNote;
+        }
+        await addNoteToOrder(orderData.admin_graphql_api_id, finalNote);
+
+        try {
+            const sent = await sendSystemEmail({ report, orderData });
+            console.log(`✅ I9-SYSTEM: report email sent (${sent.inline ? 'inline images' : 'text only'}). Resend ID: ${sent.id}`);
+        } catch (error) {
+            console.error("🚨 I9-SYSTEM: failed to send the report email:", error);
+        }
+    } catch (error) {
+        console.error("🚨 I9-SYSTEM: CRASH inside the System order path:", error);
+    }
+}
+
 async function handleOrderCreate(orderData) {
+    // I9-SYSTEM: System builds never reach the Length Variant logic below.
+    const systemBuild = findSystemBuildRecipe(orderData);
+    if (systemBuild) {
+        await handleSystemOrderCreate(orderData, systemBuild.recipe);
+        return;
+    }
+
     // 1. Location ID Check
-    let locationId = process.env.SHOPIFY_PRIMARY_LOCATION_ID; 
+    let locationId = process.env.SHOPIFY_PRIMARY_LOCATION_ID;
     if (!locationId) {
         if (orderData.location_id) {
             locationId = orderData.location_id;
@@ -370,6 +410,12 @@ async function handleOrderCreate(orderData) {
 }
 
 async function handleOrderCancelled(orderData) {
+    // I9-SYSTEM: nothing was deducted for a System build (and its note never carries "(Adjusted)" lines), so there is nothing to restock.
+    if (findSystemBuildRecipe(orderData)) {
+        console.log(`I9-SYSTEM: cancelled order #${orderData.order_number} is a System build; no Length Variant inventory to restock.`);
+        return;
+    }
+
     const wheelBuildLineItem = orderData.line_items.find(item => item.properties?.some(p => p.name === '_is_custom_wheel_build' && p.value === 'true'));
     
     // Check if we should process this cancellation

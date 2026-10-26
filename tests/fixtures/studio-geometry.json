@@ -1,0 +1,2350 @@
+{
+ "solixRear24": {
+  "rear": {
+   "drive": [
+    {
+     "hub": 15,
+     "rim": 82.5,
+     "rimIndex": 5,
+     "rank": 5,
+     "vrank": 17,
+     "sweep": 1
+    },
+    {
+     "hub": 37.5,
+     "rim": 337.5,
+     "rimIndex": 22,
+     "rank": 22,
+     "vrank": 10,
+     "sweep": -1
+    },
+    {
+     "hub": 60,
+     "rim": 127.5,
+     "rimIndex": 8,
+     "rank": 8,
+     "vrank": 20,
+     "sweep": 1
+    },
+    {
+     "hub": 82.5,
+     "rim": 22.5,
+     "rimIndex": 1,
+     "rank": 1,
+     "vrank": 13,
+     "sweep": -1
+    },
+    {
+     "hub": 105,
+     "rim": 172.5,
+     "rimIndex": 11,
+     "rank": 11,
+     "vrank": 23,
+     "sweep": 1
+    },
+    {
+     "hub": 127.5,
+     "rim": 67.5,
+     "rimIndex": 4,
+     "rank": 4,
+     "vrank": 16,
+     "sweep": -1
+    },
+    {
+     "hub": 150,
+     "rim": 217.5,
+     "rimIndex": 14,
+     "rank": 14,
+     "vrank": 2,
+     "sweep": 1
+    },
+    {
+     "hub": 172.5,
+     "rim": 112.5,
+     "rimIndex": 7,
+     "rank": 7,
+     "vrank": 19,
+     "sweep": -1
+    },
+    {
+     "hub": 195,
+     "rim": 262.5,
+     "rimIndex": 17,
+     "rank": 17,
+     "vrank": 5,
+     "sweep": 1
+    },
+    {
+     "hub": 217.5,
+     "rim": 157.5,
+     "rimIndex": 10,
+     "rank": 10,
+     "vrank": 22,
+     "sweep": -1
+    },
+    {
+     "hub": 240,
+     "rim": 307.5,
+     "rimIndex": 20,
+     "rank": 20,
+     "vrank": 8,
+     "sweep": 1
+    },
+    {
+     "hub": 262.5,
+     "rim": 202.5,
+     "rimIndex": 13,
+     "rank": 13,
+     "vrank": 1,
+     "sweep": -1
+    },
+    {
+     "hub": 285,
+     "rim": 352.5,
+     "rimIndex": 23,
+     "rank": 23,
+     "vrank": 11,
+     "sweep": 1
+    },
+    {
+     "hub": 307.5,
+     "rim": 247.5,
+     "rimIndex": 16,
+     "rank": 16,
+     "vrank": 4,
+     "sweep": -1
+    },
+    {
+     "hub": 330,
+     "rim": 37.5,
+     "rimIndex": 2,
+     "rank": 2,
+     "vrank": 14,
+     "sweep": 1
+    },
+    {
+     "hub": 352.5,
+     "rim": 292.5,
+     "rimIndex": 19,
+     "rank": 19,
+     "vrank": 7,
+     "sweep": -1
+    }
+   ],
+   "rotor": [
+    {
+     "hub": 15,
+     "rim": 52.5,
+     "rimIndex": 3,
+     "rank": 3,
+     "vrank": 15,
+     "sweep": 1
+    },
+    {
+     "hub": 60,
+     "rim": 7.5,
+     "rimIndex": 0,
+     "rank": 0,
+     "vrank": 12,
+     "sweep": -1
+    },
+    {
+     "hub": 105,
+     "rim": 142.5,
+     "rimIndex": 9,
+     "rank": 9,
+     "vrank": 21,
+     "sweep": 1
+    },
+    {
+     "hub": 150,
+     "rim": 97.5,
+     "rimIndex": 6,
+     "rank": 6,
+     "vrank": 18,
+     "sweep": -1
+    },
+    {
+     "hub": 195,
+     "rim": 232.5,
+     "rimIndex": 15,
+     "rank": 15,
+     "vrank": 3,
+     "sweep": 1
+    },
+    {
+     "hub": 240,
+     "rim": 187.5,
+     "rimIndex": 12,
+     "rank": 12,
+     "vrank": 0,
+     "sweep": -1
+    },
+    {
+     "hub": 285,
+     "rim": 322.5,
+     "rimIndex": 21,
+     "rank": 21,
+     "vrank": 9,
+     "sweep": 1
+    },
+    {
+     "hub": 330,
+     "rim": 277.5,
+     "rimIndex": 18,
+     "rank": 18,
+     "vrank": 6,
+     "sweep": -1
+    }
+   ]
+  }
+ },
+ "solixFront24": {
+  "front": {
+   "drive": [
+    {
+     "hub": 15,
+     "rim": 52.5,
+     "rimIndex": 3,
+     "rank": 3,
+     "vrank": 15,
+     "sweep": 1
+    },
+    {
+     "hub": 60,
+     "rim": 7.5,
+     "rimIndex": 0,
+     "rank": 0,
+     "vrank": 12,
+     "sweep": -1
+    },
+    {
+     "hub": 105,
+     "rim": 142.5,
+     "rimIndex": 9,
+     "rank": 9,
+     "vrank": 21,
+     "sweep": 1
+    },
+    {
+     "hub": 150,
+     "rim": 97.5,
+     "rimIndex": 6,
+     "rank": 6,
+     "vrank": 18,
+     "sweep": -1
+    },
+    {
+     "hub": 195,
+     "rim": 232.5,
+     "rimIndex": 15,
+     "rank": 15,
+     "vrank": 3,
+     "sweep": 1
+    },
+    {
+     "hub": 240,
+     "rim": 187.5,
+     "rimIndex": 12,
+     "rank": 12,
+     "vrank": 0,
+     "sweep": -1
+    },
+    {
+     "hub": 285,
+     "rim": 322.5,
+     "rimIndex": 21,
+     "rank": 21,
+     "vrank": 9,
+     "sweep": 1
+    },
+    {
+     "hub": 330,
+     "rim": 277.5,
+     "rimIndex": 18,
+     "rank": 18,
+     "vrank": 6,
+     "sweep": -1
+    }
+   ],
+   "rotor": [
+    {
+     "hub": 15,
+     "rim": 82.5,
+     "rimIndex": 5,
+     "rank": 5,
+     "vrank": 17,
+     "sweep": 1
+    },
+    {
+     "hub": 37.5,
+     "rim": 337.5,
+     "rimIndex": 22,
+     "rank": 22,
+     "vrank": 10,
+     "sweep": -1
+    },
+    {
+     "hub": 60,
+     "rim": 127.5,
+     "rimIndex": 8,
+     "rank": 8,
+     "vrank": 20,
+     "sweep": 1
+    },
+    {
+     "hub": 82.5,
+     "rim": 22.5,
+     "rimIndex": 1,
+     "rank": 1,
+     "vrank": 13,
+     "sweep": -1
+    },
+    {
+     "hub": 105,
+     "rim": 172.5,
+     "rimIndex": 11,
+     "rank": 11,
+     "vrank": 23,
+     "sweep": 1
+    },
+    {
+     "hub": 127.5,
+     "rim": 67.5,
+     "rimIndex": 4,
+     "rank": 4,
+     "vrank": 16,
+     "sweep": -1
+    },
+    {
+     "hub": 150,
+     "rim": 217.5,
+     "rimIndex": 14,
+     "rank": 14,
+     "vrank": 2,
+     "sweep": 1
+    },
+    {
+     "hub": 172.5,
+     "rim": 112.5,
+     "rimIndex": 7,
+     "rank": 7,
+     "vrank": 19,
+     "sweep": -1
+    },
+    {
+     "hub": 195,
+     "rim": 262.5,
+     "rimIndex": 17,
+     "rank": 17,
+     "vrank": 5,
+     "sweep": 1
+    },
+    {
+     "hub": 217.5,
+     "rim": 157.5,
+     "rimIndex": 10,
+     "rank": 10,
+     "vrank": 22,
+     "sweep": -1
+    },
+    {
+     "hub": 240,
+     "rim": 307.5,
+     "rimIndex": 20,
+     "rank": 20,
+     "vrank": 8,
+     "sweep": 1
+    },
+    {
+     "hub": 262.5,
+     "rim": 202.5,
+     "rimIndex": 13,
+     "rank": 13,
+     "vrank": 1,
+     "sweep": -1
+    },
+    {
+     "hub": 285,
+     "rim": 352.5,
+     "rimIndex": 23,
+     "rank": 23,
+     "vrank": 11,
+     "sweep": 1
+    },
+    {
+     "hub": 307.5,
+     "rim": 247.5,
+     "rimIndex": 16,
+     "rank": 16,
+     "vrank": 4,
+     "sweep": -1
+    },
+    {
+     "hub": 330,
+     "rim": 37.5,
+     "rimIndex": 2,
+     "rank": 2,
+     "vrank": 14,
+     "sweep": 1
+    },
+    {
+     "hub": 352.5,
+     "rim": 292.5,
+     "rimIndex": 19,
+     "rank": 19,
+     "vrank": 7,
+     "sweep": -1
+    }
+   ]
+  }
+ },
+ "hydra2Front28": {
+  "front": {
+   "drive": [
+    {
+     "hub": 15,
+     "rim": 57.857142857142854,
+     "rimIndex": 4,
+     "rank": 4,
+     "vrank": 18,
+     "sweep": 1
+    },
+    {
+     "hub": 40.714285714285715,
+     "rim": 340.7142857142857,
+     "rimIndex": 26,
+     "rank": 26,
+     "vrank": 12,
+     "sweep": -1
+    },
+    {
+     "hub": 66.42857142857143,
+     "rim": 109.28571428571429,
+     "rimIndex": 8,
+     "rank": 8,
+     "vrank": 22,
+     "sweep": 1
+    },
+    {
+     "hub": 92.14285714285714,
+     "rim": 32.142857142857146,
+     "rimIndex": 2,
+     "rank": 2,
+     "vrank": 16,
+     "sweep": -1
+    },
+    {
+     "hub": 117.85714285714286,
+     "rim": 160.71428571428572,
+     "rimIndex": 12,
+     "rank": 12,
+     "vrank": 26,
+     "sweep": 1
+    },
+    {
+     "hub": 143.57142857142858,
+     "rim": 83.57142857142857,
+     "rimIndex": 6,
+     "rank": 6,
+     "vrank": 20,
+     "sweep": -1
+    },
+    {
+     "hub": 169.28571428571428,
+     "rim": 212.14285714285714,
+     "rimIndex": 16,
+     "rank": 16,
+     "vrank": 2,
+     "sweep": 1
+    },
+    {
+     "hub": 195,
+     "rim": 135,
+     "rimIndex": 10,
+     "rank": 10,
+     "vrank": 24,
+     "sweep": -1
+    },
+    {
+     "hub": 220.71428571428572,
+     "rim": 263.57142857142856,
+     "rimIndex": 20,
+     "rank": 20,
+     "vrank": 6,
+     "sweep": 1
+    },
+    {
+     "hub": 246.42857142857142,
+     "rim": 186.42857142857142,
+     "rimIndex": 14,
+     "rank": 14,
+     "vrank": 0,
+     "sweep": -1
+    },
+    {
+     "hub": 272.14285714285717,
+     "rim": 315,
+     "rimIndex": 24,
+     "rank": 24,
+     "vrank": 10,
+     "sweep": 1
+    },
+    {
+     "hub": 297.85714285714283,
+     "rim": 237.85714285714286,
+     "rimIndex": 18,
+     "rank": 18,
+     "vrank": 4,
+     "sweep": -1
+    },
+    {
+     "hub": 323.57142857142856,
+     "rim": 6.428571428571429,
+     "rimIndex": 0,
+     "rank": 0,
+     "vrank": 14,
+     "sweep": 1
+    },
+    {
+     "hub": 349.2857142857143,
+     "rim": 289.2857142857143,
+     "rimIndex": 22,
+     "rank": 22,
+     "vrank": 8,
+     "sweep": -1
+    }
+   ],
+   "rotor": [
+    {
+     "hub": 27.857142857142858,
+     "rim": 70.71428571428571,
+     "rimIndex": 5,
+     "rank": 5,
+     "vrank": 19,
+     "sweep": 1
+    },
+    {
+     "hub": 53.57142857142857,
+     "rim": 353.57142857142856,
+     "rimIndex": 27,
+     "rank": 27,
+     "vrank": 13,
+     "sweep": -1
+    },
+    {
+     "hub": 79.28571428571429,
+     "rim": 122.14285714285714,
+     "rimIndex": 9,
+     "rank": 9,
+     "vrank": 23,
+     "sweep": 1
+    },
+    {
+     "hub": 105,
+     "rim": 45,
+     "rimIndex": 3,
+     "rank": 3,
+     "vrank": 17,
+     "sweep": -1
+    },
+    {
+     "hub": 130.71428571428572,
+     "rim": 173.57142857142858,
+     "rimIndex": 13,
+     "rank": 13,
+     "vrank": 27,
+     "sweep": 1
+    },
+    {
+     "hub": 156.42857142857144,
+     "rim": 96.42857142857143,
+     "rimIndex": 7,
+     "rank": 7,
+     "vrank": 21,
+     "sweep": -1
+    },
+    {
+     "hub": 182.14285714285714,
+     "rim": 225,
+     "rimIndex": 17,
+     "rank": 17,
+     "vrank": 3,
+     "sweep": 1
+    },
+    {
+     "hub": 207.85714285714286,
+     "rim": 147.85714285714286,
+     "rimIndex": 11,
+     "rank": 11,
+     "vrank": 25,
+     "sweep": -1
+    },
+    {
+     "hub": 233.57142857142858,
+     "rim": 276.42857142857144,
+     "rimIndex": 21,
+     "rank": 21,
+     "vrank": 7,
+     "sweep": 1
+    },
+    {
+     "hub": 259.2857142857143,
+     "rim": 199.28571428571428,
+     "rimIndex": 15,
+     "rank": 15,
+     "vrank": 1,
+     "sweep": -1
+    },
+    {
+     "hub": 285,
+     "rim": 327.85714285714283,
+     "rimIndex": 25,
+     "rank": 25,
+     "vrank": 11,
+     "sweep": 1
+    },
+    {
+     "hub": 310.71428571428567,
+     "rim": 250.71428571428572,
+     "rimIndex": 19,
+     "rank": 19,
+     "vrank": 5,
+     "sweep": -1
+    },
+    {
+     "hub": 336.4285714285714,
+     "rim": 19.285714285714285,
+     "rimIndex": 1,
+     "rank": 1,
+     "vrank": 15,
+     "sweep": 1
+    },
+    {
+     "hub": 2.1428571428571104,
+     "rim": 302.14285714285717,
+     "rimIndex": 23,
+     "rank": 23,
+     "vrank": 9,
+     "sweep": -1
+    }
+   ]
+  }
+ },
+ "hydra2Front32": {
+  "front": {
+   "drive": [
+    {
+     "hub": 15,
+     "rim": 320.625,
+     "rimIndex": 28,
+     "rank": 28,
+     "vrank": 12,
+     "sweep": -1
+    },
+    {
+     "hub": 37.5,
+     "rim": 73.125,
+     "rimIndex": 6,
+     "rank": 6,
+     "vrank": 22,
+     "sweep": 1
+    },
+    {
+     "hub": 60,
+     "rim": 5.625,
+     "rimIndex": 0,
+     "rank": 0,
+     "vrank": 16,
+     "sweep": -1
+    },
+    {
+     "hub": 82.5,
+     "rim": 118.125,
+     "rimIndex": 10,
+     "rank": 10,
+     "vrank": 26,
+     "sweep": 1
+    },
+    {
+     "hub": 105,
+     "rim": 50.625,
+     "rimIndex": 4,
+     "rank": 4,
+     "vrank": 20,
+     "sweep": -1
+    },
+    {
+     "hub": 127.5,
+     "rim": 163.125,
+     "rimIndex": 14,
+     "rank": 14,
+     "vrank": 30,
+     "sweep": 1
+    },
+    {
+     "hub": 150,
+     "rim": 95.625,
+     "rimIndex": 8,
+     "rank": 8,
+     "vrank": 24,
+     "sweep": -1
+    },
+    {
+     "hub": 172.5,
+     "rim": 208.125,
+     "rimIndex": 18,
+     "rank": 18,
+     "vrank": 2,
+     "sweep": 1
+    },
+    {
+     "hub": 195,
+     "rim": 140.625,
+     "rimIndex": 12,
+     "rank": 12,
+     "vrank": 28,
+     "sweep": -1
+    },
+    {
+     "hub": 217.5,
+     "rim": 253.125,
+     "rimIndex": 22,
+     "rank": 22,
+     "vrank": 6,
+     "sweep": 1
+    },
+    {
+     "hub": 240,
+     "rim": 185.625,
+     "rimIndex": 16,
+     "rank": 16,
+     "vrank": 0,
+     "sweep": -1
+    },
+    {
+     "hub": 262.5,
+     "rim": 298.125,
+     "rimIndex": 26,
+     "rank": 26,
+     "vrank": 10,
+     "sweep": 1
+    },
+    {
+     "hub": 285,
+     "rim": 230.625,
+     "rimIndex": 20,
+     "rank": 20,
+     "vrank": 4,
+     "sweep": -1
+    },
+    {
+     "hub": 307.5,
+     "rim": 343.125,
+     "rimIndex": 30,
+     "rank": 30,
+     "vrank": 14,
+     "sweep": 1
+    },
+    {
+     "hub": 330,
+     "rim": 275.625,
+     "rimIndex": 24,
+     "rank": 24,
+     "vrank": 8,
+     "sweep": -1
+    },
+    {
+     "hub": 352.5,
+     "rim": 28.125,
+     "rimIndex": 2,
+     "rank": 2,
+     "vrank": 18,
+     "sweep": 1
+    }
+   ],
+   "rotor": [
+    {
+     "hub": 26.25,
+     "rim": 331.875,
+     "rimIndex": 29,
+     "rank": 29,
+     "vrank": 13,
+     "sweep": -1
+    },
+    {
+     "hub": 48.75,
+     "rim": 84.375,
+     "rimIndex": 7,
+     "rank": 7,
+     "vrank": 23,
+     "sweep": 1
+    },
+    {
+     "hub": 71.25,
+     "rim": 16.875,
+     "rimIndex": 1,
+     "rank": 1,
+     "vrank": 17,
+     "sweep": -1
+    },
+    {
+     "hub": 93.75,
+     "rim": 129.375,
+     "rimIndex": 11,
+     "rank": 11,
+     "vrank": 27,
+     "sweep": 1
+    },
+    {
+     "hub": 116.25,
+     "rim": 61.875,
+     "rimIndex": 5,
+     "rank": 5,
+     "vrank": 21,
+     "sweep": -1
+    },
+    {
+     "hub": 138.75,
+     "rim": 174.375,
+     "rimIndex": 15,
+     "rank": 15,
+     "vrank": 31,
+     "sweep": 1
+    },
+    {
+     "hub": 161.25,
+     "rim": 106.875,
+     "rimIndex": 9,
+     "rank": 9,
+     "vrank": 25,
+     "sweep": -1
+    },
+    {
+     "hub": 183.75,
+     "rim": 219.375,
+     "rimIndex": 19,
+     "rank": 19,
+     "vrank": 3,
+     "sweep": 1
+    },
+    {
+     "hub": 206.25,
+     "rim": 151.875,
+     "rimIndex": 13,
+     "rank": 13,
+     "vrank": 29,
+     "sweep": -1
+    },
+    {
+     "hub": 228.75,
+     "rim": 264.375,
+     "rimIndex": 23,
+     "rank": 23,
+     "vrank": 7,
+     "sweep": 1
+    },
+    {
+     "hub": 251.25,
+     "rim": 196.875,
+     "rimIndex": 17,
+     "rank": 17,
+     "vrank": 1,
+     "sweep": -1
+    },
+    {
+     "hub": 273.75,
+     "rim": 309.375,
+     "rimIndex": 27,
+     "rank": 27,
+     "vrank": 11,
+     "sweep": 1
+    },
+    {
+     "hub": 296.25,
+     "rim": 241.875,
+     "rimIndex": 21,
+     "rank": 21,
+     "vrank": 5,
+     "sweep": -1
+    },
+    {
+     "hub": 318.75,
+     "rim": 354.375,
+     "rimIndex": 31,
+     "rank": 31,
+     "vrank": 15,
+     "sweep": 1
+    },
+    {
+     "hub": 341.25,
+     "rim": 286.875,
+     "rimIndex": 25,
+     "rank": 25,
+     "vrank": 9,
+     "sweep": -1
+    },
+    {
+     "hub": 3.75,
+     "rim": 39.375,
+     "rimIndex": 3,
+     "rank": 3,
+     "vrank": 19,
+     "sweep": 1
+    }
+   ]
+  }
+ },
+ "hydra2Front32x3": {
+  "front": {
+   "drive": [
+    {
+     "hub": 15,
+     "rim": 298.125,
+     "rimIndex": 26,
+     "rank": 26,
+     "vrank": 10,
+     "sweep": -1
+    },
+    {
+     "hub": 37.5,
+     "rim": 95.625,
+     "rimIndex": 8,
+     "rank": 8,
+     "vrank": 24,
+     "sweep": 1
+    },
+    {
+     "hub": 60,
+     "rim": 343.125,
+     "rimIndex": 30,
+     "rank": 30,
+     "vrank": 14,
+     "sweep": -1
+    },
+    {
+     "hub": 82.5,
+     "rim": 140.625,
+     "rimIndex": 12,
+     "rank": 12,
+     "vrank": 28,
+     "sweep": 1
+    },
+    {
+     "hub": 105,
+     "rim": 28.125,
+     "rimIndex": 2,
+     "rank": 2,
+     "vrank": 18,
+     "sweep": -1
+    },
+    {
+     "hub": 127.5,
+     "rim": 185.625,
+     "rimIndex": 16,
+     "rank": 16,
+     "vrank": 0,
+     "sweep": 1
+    },
+    {
+     "hub": 150,
+     "rim": 73.125,
+     "rimIndex": 6,
+     "rank": 6,
+     "vrank": 22,
+     "sweep": -1
+    },
+    {
+     "hub": 172.5,
+     "rim": 230.625,
+     "rimIndex": 20,
+     "rank": 20,
+     "vrank": 4,
+     "sweep": 1
+    },
+    {
+     "hub": 195,
+     "rim": 118.125,
+     "rimIndex": 10,
+     "rank": 10,
+     "vrank": 26,
+     "sweep": -1
+    },
+    {
+     "hub": 217.5,
+     "rim": 275.625,
+     "rimIndex": 24,
+     "rank": 24,
+     "vrank": 8,
+     "sweep": 1
+    },
+    {
+     "hub": 240,
+     "rim": 163.125,
+     "rimIndex": 14,
+     "rank": 14,
+     "vrank": 30,
+     "sweep": -1
+    },
+    {
+     "hub": 262.5,
+     "rim": 320.625,
+     "rimIndex": 28,
+     "rank": 28,
+     "vrank": 12,
+     "sweep": 1
+    },
+    {
+     "hub": 285,
+     "rim": 208.125,
+     "rimIndex": 18,
+     "rank": 18,
+     "vrank": 2,
+     "sweep": -1
+    },
+    {
+     "hub": 307.5,
+     "rim": 5.625,
+     "rimIndex": 0,
+     "rank": 0,
+     "vrank": 16,
+     "sweep": 1
+    },
+    {
+     "hub": 330,
+     "rim": 253.125,
+     "rimIndex": 22,
+     "rank": 22,
+     "vrank": 6,
+     "sweep": -1
+    },
+    {
+     "hub": 352.5,
+     "rim": 50.625,
+     "rimIndex": 4,
+     "rank": 4,
+     "vrank": 20,
+     "sweep": 1
+    }
+   ],
+   "rotor": [
+    {
+     "hub": 26.25,
+     "rim": 309.375,
+     "rimIndex": 27,
+     "rank": 27,
+     "vrank": 11,
+     "sweep": -1
+    },
+    {
+     "hub": 48.75,
+     "rim": 106.875,
+     "rimIndex": 9,
+     "rank": 9,
+     "vrank": 25,
+     "sweep": 1
+    },
+    {
+     "hub": 71.25,
+     "rim": 354.375,
+     "rimIndex": 31,
+     "rank": 31,
+     "vrank": 15,
+     "sweep": -1
+    },
+    {
+     "hub": 93.75,
+     "rim": 151.875,
+     "rimIndex": 13,
+     "rank": 13,
+     "vrank": 29,
+     "sweep": 1
+    },
+    {
+     "hub": 116.25,
+     "rim": 39.375,
+     "rimIndex": 3,
+     "rank": 3,
+     "vrank": 19,
+     "sweep": -1
+    },
+    {
+     "hub": 138.75,
+     "rim": 196.875,
+     "rimIndex": 17,
+     "rank": 17,
+     "vrank": 1,
+     "sweep": 1
+    },
+    {
+     "hub": 161.25,
+     "rim": 84.375,
+     "rimIndex": 7,
+     "rank": 7,
+     "vrank": 23,
+     "sweep": -1
+    },
+    {
+     "hub": 183.75,
+     "rim": 241.875,
+     "rimIndex": 21,
+     "rank": 21,
+     "vrank": 5,
+     "sweep": 1
+    },
+    {
+     "hub": 206.25,
+     "rim": 129.375,
+     "rimIndex": 11,
+     "rank": 11,
+     "vrank": 27,
+     "sweep": -1
+    },
+    {
+     "hub": 228.75,
+     "rim": 286.875,
+     "rimIndex": 25,
+     "rank": 25,
+     "vrank": 9,
+     "sweep": 1
+    },
+    {
+     "hub": 251.25,
+     "rim": 174.375,
+     "rimIndex": 15,
+     "rank": 15,
+     "vrank": 31,
+     "sweep": -1
+    },
+    {
+     "hub": 273.75,
+     "rim": 331.875,
+     "rimIndex": 29,
+     "rank": 29,
+     "vrank": 13,
+     "sweep": 1
+    },
+    {
+     "hub": 296.25,
+     "rim": 219.375,
+     "rimIndex": 19,
+     "rank": 19,
+     "vrank": 3,
+     "sweep": -1
+    },
+    {
+     "hub": 318.75,
+     "rim": 16.875,
+     "rimIndex": 1,
+     "rank": 1,
+     "vrank": 17,
+     "sweep": 1
+    },
+    {
+     "hub": 341.25,
+     "rim": 264.375,
+     "rimIndex": 23,
+     "rank": 23,
+     "vrank": 7,
+     "sweep": -1
+    },
+    {
+     "hub": 3.75,
+     "rim": 61.875,
+     "rimIndex": 5,
+     "rank": 5,
+     "vrank": 21,
+     "sweep": 1
+    }
+   ]
+  }
+ },
+ "hydra2Rear32": {
+  "rear": {
+   "drive": [
+    {
+     "hub": 15,
+     "rim": 73.125,
+     "rimIndex": 6,
+     "rank": 6,
+     "vrank": 22,
+     "sweep": 1
+    },
+    {
+     "hub": 37.5,
+     "rim": 320.625,
+     "rimIndex": 28,
+     "rank": 28,
+     "vrank": 12,
+     "sweep": -1
+    },
+    {
+     "hub": 60,
+     "rim": 118.125,
+     "rimIndex": 10,
+     "rank": 10,
+     "vrank": 26,
+     "sweep": 1
+    },
+    {
+     "hub": 82.5,
+     "rim": 5.625,
+     "rimIndex": 0,
+     "rank": 0,
+     "vrank": 16,
+     "sweep": -1
+    },
+    {
+     "hub": 105,
+     "rim": 163.125,
+     "rimIndex": 14,
+     "rank": 14,
+     "vrank": 30,
+     "sweep": 1
+    },
+    {
+     "hub": 127.5,
+     "rim": 50.625,
+     "rimIndex": 4,
+     "rank": 4,
+     "vrank": 20,
+     "sweep": -1
+    },
+    {
+     "hub": 150,
+     "rim": 208.125,
+     "rimIndex": 18,
+     "rank": 18,
+     "vrank": 2,
+     "sweep": 1
+    },
+    {
+     "hub": 172.5,
+     "rim": 95.625,
+     "rimIndex": 8,
+     "rank": 8,
+     "vrank": 24,
+     "sweep": -1
+    },
+    {
+     "hub": 195,
+     "rim": 253.125,
+     "rimIndex": 22,
+     "rank": 22,
+     "vrank": 6,
+     "sweep": 1
+    },
+    {
+     "hub": 217.5,
+     "rim": 140.625,
+     "rimIndex": 12,
+     "rank": 12,
+     "vrank": 28,
+     "sweep": -1
+    },
+    {
+     "hub": 240,
+     "rim": 298.125,
+     "rimIndex": 26,
+     "rank": 26,
+     "vrank": 10,
+     "sweep": 1
+    },
+    {
+     "hub": 262.5,
+     "rim": 185.625,
+     "rimIndex": 16,
+     "rank": 16,
+     "vrank": 0,
+     "sweep": -1
+    },
+    {
+     "hub": 285,
+     "rim": 343.125,
+     "rimIndex": 30,
+     "rank": 30,
+     "vrank": 14,
+     "sweep": 1
+    },
+    {
+     "hub": 307.5,
+     "rim": 230.625,
+     "rimIndex": 20,
+     "rank": 20,
+     "vrank": 4,
+     "sweep": -1
+    },
+    {
+     "hub": 330,
+     "rim": 28.125,
+     "rimIndex": 2,
+     "rank": 2,
+     "vrank": 18,
+     "sweep": 1
+    },
+    {
+     "hub": 352.5,
+     "rim": 275.625,
+     "rimIndex": 24,
+     "rank": 24,
+     "vrank": 8,
+     "sweep": -1
+    }
+   ],
+   "rotor": [
+    {
+     "hub": 26.25,
+     "rim": 84.375,
+     "rimIndex": 7,
+     "rank": 7,
+     "vrank": 23,
+     "sweep": 1
+    },
+    {
+     "hub": 48.75,
+     "rim": 331.875,
+     "rimIndex": 29,
+     "rank": 29,
+     "vrank": 13,
+     "sweep": -1
+    },
+    {
+     "hub": 71.25,
+     "rim": 129.375,
+     "rimIndex": 11,
+     "rank": 11,
+     "vrank": 27,
+     "sweep": 1
+    },
+    {
+     "hub": 93.75,
+     "rim": 16.875,
+     "rimIndex": 1,
+     "rank": 1,
+     "vrank": 17,
+     "sweep": -1
+    },
+    {
+     "hub": 116.25,
+     "rim": 174.375,
+     "rimIndex": 15,
+     "rank": 15,
+     "vrank": 31,
+     "sweep": 1
+    },
+    {
+     "hub": 138.75,
+     "rim": 61.875,
+     "rimIndex": 5,
+     "rank": 5,
+     "vrank": 21,
+     "sweep": -1
+    },
+    {
+     "hub": 161.25,
+     "rim": 219.375,
+     "rimIndex": 19,
+     "rank": 19,
+     "vrank": 3,
+     "sweep": 1
+    },
+    {
+     "hub": 183.75,
+     "rim": 106.875,
+     "rimIndex": 9,
+     "rank": 9,
+     "vrank": 25,
+     "sweep": -1
+    },
+    {
+     "hub": 206.25,
+     "rim": 264.375,
+     "rimIndex": 23,
+     "rank": 23,
+     "vrank": 7,
+     "sweep": 1
+    },
+    {
+     "hub": 228.75,
+     "rim": 151.875,
+     "rimIndex": 13,
+     "rank": 13,
+     "vrank": 29,
+     "sweep": -1
+    },
+    {
+     "hub": 251.25,
+     "rim": 309.375,
+     "rimIndex": 27,
+     "rank": 27,
+     "vrank": 11,
+     "sweep": 1
+    },
+    {
+     "hub": 273.75,
+     "rim": 196.875,
+     "rimIndex": 17,
+     "rank": 17,
+     "vrank": 1,
+     "sweep": -1
+    },
+    {
+     "hub": 296.25,
+     "rim": 354.375,
+     "rimIndex": 31,
+     "rank": 31,
+     "vrank": 15,
+     "sweep": 1
+    },
+    {
+     "hub": 318.75,
+     "rim": 241.875,
+     "rimIndex": 21,
+     "rank": 21,
+     "vrank": 5,
+     "sweep": -1
+    },
+    {
+     "hub": 341.25,
+     "rim": 39.375,
+     "rimIndex": 3,
+     "rank": 3,
+     "vrank": 19,
+     "sweep": 1
+    },
+    {
+     "hub": 3.75,
+     "rim": 286.875,
+     "rimIndex": 25,
+     "rank": 25,
+     "vrank": 9,
+     "sweep": -1
+    }
+   ]
+  }
+ },
+ "solixSet": {
+  "front": {
+   "drive": [
+    {
+     "hub": 15,
+     "rim": 52.5,
+     "rimIndex": 3,
+     "rank": 3,
+     "vrank": 15,
+     "sweep": 1
+    },
+    {
+     "hub": 60,
+     "rim": 7.5,
+     "rimIndex": 0,
+     "rank": 0,
+     "vrank": 12,
+     "sweep": -1
+    },
+    {
+     "hub": 105,
+     "rim": 142.5,
+     "rimIndex": 9,
+     "rank": 9,
+     "vrank": 21,
+     "sweep": 1
+    },
+    {
+     "hub": 150,
+     "rim": 97.5,
+     "rimIndex": 6,
+     "rank": 6,
+     "vrank": 18,
+     "sweep": -1
+    },
+    {
+     "hub": 195,
+     "rim": 232.5,
+     "rimIndex": 15,
+     "rank": 15,
+     "vrank": 3,
+     "sweep": 1
+    },
+    {
+     "hub": 240,
+     "rim": 187.5,
+     "rimIndex": 12,
+     "rank": 12,
+     "vrank": 0,
+     "sweep": -1
+    },
+    {
+     "hub": 285,
+     "rim": 322.5,
+     "rimIndex": 21,
+     "rank": 21,
+     "vrank": 9,
+     "sweep": 1
+    },
+    {
+     "hub": 330,
+     "rim": 277.5,
+     "rimIndex": 18,
+     "rank": 18,
+     "vrank": 6,
+     "sweep": -1
+    }
+   ],
+   "rotor": [
+    {
+     "hub": 15,
+     "rim": 82.5,
+     "rimIndex": 5,
+     "rank": 5,
+     "vrank": 17,
+     "sweep": 1
+    },
+    {
+     "hub": 37.5,
+     "rim": 337.5,
+     "rimIndex": 22,
+     "rank": 22,
+     "vrank": 10,
+     "sweep": -1
+    },
+    {
+     "hub": 60,
+     "rim": 127.5,
+     "rimIndex": 8,
+     "rank": 8,
+     "vrank": 20,
+     "sweep": 1
+    },
+    {
+     "hub": 82.5,
+     "rim": 22.5,
+     "rimIndex": 1,
+     "rank": 1,
+     "vrank": 13,
+     "sweep": -1
+    },
+    {
+     "hub": 105,
+     "rim": 172.5,
+     "rimIndex": 11,
+     "rank": 11,
+     "vrank": 23,
+     "sweep": 1
+    },
+    {
+     "hub": 127.5,
+     "rim": 67.5,
+     "rimIndex": 4,
+     "rank": 4,
+     "vrank": 16,
+     "sweep": -1
+    },
+    {
+     "hub": 150,
+     "rim": 217.5,
+     "rimIndex": 14,
+     "rank": 14,
+     "vrank": 2,
+     "sweep": 1
+    },
+    {
+     "hub": 172.5,
+     "rim": 112.5,
+     "rimIndex": 7,
+     "rank": 7,
+     "vrank": 19,
+     "sweep": -1
+    },
+    {
+     "hub": 195,
+     "rim": 262.5,
+     "rimIndex": 17,
+     "rank": 17,
+     "vrank": 5,
+     "sweep": 1
+    },
+    {
+     "hub": 217.5,
+     "rim": 157.5,
+     "rimIndex": 10,
+     "rank": 10,
+     "vrank": 22,
+     "sweep": -1
+    },
+    {
+     "hub": 240,
+     "rim": 307.5,
+     "rimIndex": 20,
+     "rank": 20,
+     "vrank": 8,
+     "sweep": 1
+    },
+    {
+     "hub": 262.5,
+     "rim": 202.5,
+     "rimIndex": 13,
+     "rank": 13,
+     "vrank": 1,
+     "sweep": -1
+    },
+    {
+     "hub": 285,
+     "rim": 352.5,
+     "rimIndex": 23,
+     "rank": 23,
+     "vrank": 11,
+     "sweep": 1
+    },
+    {
+     "hub": 307.5,
+     "rim": 247.5,
+     "rimIndex": 16,
+     "rank": 16,
+     "vrank": 4,
+     "sweep": -1
+    },
+    {
+     "hub": 330,
+     "rim": 37.5,
+     "rimIndex": 2,
+     "rank": 2,
+     "vrank": 14,
+     "sweep": 1
+    },
+    {
+     "hub": 352.5,
+     "rim": 292.5,
+     "rimIndex": 19,
+     "rank": 19,
+     "vrank": 7,
+     "sweep": -1
+    }
+   ]
+  },
+  "rear": {
+   "drive": [
+    {
+     "hub": 15,
+     "rim": 82.5,
+     "rimIndex": 5,
+     "rank": 5,
+     "vrank": 17,
+     "sweep": 1
+    },
+    {
+     "hub": 37.5,
+     "rim": 337.5,
+     "rimIndex": 22,
+     "rank": 22,
+     "vrank": 10,
+     "sweep": -1
+    },
+    {
+     "hub": 60,
+     "rim": 127.5,
+     "rimIndex": 8,
+     "rank": 8,
+     "vrank": 20,
+     "sweep": 1
+    },
+    {
+     "hub": 82.5,
+     "rim": 22.5,
+     "rimIndex": 1,
+     "rank": 1,
+     "vrank": 13,
+     "sweep": -1
+    },
+    {
+     "hub": 105,
+     "rim": 172.5,
+     "rimIndex": 11,
+     "rank": 11,
+     "vrank": 23,
+     "sweep": 1
+    },
+    {
+     "hub": 127.5,
+     "rim": 67.5,
+     "rimIndex": 4,
+     "rank": 4,
+     "vrank": 16,
+     "sweep": -1
+    },
+    {
+     "hub": 150,
+     "rim": 217.5,
+     "rimIndex": 14,
+     "rank": 14,
+     "vrank": 2,
+     "sweep": 1
+    },
+    {
+     "hub": 172.5,
+     "rim": 112.5,
+     "rimIndex": 7,
+     "rank": 7,
+     "vrank": 19,
+     "sweep": -1
+    },
+    {
+     "hub": 195,
+     "rim": 262.5,
+     "rimIndex": 17,
+     "rank": 17,
+     "vrank": 5,
+     "sweep": 1
+    },
+    {
+     "hub": 217.5,
+     "rim": 157.5,
+     "rimIndex": 10,
+     "rank": 10,
+     "vrank": 22,
+     "sweep": -1
+    },
+    {
+     "hub": 240,
+     "rim": 307.5,
+     "rimIndex": 20,
+     "rank": 20,
+     "vrank": 8,
+     "sweep": 1
+    },
+    {
+     "hub": 262.5,
+     "rim": 202.5,
+     "rimIndex": 13,
+     "rank": 13,
+     "vrank": 1,
+     "sweep": -1
+    },
+    {
+     "hub": 285,
+     "rim": 352.5,
+     "rimIndex": 23,
+     "rank": 23,
+     "vrank": 11,
+     "sweep": 1
+    },
+    {
+     "hub": 307.5,
+     "rim": 247.5,
+     "rimIndex": 16,
+     "rank": 16,
+     "vrank": 4,
+     "sweep": -1
+    },
+    {
+     "hub": 330,
+     "rim": 37.5,
+     "rimIndex": 2,
+     "rank": 2,
+     "vrank": 14,
+     "sweep": 1
+    },
+    {
+     "hub": 352.5,
+     "rim": 292.5,
+     "rimIndex": 19,
+     "rank": 19,
+     "vrank": 7,
+     "sweep": -1
+    }
+   ],
+   "rotor": [
+    {
+     "hub": 15,
+     "rim": 52.5,
+     "rimIndex": 3,
+     "rank": 3,
+     "vrank": 15,
+     "sweep": 1
+    },
+    {
+     "hub": 60,
+     "rim": 7.5,
+     "rimIndex": 0,
+     "rank": 0,
+     "vrank": 12,
+     "sweep": -1
+    },
+    {
+     "hub": 105,
+     "rim": 142.5,
+     "rimIndex": 9,
+     "rank": 9,
+     "vrank": 21,
+     "sweep": 1
+    },
+    {
+     "hub": 150,
+     "rim": 97.5,
+     "rimIndex": 6,
+     "rank": 6,
+     "vrank": 18,
+     "sweep": -1
+    },
+    {
+     "hub": 195,
+     "rim": 232.5,
+     "rimIndex": 15,
+     "rank": 15,
+     "vrank": 3,
+     "sweep": 1
+    },
+    {
+     "hub": 240,
+     "rim": 187.5,
+     "rimIndex": 12,
+     "rank": 12,
+     "vrank": 0,
+     "sweep": -1
+    },
+    {
+     "hub": 285,
+     "rim": 322.5,
+     "rimIndex": 21,
+     "rank": 21,
+     "vrank": 9,
+     "sweep": 1
+    },
+    {
+     "hub": 330,
+     "rim": 277.5,
+     "rimIndex": 18,
+     "rank": 18,
+     "vrank": 6,
+     "sweep": -1
+    }
+   ]
+  }
+ },
+ "hydra2Set32": {
+  "front": {
+   "drive": [
+    {
+     "hub": 15,
+     "rim": 320.625,
+     "rimIndex": 28,
+     "rank": 28,
+     "vrank": 12,
+     "sweep": -1
+    },
+    {
+     "hub": 37.5,
+     "rim": 73.125,
+     "rimIndex": 6,
+     "rank": 6,
+     "vrank": 22,
+     "sweep": 1
+    },
+    {
+     "hub": 60,
+     "rim": 5.625,
+     "rimIndex": 0,
+     "rank": 0,
+     "vrank": 16,
+     "sweep": -1
+    },
+    {
+     "hub": 82.5,
+     "rim": 118.125,
+     "rimIndex": 10,
+     "rank": 10,
+     "vrank": 26,
+     "sweep": 1
+    },
+    {
+     "hub": 105,
+     "rim": 50.625,
+     "rimIndex": 4,
+     "rank": 4,
+     "vrank": 20,
+     "sweep": -1
+    },
+    {
+     "hub": 127.5,
+     "rim": 163.125,
+     "rimIndex": 14,
+     "rank": 14,
+     "vrank": 30,
+     "sweep": 1
+    },
+    {
+     "hub": 150,
+     "rim": 95.625,
+     "rimIndex": 8,
+     "rank": 8,
+     "vrank": 24,
+     "sweep": -1
+    },
+    {
+     "hub": 172.5,
+     "rim": 208.125,
+     "rimIndex": 18,
+     "rank": 18,
+     "vrank": 2,
+     "sweep": 1
+    },
+    {
+     "hub": 195,
+     "rim": 140.625,
+     "rimIndex": 12,
+     "rank": 12,
+     "vrank": 28,
+     "sweep": -1
+    },
+    {
+     "hub": 217.5,
+     "rim": 253.125,
+     "rimIndex": 22,
+     "rank": 22,
+     "vrank": 6,
+     "sweep": 1
+    },
+    {
+     "hub": 240,
+     "rim": 185.625,
+     "rimIndex": 16,
+     "rank": 16,
+     "vrank": 0,
+     "sweep": -1
+    },
+    {
+     "hub": 262.5,
+     "rim": 298.125,
+     "rimIndex": 26,
+     "rank": 26,
+     "vrank": 10,
+     "sweep": 1
+    },
+    {
+     "hub": 285,
+     "rim": 230.625,
+     "rimIndex": 20,
+     "rank": 20,
+     "vrank": 4,
+     "sweep": -1
+    },
+    {
+     "hub": 307.5,
+     "rim": 343.125,
+     "rimIndex": 30,
+     "rank": 30,
+     "vrank": 14,
+     "sweep": 1
+    },
+    {
+     "hub": 330,
+     "rim": 275.625,
+     "rimIndex": 24,
+     "rank": 24,
+     "vrank": 8,
+     "sweep": -1
+    },
+    {
+     "hub": 352.5,
+     "rim": 28.125,
+     "rimIndex": 2,
+     "rank": 2,
+     "vrank": 18,
+     "sweep": 1
+    }
+   ],
+   "rotor": [
+    {
+     "hub": 26.25,
+     "rim": 331.875,
+     "rimIndex": 29,
+     "rank": 29,
+     "vrank": 13,
+     "sweep": -1
+    },
+    {
+     "hub": 48.75,
+     "rim": 84.375,
+     "rimIndex": 7,
+     "rank": 7,
+     "vrank": 23,
+     "sweep": 1
+    },
+    {
+     "hub": 71.25,
+     "rim": 16.875,
+     "rimIndex": 1,
+     "rank": 1,
+     "vrank": 17,
+     "sweep": -1
+    },
+    {
+     "hub": 93.75,
+     "rim": 129.375,
+     "rimIndex": 11,
+     "rank": 11,
+     "vrank": 27,
+     "sweep": 1
+    },
+    {
+     "hub": 116.25,
+     "rim": 61.875,
+     "rimIndex": 5,
+     "rank": 5,
+     "vrank": 21,
+     "sweep": -1
+    },
+    {
+     "hub": 138.75,
+     "rim": 174.375,
+     "rimIndex": 15,
+     "rank": 15,
+     "vrank": 31,
+     "sweep": 1
+    },
+    {
+     "hub": 161.25,
+     "rim": 106.875,
+     "rimIndex": 9,
+     "rank": 9,
+     "vrank": 25,
+     "sweep": -1
+    },
+    {
+     "hub": 183.75,
+     "rim": 219.375,
+     "rimIndex": 19,
+     "rank": 19,
+     "vrank": 3,
+     "sweep": 1
+    },
+    {
+     "hub": 206.25,
+     "rim": 151.875,
+     "rimIndex": 13,
+     "rank": 13,
+     "vrank": 29,
+     "sweep": -1
+    },
+    {
+     "hub": 228.75,
+     "rim": 264.375,
+     "rimIndex": 23,
+     "rank": 23,
+     "vrank": 7,
+     "sweep": 1
+    },
+    {
+     "hub": 251.25,
+     "rim": 196.875,
+     "rimIndex": 17,
+     "rank": 17,
+     "vrank": 1,
+     "sweep": -1
+    },
+    {
+     "hub": 273.75,
+     "rim": 309.375,
+     "rimIndex": 27,
+     "rank": 27,
+     "vrank": 11,
+     "sweep": 1
+    },
+    {
+     "hub": 296.25,
+     "rim": 241.875,
+     "rimIndex": 21,
+     "rank": 21,
+     "vrank": 5,
+     "sweep": -1
+    },
+    {
+     "hub": 318.75,
+     "rim": 354.375,
+     "rimIndex": 31,
+     "rank": 31,
+     "vrank": 15,
+     "sweep": 1
+    },
+    {
+     "hub": 341.25,
+     "rim": 286.875,
+     "rimIndex": 25,
+     "rank": 25,
+     "vrank": 9,
+     "sweep": -1
+    },
+    {
+     "hub": 3.75,
+     "rim": 39.375,
+     "rimIndex": 3,
+     "rank": 3,
+     "vrank": 19,
+     "sweep": 1
+    }
+   ]
+  },
+  "rear": {
+   "drive": [
+    {
+     "hub": 15,
+     "rim": 73.125,
+     "rimIndex": 6,
+     "rank": 6,
+     "vrank": 22,
+     "sweep": 1
+    },
+    {
+     "hub": 37.5,
+     "rim": 320.625,
+     "rimIndex": 28,
+     "rank": 28,
+     "vrank": 12,
+     "sweep": -1
+    },
+    {
+     "hub": 60,
+     "rim": 118.125,
+     "rimIndex": 10,
+     "rank": 10,
+     "vrank": 26,
+     "sweep": 1
+    },
+    {
+     "hub": 82.5,
+     "rim": 5.625,
+     "rimIndex": 0,
+     "rank": 0,
+     "vrank": 16,
+     "sweep": -1
+    },
+    {
+     "hub": 105,
+     "rim": 163.125,
+     "rimIndex": 14,
+     "rank": 14,
+     "vrank": 30,
+     "sweep": 1
+    },
+    {
+     "hub": 127.5,
+     "rim": 50.625,
+     "rimIndex": 4,
+     "rank": 4,
+     "vrank": 20,
+     "sweep": -1
+    },
+    {
+     "hub": 150,
+     "rim": 208.125,
+     "rimIndex": 18,
+     "rank": 18,
+     "vrank": 2,
+     "sweep": 1
+    },
+    {
+     "hub": 172.5,
+     "rim": 95.625,
+     "rimIndex": 8,
+     "rank": 8,
+     "vrank": 24,
+     "sweep": -1
+    },
+    {
+     "hub": 195,
+     "rim": 253.125,
+     "rimIndex": 22,
+     "rank": 22,
+     "vrank": 6,
+     "sweep": 1
+    },
+    {
+     "hub": 217.5,
+     "rim": 140.625,
+     "rimIndex": 12,
+     "rank": 12,
+     "vrank": 28,
+     "sweep": -1
+    },
+    {
+     "hub": 240,
+     "rim": 298.125,
+     "rimIndex": 26,
+     "rank": 26,
+     "vrank": 10,
+     "sweep": 1
+    },
+    {
+     "hub": 262.5,
+     "rim": 185.625,
+     "rimIndex": 16,
+     "rank": 16,
+     "vrank": 0,
+     "sweep": -1
+    },
+    {
+     "hub": 285,
+     "rim": 343.125,
+     "rimIndex": 30,
+     "rank": 30,
+     "vrank": 14,
+     "sweep": 1
+    },
+    {
+     "hub": 307.5,
+     "rim": 230.625,
+     "rimIndex": 20,
+     "rank": 20,
+     "vrank": 4,
+     "sweep": -1
+    },
+    {
+     "hub": 330,
+     "rim": 28.125,
+     "rimIndex": 2,
+     "rank": 2,
+     "vrank": 18,
+     "sweep": 1
+    },
+    {
+     "hub": 352.5,
+     "rim": 275.625,
+     "rimIndex": 24,
+     "rank": 24,
+     "vrank": 8,
+     "sweep": -1
+    }
+   ],
+   "rotor": [
+    {
+     "hub": 26.25,
+     "rim": 84.375,
+     "rimIndex": 7,
+     "rank": 7,
+     "vrank": 23,
+     "sweep": 1
+    },
+    {
+     "hub": 48.75,
+     "rim": 331.875,
+     "rimIndex": 29,
+     "rank": 29,
+     "vrank": 13,
+     "sweep": -1
+    },
+    {
+     "hub": 71.25,
+     "rim": 129.375,
+     "rimIndex": 11,
+     "rank": 11,
+     "vrank": 27,
+     "sweep": 1
+    },
+    {
+     "hub": 93.75,
+     "rim": 16.875,
+     "rimIndex": 1,
+     "rank": 1,
+     "vrank": 17,
+     "sweep": -1
+    },
+    {
+     "hub": 116.25,
+     "rim": 174.375,
+     "rimIndex": 15,
+     "rank": 15,
+     "vrank": 31,
+     "sweep": 1
+    },
+    {
+     "hub": 138.75,
+     "rim": 61.875,
+     "rimIndex": 5,
+     "rank": 5,
+     "vrank": 21,
+     "sweep": -1
+    },
+    {
+     "hub": 161.25,
+     "rim": 219.375,
+     "rimIndex": 19,
+     "rank": 19,
+     "vrank": 3,
+     "sweep": 1
+    },
+    {
+     "hub": 183.75,
+     "rim": 106.875,
+     "rimIndex": 9,
+     "rank": 9,
+     "vrank": 25,
+     "sweep": -1
+    },
+    {
+     "hub": 206.25,
+     "rim": 264.375,
+     "rimIndex": 23,
+     "rank": 23,
+     "vrank": 7,
+     "sweep": 1
+    },
+    {
+     "hub": 228.75,
+     "rim": 151.875,
+     "rimIndex": 13,
+     "rank": 13,
+     "vrank": 29,
+     "sweep": -1
+    },
+    {
+     "hub": 251.25,
+     "rim": 309.375,
+     "rimIndex": 27,
+     "rank": 27,
+     "vrank": 11,
+     "sweep": 1
+    },
+    {
+     "hub": 273.75,
+     "rim": 196.875,
+     "rimIndex": 17,
+     "rank": 17,
+     "vrank": 1,
+     "sweep": -1
+    },
+    {
+     "hub": 296.25,
+     "rim": 354.375,
+     "rimIndex": 31,
+     "rank": 31,
+     "vrank": 15,
+     "sweep": 1
+    },
+    {
+     "hub": 318.75,
+     "rim": 241.875,
+     "rimIndex": 21,
+     "rank": 21,
+     "vrank": 5,
+     "sweep": -1
+    },
+    {
+     "hub": 341.25,
+     "rim": 39.375,
+     "rimIndex": 3,
+     "rank": 3,
+     "vrank": 19,
+     "sweep": 1
+    },
+    {
+     "hub": 3.75,
+     "rim": 286.875,
+     "rimIndex": 25,
+     "rank": 25,
+     "vrank": 9,
+     "sweep": -1
+    }
+   ]
+  }
+ }
+}

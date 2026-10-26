@@ -1,0 +1,359 @@
+{
+  "id": 6000090001,
+  "admin_graphql_api_id": "gid://shopify/Order/6000090001",
+  "order_number": 90001,
+  "name": "#90001",
+  "email": "customer@example.com",
+  "note": "Customer note: please match the purple hubs to my frame.",
+  "location_id": null,
+  "financial_status": "paid",
+  "line_items": [
+    {
+      "id": 15012,
+      "title": "Custom Wheel Build",
+      "name": "Custom Wheel Build",
+      "variant_title": null,
+      "quantity": 1,
+      "price": "0.00",
+      "product_id": 1,
+      "variant_id": 1,
+      "properties": [
+        {
+          "name": "_BuildID",
+          "value": "LL-90001-SYS"
+        },
+        {
+          "name": "_bundle_id",
+          "value": "LL-90001-SYS"
+        },
+        {
+          "name": "_is_custom_wheel_build",
+          "value": "true"
+        },
+        {
+          "name": "_EstLeadTime",
+          "value": "2-3 weeks"
+        },
+        {
+          "name": "_build",
+          "value": "{\"step\":3,\"buildType\":\"Wheel Set\",\"ridingStyle\":\"trail\",\"ridingStyleDisplay\":\"Trail\",\"spokeInterface\":\"system\",\"system\":{\"v\":1,\"studioOpened\":true,\"studio\":{\"v\":1,\"hubColor\":{\"front\":\"Purple\",\"rear\":\"Purple\"},\"base\":{\"front\":{\"drive\":\"Black\",\"rotor\":\"Black\"},\"rear\":{\"drive\":\"Black\",\"rotor\":\"Black\"}},\"spokes\":{\"front\":{\"drive\":[\"Orange\",\"Orange\",\"Orange\",\"Orange\",\"Orange\",\"Orange\",\"Orange\",\"Orange\"],\"rotor\":[\"Orange\",\"Black\",\"Orange\",\"Black\",\"Orange\",\"Black\",\"Orange\",\"Black\",\"Orange\",\"Black\",\"Orange\",\"Black\",\"Orange\",\"Black\",\"Orange\",\"Black\"]},\"rear\":{\"drive\":[\"Black\",\"Lime\",\"Black\",\"Lime\",\"Black\",\"Lime\",\"Black\",\"Lime\",\"Black\",\"Lime\",\"Black\",\"Lime\",\"Black\",\"Lime\",\"Black\",\"Lime\"],\"rotor\":[\"Turquoise\",\"Turquoise\",\"Turquoise\",\"Turquoise\",\"Turquoise\",\"Turquoise\",\"Turquoise\",\"Turquoise\"]}},\"accent\":\"Orange\"}},\"customerSupplied\":{\"front\":{},\"rear\":{}},\"specs\":{\"brakeStyle\":\"Centerlock\",\"systemHub\":\"Solix\",\"freehubType\":\"XD\",\"frontSpokeCount\":\"24h\",\"frontHubSpacing\":\"15x110mm\",\"frontWheelSize\":\"29\\\"\",\"rearSpokeCount\":\"24h\",\"rearHubSpacing\":\"12x148mm\",\"rearWheelSize\":\"27.5\\\"\"},\"components\":{\"frontRim\":{\"variantId\":\"gid://shopify/ProductVariant/4001\",\"title\":\"We Are One Union\",\"variantTitle\":\"29\\\" / 24h 2:1\",\"sku\":\"RIM-front\",\"price\":520,\"vendor\":\"We Are One\",\"selectedOptions\":[{\"name\":\"Size\",\"value\":\"29\\\"\"},{\"name\":\"Spoke Count\",\"value\":\"24h 2:1\"}],\"quantityAvailable\":5,\"leadTimeDays\":0,\"weight_g\":460,\"rim_erd\":\"568\"},\"frontHub\":{\"variantId\":\"gid://shopify/ProductVariant/5001\",\"title\":\"Industry Nine Solix SYSTEM Front Hub - Centerlock\",\"variantTitle\":\"24h / Purple / 15x110mm\",\"sku\":\"HUB-front\",\"price\":240,\"vendor\":\"Industry Nine\",\"spec_spoke_count\":\"24h\",\"spec_brake_interface\":[\"Centerlock\"],\"spec_hub_spacing\":\"15x110mm\",\"spec_freehub\":null,\"selectedOptions\":[{\"name\":\"Spoke Count\",\"value\":\"24h\"},{\"name\":\"Color\",\"value\":\"Purple\"},{\"name\":\"Hub Spacing\",\"value\":\"15x110mm\"}],\"leadTimeDays\":0,\"wheelModel\":\"Industry Nine Solix SYSTEM\",\"quantityAvailable\":3,\"weight_g\":150},\"frontSpokes\":{\"variantId\":\"gid://shopify/ProductVariant/7000\",\"title\":\"Industry Nine SYSTEM Spokes\",\"variantTitle\":\"Black / -\",\"sku\":\"I9-SYS-BLA\",\"price\":60,\"unitPrice\":2.5,\"vendor\":\"Industry Nine\",\"selectedOptions\":[{\"name\":\"Color\",\"value\":\"Black\"},{\"name\":\"Length\",\"value\":\"-\"}],\"quantityAvailable\":500,\"leadTimeDays\":0,\"wheelModel\":null,\"selectedColor\":\"Black\",\"weight_g\":5.95,\"i9\":true},\"frontNipples\":null,\"frontValveStem\":null,\"frontAssemblyService\":null,\"frontTubelessTape\":null,\"frontRequiredAddons\":[{\"name\":\"Custom Spoke Color Configuration\",\"price\":25,\"variantGid\":\"gid://shopify/ProductVariant/67791816196403\",\"costInCents\":2500,\"i9Fee\":true}],\"rearRim\":{\"variantId\":\"gid://shopify/ProductVariant/4006\",\"title\":\"We Are One Union\",\"variantTitle\":\"27.5\\\" / 24h 2:1\",\"sku\":\"RIM-rear\",\"price\":520,\"vendor\":\"We Are One\",\"selectedOptions\":[{\"name\":\"Size\",\"value\":\"27.5\\\"\"},{\"name\":\"Spoke Count\",\"value\":\"24h 2:1\"}],\"quantityAvailable\":5,\"leadTimeDays\":0,\"weight_g\":460,\"rim_erd\":\"568\"},\"rearHub\":{\"variantId\":\"gid://shopify/ProductVariant/5006\",\"title\":\"Industry Nine Solix SYSTEM Rear Hub - Centerlock\",\"variantTitle\":\"24h / Purple / 12x148mm\",\"sku\":\"HUB-rear\",\"price\":460,\"vendor\":\"Industry Nine\",\"spec_spoke_count\":\"24h\",\"spec_brake_interface\":[\"Centerlock\"],\"spec_hub_spacing\":\"12x148mm\",\"spec_freehub\":\"XD\",\"selectedOptions\":[{\"name\":\"Spoke Count\",\"value\":\"24h\"},{\"name\":\"Color\",\"value\":\"Purple\"},{\"name\":\"Hub Spacing\",\"value\":\"12x148mm\"}],\"leadTimeDays\":0,\"wheelModel\":\"Industry Nine Solix SYSTEM\",\"quantityAvailable\":3,\"weight_g\":290},\"rearSpokes\":{\"variantId\":\"gid://shopify/ProductVariant/7000\",\"title\":\"Industry Nine SYSTEM Spokes\",\"variantTitle\":\"Black / -\",\"sku\":\"I9-SYS-BLA\",\"price\":60,\"unitPrice\":2.5,\"vendor\":\"Industry Nine\",\"selectedOptions\":[{\"name\":\"Color\",\"value\":\"Black\"},{\"name\":\"Length\",\"value\":\"-\"}],\"quantityAvailable\":500,\"leadTimeDays\":0,\"wheelModel\":null,\"selectedColor\":\"Black\",\"weight_g\":5.95,\"i9\":true},\"rearNipples\":null,\"rearValveStem\":null,\"rearAssemblyService\":null,\"rearTubelessTape\":null,\"rearRequiredAddons\":[{\"name\":\"Custom Spoke Color Configuration\",\"price\":25,\"variantGid\":\"gid://shopify/ProductVariant/67791816196403\",\"costInCents\":2500,\"i9Fee\":true}],\"rearComponentFreehub\":null},\"selectedOptionalAddons\":{},\"buildId\":\"LL-90001-SYS\",\"_ui\":{\"activeVendor\":{},\"valveStemExplicitlyRemoved\":false,\"step2AutoSelected\":{}}}"
+        },
+        {
+          "name": "Front Spoke Colors",
+          "value": "Orange ×16, Black ×8"
+        },
+        {
+          "name": "Front Drive Side",
+          "value": "1 Orange, 2 Orange, 3 Orange, 4 Orange, 5 Orange, 6 Orange, 7 Orange, 8 Orange"
+        },
+        {
+          "name": "Front Rotor Side",
+          "value": "1 Orange, 2 Black, 3 Orange, 4 Black, 5 Orange, 6 Black, 7 Orange, 8 Black, 9 Orange, 10 Black, 11 Orange, 12 Black, 13 Orange, 14 Black, 15 Orange, 16 Black"
+        },
+        {
+          "name": "Rear Spoke Colors",
+          "value": "Black ×8, Lime ×8, Turquoise ×8"
+        },
+        {
+          "name": "Rear Drive Side",
+          "value": "1 Black, 2 Lime, 3 Black, 4 Lime, 5 Black, 6 Lime, 7 Black, 8 Lime, 9 Black, 10 Lime, 11 Black, 12 Lime, 13 Black, 14 Lime, 15 Black, 16 Lime"
+        },
+        {
+          "name": "Rear Rotor Side",
+          "value": "1 Turquoise, 2 Turquoise, 3 Turquoise, 4 Turquoise, 5 Turquoise, 6 Turquoise, 7 Turquoise, 8 Turquoise"
+        },
+        {
+          "name": "System Hub",
+          "value": "Solix"
+        },
+        {
+          "name": "Freehub",
+          "value": "XD"
+        }
+      ]
+    },
+    {
+      "id": 15001,
+      "title": "We Are One Union",
+      "name": "We Are One Union - 29\" / 24h 2:1",
+      "variant_title": "29\" / 24h 2:1",
+      "quantity": 1,
+      "price": "0.00",
+      "sku": null,
+      "product_id": 90002,
+      "variant_id": 91002,
+      "properties": [
+        {
+          "name": "_BuildID",
+          "value": "LL-90001-SYS"
+        },
+        {
+          "name": "_bundle_id",
+          "value": "LL-90001-SYS"
+        },
+        {
+          "name": "Wheel",
+          "value": "Front"
+        }
+      ]
+    },
+    {
+      "id": 15002,
+      "title": "Industry Nine Solix SYSTEM Front Hub - Centerlock",
+      "name": "Industry Nine Solix SYSTEM Front Hub - Centerlock - 24h / Purple / 15x110mm",
+      "variant_title": "24h / Purple / 15x110mm",
+      "quantity": 1,
+      "price": "0.00",
+      "sku": null,
+      "product_id": 90003,
+      "variant_id": 91003,
+      "properties": [
+        {
+          "name": "_BuildID",
+          "value": "LL-90001-SYS"
+        },
+        {
+          "name": "_bundle_id",
+          "value": "LL-90001-SYS"
+        },
+        {
+          "name": "Wheel",
+          "value": "Front"
+        }
+      ]
+    },
+    {
+      "id": 15003,
+      "title": "Industry Nine SYSTEM Spokes",
+      "name": "Industry Nine SYSTEM Spokes - Orange / -",
+      "variant_title": "Orange / -",
+      "quantity": 16,
+      "price": "0.00",
+      "sku": null,
+      "product_id": 700,
+      "variant_id": 7006,
+      "properties": [
+        {
+          "name": "_BuildID",
+          "value": "LL-90001-SYS"
+        },
+        {
+          "name": "_bundle_id",
+          "value": "LL-90001-SYS"
+        },
+        {
+          "name": "Wheel",
+          "value": "Front"
+        }
+      ]
+    },
+    {
+      "id": 15004,
+      "title": "Industry Nine SYSTEM Spokes",
+      "name": "Industry Nine SYSTEM Spokes - Black / -",
+      "variant_title": "Black / -",
+      "quantity": 8,
+      "price": "0.00",
+      "sku": null,
+      "product_id": 700,
+      "variant_id": 7000,
+      "properties": [
+        {
+          "name": "_BuildID",
+          "value": "LL-90001-SYS"
+        },
+        {
+          "name": "_bundle_id",
+          "value": "LL-90001-SYS"
+        },
+        {
+          "name": "Wheel",
+          "value": "Front"
+        }
+      ]
+    },
+    {
+      "id": 15005,
+      "title": "Custom Spoke Color Configuration",
+      "name": "Custom Spoke Color Configuration",
+      "variant_title": "Default Title",
+      "quantity": 1,
+      "price": "0.00",
+      "sku": null,
+      "product_id": 6779,
+      "variant_id": 67791816196403,
+      "properties": [
+        {
+          "name": "_BuildID",
+          "value": "LL-90001-SYS"
+        },
+        {
+          "name": "_bundle_id",
+          "value": "LL-90001-SYS"
+        },
+        {
+          "name": "Wheel",
+          "value": "Front"
+        }
+      ]
+    },
+    {
+      "id": 15006,
+      "title": "We Are One Union",
+      "name": "We Are One Union - 27.5\" / 24h 2:1",
+      "variant_title": "27.5\" / 24h 2:1",
+      "quantity": 1,
+      "price": "0.00",
+      "sku": null,
+      "product_id": 90007,
+      "variant_id": 91007,
+      "properties": [
+        {
+          "name": "_BuildID",
+          "value": "LL-90001-SYS"
+        },
+        {
+          "name": "_bundle_id",
+          "value": "LL-90001-SYS"
+        },
+        {
+          "name": "Wheel",
+          "value": "Rear"
+        }
+      ]
+    },
+    {
+      "id": 15007,
+      "title": "Industry Nine Solix SYSTEM Rear Hub - Centerlock",
+      "name": "Industry Nine Solix SYSTEM Rear Hub - Centerlock - 24h / Purple / 12x148mm",
+      "variant_title": "24h / Purple / 12x148mm",
+      "quantity": 1,
+      "price": "0.00",
+      "sku": null,
+      "product_id": 90008,
+      "variant_id": 91008,
+      "properties": [
+        {
+          "name": "_BuildID",
+          "value": "LL-90001-SYS"
+        },
+        {
+          "name": "_bundle_id",
+          "value": "LL-90001-SYS"
+        },
+        {
+          "name": "Wheel",
+          "value": "Rear"
+        },
+        {
+          "name": "_Freehub_Type",
+          "value": "XD"
+        }
+      ]
+    },
+    {
+      "id": 15008,
+      "title": "Industry Nine SYSTEM Spokes",
+      "name": "Industry Nine SYSTEM Spokes - Black / -",
+      "variant_title": "Black / -",
+      "quantity": 8,
+      "price": "0.00",
+      "sku": null,
+      "product_id": 700,
+      "variant_id": 7000,
+      "properties": [
+        {
+          "name": "_BuildID",
+          "value": "LL-90001-SYS"
+        },
+        {
+          "name": "_bundle_id",
+          "value": "LL-90001-SYS"
+        },
+        {
+          "name": "Wheel",
+          "value": "Rear"
+        }
+      ]
+    },
+    {
+      "id": 15009,
+      "title": "Industry Nine SYSTEM Spokes",
+      "name": "Industry Nine SYSTEM Spokes - Lime / -",
+      "variant_title": "Lime / -",
+      "quantity": 8,
+      "price": "0.00",
+      "sku": null,
+      "product_id": 700,
+      "variant_id": 7005,
+      "properties": [
+        {
+          "name": "_BuildID",
+          "value": "LL-90001-SYS"
+        },
+        {
+          "name": "_bundle_id",
+          "value": "LL-90001-SYS"
+        },
+        {
+          "name": "Wheel",
+          "value": "Rear"
+        }
+      ]
+    },
+    {
+      "id": 15010,
+      "title": "Industry Nine SYSTEM Spokes",
+      "name": "Industry Nine SYSTEM Spokes - Turquoise / -",
+      "variant_title": "Turquoise / -",
+      "quantity": 8,
+      "price": "0.00",
+      "sku": null,
+      "product_id": 700,
+      "variant_id": 7011,
+      "properties": [
+        {
+          "name": "_BuildID",
+          "value": "LL-90001-SYS"
+        },
+        {
+          "name": "_bundle_id",
+          "value": "LL-90001-SYS"
+        },
+        {
+          "name": "Wheel",
+          "value": "Rear"
+        }
+      ]
+    },
+    {
+      "id": 15011,
+      "title": "Custom Spoke Color Configuration",
+      "name": "Custom Spoke Color Configuration",
+      "variant_title": "Default Title",
+      "quantity": 1,
+      "price": "0.00",
+      "sku": null,
+      "product_id": 6779,
+      "variant_id": 67791816196403,
+      "properties": [
+        {
+          "name": "_BuildID",
+          "value": "LL-90001-SYS"
+        },
+        {
+          "name": "_bundle_id",
+          "value": "LL-90001-SYS"
+        },
+        {
+          "name": "Wheel",
+          "value": "Rear"
+        }
+      ]
+    }
+  ],
+  "_sample": {
+    "name": "solix-24h-wheelset-multicolor",
+    "description": "Sample System order: solix-24h-wheelset-multicolor"
+  }
+}
