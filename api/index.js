@@ -12,7 +12,7 @@ import {
 // I9-SYSTEM: Industry Nine System builds (Spoke Color Studio) take their own report path; Standard builds are untouched.
 import { findSystemBuildRecipe } from '../_lib/system-build.js';
 import { buildSystemReport, sendSystemEmail, buildCustomerEmail, sendCustomerEmailIfEnabled } from '../_lib/system-report.js';
-import { claimSystemOrder, releaseSystemOrder, noteHasSystemReport } from '../_lib/system-dedupe.js';
+import { claimSystemOrder, releaseSystemOrder, noteShowsProcessed } from '../_lib/system-dedupe.js';
 
 // --- Vercel Config ---
 export const config = { api: { bodyParser: false } };
@@ -289,8 +289,9 @@ async function handleSystemOrderCreate(orderData, buildRecipe) {
         return;
     }
     try {
-        // Layers 2 and 3: the System report marker in the delivered note, then in the order's live note (written before any email goes out).
-        if (noteHasSystemReport(orderData.note) || noteHasSystemReport(await getOrderNote(orderData.admin_graphql_api_id))) {
+        // Layer 2: the order's live note in Shopify holds the report marker that THIS path appended (written before any email goes out).
+        // REVIEW: compared against the delivered note, not searched on its own: the delivered note is customer text (see _lib/system-dedupe.js).
+        if (noteShowsProcessed(await getOrderNote(orderData.admin_graphql_api_id), orderData.note)) {
             console.log(`I9-SYSTEM: order #${orderData.order_number} already has its System report in the order note (duplicate delivery); nothing sent.`);
             return;
         }

@@ -45,3 +45,18 @@ export function resetSystemDedupe() {
 export function noteHasSystemReport(note) {
   return typeof note === 'string' && note.includes(SYSTEM_REPORT_MARKER);
 }
+
+function markerCount(note) {
+  if (typeof note !== 'string') return 0;
+  return note.split(SYSTEM_REPORT_MARKER).length - 1;
+}
+
+// REVIEW: the delivered payload's note is the customer's checkout note (or, for an order duplicated in the admin, a copy of an old
+// order's note), so the marker being IN it proves nothing: a customer who typed "AUTOMATED SYSTEM BUILD REPORT" at checkout, or a
+// staff-duplicated System order, was silently skipped. The record of processing is the marker that the System path APPENDED, i.e.
+// the live note holds one more marker than the delivered note. (Shopify re-delivers the original payload, so on a duplicate delivery
+// the delivered note is the same as on the first one.) liveNote null = could not be read -> not processed (fail open, as before).
+export function noteShowsProcessed(liveNote, deliveredNote) {
+  if (typeof liveNote !== 'string') return false;
+  return markerCount(liveNote) > markerCount(deliveredNote);
+}
