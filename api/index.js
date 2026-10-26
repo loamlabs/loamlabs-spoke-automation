@@ -12,6 +12,7 @@ import {
 // I9-SYSTEM: Industry Nine System builds (Spoke Color Studio) take their own report path; Standard builds are untouched.
 import { findSystemBuildRecipe } from '../_lib/system-build.js';
 import { buildSystemReport, sendSystemEmail, buildCustomerEmail, sendCustomerEmailIfEnabled } from '../_lib/system-report.js';
+import { claimSystemOrder, releaseSystemOrder, noteHasSystemReport } from '../_lib/system-dedupe.js';
 
 // --- Vercel Config ---
 export const config = { api: { bodyParser: false } };
@@ -267,8 +268,32 @@ async function getPrimaryLocationId() {
 // Variant to deduct and no spoke length yet. This path never touches inventory (not for the spokes, not for the "Custom Spoke Color
 // Configuration" fee line); it writes the color report to the order note and emails Jerry the report with the wheel images.
 // It never throws: every failure is logged and the webhook still answers 200 (Shopify must not retry).
-async function handleSystemOrderCreate(orderData, buildRecipe) {
+// The order's current note from Shopify, or null when it cannot be read (the caller then processes the order anyway).
+async function getOrderNote(orderGid) {
+    if (!orderGid) return null;
     try {
+        const data = await shopifyAdminApiQuery(`query orderNote($id: ID!) { order(id: $id) { note } }`, { id: orderGid });
+        return data && data.order ? (data.order.note || '') : null;
+    } catch (error) {
+        console.warn(`I9-SYSTEM: could not read the live order note (${error.message}); processing the order anyway.`);
+        return null;
+    }
+}
+
+async function handleSystemOrderCreate(orderData, buildRecipe) {
+    // Idempotency: Shopify can deliver orders/create more than once, and a duplicate must not send the internal or the customer email
+    // again (see _lib/system-dedupe.js). Layer 1: claim the order in this process, synchronously, before any await.
+    const dedupeKey = orderData.admin_graphql_api_id || (orderData.id != null ? String(orderData.id) : null);
+    if (!claimSystemOrder(dedupeKey)) {
+        console.log(`I9-SYSTEM: order #${orderData.order_number} is already being processed or was just processed (duplicate delivery); nothing sent.`);
+        return;
+    }
+    try {
+        // Layers 2 and 3: the System report marker in the delivered note, then in the order's live note (written before any email goes out).
+        if (noteHasSystemReport(orderData.note) || noteHasSystemReport(await getOrderNote(orderData.admin_graphql_api_id))) {
+            console.log(`I9-SYSTEM: order #${orderData.order_number} already has its System report in the order note (duplicate delivery); nothing sent.`);
+            return;
+        }
         console.log(`I9-SYSTEM: System build detected on order #${orderData.order_number}; skipping Length Variant inventory.`);
         const componentData = await fetchComponentData(buildRecipe); // metafields for the hub flange / rim ERD (null is fine: sample geometry)
         const report = await buildSystemReport({ recipe: buildRecipe, orderData, componentData });
@@ -299,6 +324,7 @@ async function handleSystemOrderCreate(orderData, buildRecipe) {
         }
     } catch (error) {
         console.error("🚨 I9-SYSTEM: CRASH inside the System order path:", error);
+        releaseSystemOrder(dedupeKey); // nothing durable was written: let a re-delivery try again
     }
 }
 

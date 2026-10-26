@@ -35,7 +35,9 @@ export function loadMockShopify() {
 // fetch() stand-in for the Shopify Admin GraphQL API and the Resend REST API.
 export function createMock(mockData) {
   const data = mockData || { metafields: {}, variantColors: ['Black', 'Silver', 'White Berd', 'Black Berd'], variantLengths: [230, 330] };
-  const calls = { metafieldQueries: [], variantQueries: [], inventoryAdjustments: [], notes: [], locationQueries: [], restEmails: [], other: [] };
+  const calls = { metafieldQueries: [], variantQueries: [], inventoryAdjustments: [], notes: [], locationQueries: [], restEmails: [], orderNoteQueries: [], other: [] };
+  // Shopify's live order notes: seeded from the delivered order, overwritten by orderUpdate, read by the orderNote query (the idempotency guard).
+  const state = { orderNotes: {}, failOrderNoteQuery: false };
   const json = (body, status = 200) => ({ ok: status < 400, status, json: async () => body, text: async () => JSON.stringify(body) });
   const variantsFor = (productId) => {
     const out = [];
@@ -60,12 +62,17 @@ export function createMock(mockData) {
     }
     if (q.includes('getProductVariants')) { calls.variantQueries.push(body.variables.id); return json({ data: { product: { variants: { nodes: variantsFor(body.variables.id) } } } }); }
     if (q.includes('inventoryAdjustQuantities')) { calls.inventoryAdjustments.push(body.variables.input); return json({ data: { inventoryAdjustQuantities: { inventoryAdjustmentGroup: { id: 'gid://shopify/InventoryAdjustmentGroup/1' }, userErrors: [] } } }); }
-    if (q.includes('orderUpdate')) { calls.notes.push(body.variables.input); return json({ data: { orderUpdate: { order: { id: body.variables.input.id }, userErrors: [] } } }); }
+    if (q.includes('orderNote(')) {
+      calls.orderNoteQueries.push(body.variables.id);
+      if (state.failOrderNoteQuery) return json({ errors: [{ message: 'simulated Shopify outage' }] });
+      return json({ data: { order: { note: state.orderNotes[body.variables.id] ?? null } } });
+    }
+    if (q.includes('orderUpdate')) { calls.notes.push(body.variables.input); state.orderNotes[body.variables.input.id] = body.variables.input.note; return json({ data: { orderUpdate: { order: { id: body.variables.input.id }, userErrors: [] } } }); }
     if (q.includes('locations(')) { calls.locationQueries.push(1); return json({ data: { locations: { nodes: [{ id: 'gid://shopify/Location/77777' }] } } }); }
     calls.other.push(q.slice(0, 80));
     return json({ data: {} });
   };
-  return { fetch, calls };
+  return { fetch, calls, state };
 }
 
 function fakeReq(rawBody, headers) {
@@ -87,11 +94,13 @@ function fakeRes() {
  * @param {string} indexPath absolute path of the api/index.js to test
  * @param {'orders/create'|'orders/cancelled'} topic
  * @param {object} orderData the sample order
- * @param {{ mock?: ReturnType<typeof createMock>, quiet?: boolean, env?: object }} opts  env = extra process.env values for this run (e.g. SYSTEM_CUSTOMER_EMAIL: 'on')
+ * @param {{ mock?: ReturnType<typeof createMock>, quiet?: boolean, env?: object, keepDedupe?: boolean }} opts  env = extra process.env values for this run (e.g. SYSTEM_CUSTOMER_EMAIL: 'on')
  */
 export async function runWebhook(indexPath, topic, orderData, opts = {}) {
   applyTestEnv(opts.env);
   const mock = opts.mock || createMock(loadMockShopify());
+  if (orderData && orderData.admin_graphql_api_id && !(orderData.admin_graphql_api_id in mock.state.orderNotes)) mock.state.orderNotes[orderData.admin_graphql_api_id] = orderData.note || null;
+  if (opts.keepDedupe !== true) { try { (await import(new URL('../_lib/system-dedupe.js', pathToFileURL(indexPath)).href)).resetSystemDedupe(); } catch (e) { /* the code under test has no guard (old origin/main) */ } }
   const rawBody = JSON.stringify(orderData);
   const hmac = createHmac('sha256', process.env.SHOPIFY_WEBHOOK_SECRET).update(rawBody).digest('base64');
   const realFetch = globalThis.fetch;

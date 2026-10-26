@@ -13,6 +13,7 @@ import { geometry } from './studio-geometry.js';
 import { wheelSvg } from './wheel-svg.js';
 import { svgToPng } from './wheel-png.js';
 import { calculateSystemSpokeLengths, SYSTEM_LENGTHS_PENDING_TEXT } from './system-lengths.js';
+import { SYSTEM_REPORT_MARKER } from './system-dedupe.js';
 
 export const IMAGE_WIDTH_PX = 600;
 const TIMES = '×';          // plain text (order note)
@@ -144,7 +145,7 @@ function wheelHtml(w, images, imageErrors, opts) {
 
 // The order note (Shopify order, packing slip). Text only: the length line lives here, never images or customer wording.
 function noteText(wheels, lengthsByPos, imageErrors) {
-  let note = 'AUTOMATED SYSTEM BUILD REPORT (Industry Nine SYSTEM spokes)\n';
+  let note = `${SYSTEM_REPORT_MARKER} (Industry Nine SYSTEM spokes)\n`; // the marker doubles as the "already processed" record (see _lib/system-dedupe.js)
   note += '--------------------------------------------------\n';
   note += 'No Length Variant inventory was deducted (System spokes have no length yet).\n';
   wheels.forEach((w) => {
