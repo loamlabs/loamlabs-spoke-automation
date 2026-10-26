@@ -1,14 +1,16 @@
 // _lib/system-report.js
-// I9-SYSTEM: the engineering report for a System build order: email HTML (with inline wheel images), the plain-text order note, and the
-// Resend send with inline attachments. Nothing here touches inventory. Every image problem is caught and reported in the email text;
-// the report is always produced.
+// I9-SYSTEM: the report for a System build order: the internal engineering email (HTML with inline wheel images), the plain-text order
+// note, the optional customer email, and the Resend sends with inline attachments. Nothing here touches inventory. Every image problem is
+// caught and reported in the internal email text; the report is always produced.
 //
 //   const report = await buildSystemReport({ recipe, orderData, componentData });   // { subject, html, note, wheels, images, imageErrors, warnings }
-//   await sendSystemEmail({ report, orderData, to, apiKey });                        // inline images via content ids (cid:), falls back to text-only
+//   await sendSystemEmail({ report, to, apiKey });                                   // inline images via content ids (cid:), falls back to text-only
+//   const customer = buildCustomerEmail({ wheels: report.wheels, images: report.images, orderData });   // null unless a wheel has 2+ colors
+//   await sendCustomerEmailIfEnabled({ customer, orderData });                       // only when env SYSTEM_CUSTOMER_EMAIL === 'on'
 
 import { systemWheels, hexFor, SYSTEM_FEE } from './system-build.js';
 import { geometry } from './studio-geometry.js';
-import { wheelSvg, FAR_SIDE_OPACITY } from './wheel-svg.js';
+import { wheelSvg } from './wheel-svg.js';
 import { svgToPng } from './wheel-png.js';
 import { calculateSystemSpokeLengths, SYSTEM_LENGTHS_PENDING_TEXT } from './system-lengths.js';
 
@@ -16,14 +18,31 @@ export const IMAGE_WIDTH_PX = 600;
 const TIMES = '×';          // plain text (order note)
 const TIMES_HTML = '&times;';    // email HTML (entity: safe whatever charset the client assumes)
 
+export const CUSTOMER_FROM = 'LoamLabs <info@loamlabsusa.com>';
+export const CUSTOMER_REPLY_TO = 'info@loamlabsusa.com';
+export const CUSTOMER_EMAIL_FLAG = 'SYSTEM_CUSTOMER_EMAIL'; // sending to customers is OFF unless this env var equals exactly "on"
+
 function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
 function countsText(list, times = TIMES) { return list.map((c) => `${c.color} ${times}${c.n}`).join(', '); }
 
-// Image order: front wheel rotor view then drive view; rear wheel drive view then rotor view.
-export function viewsFor(position) { return position === 'front' ? ['rotor', 'drive'] : ['drive', 'rotor']; }
+/* ------------------------------------------------------------------ images */
 
-// Renders the two views of a multi-color wheel. Each failure becomes an imageErrors line; nothing throws.
+// The three images of a multi-color wheel, all spokes at full color and opacity. High-tension side: front = rotor, rear = drive.
+//   a) high-tension side spokes only   b) low-tension side spokes only   c) all spokes, viewed from the high-tension side
+// Order in the email: a, b, c; front wheel first, then rear.
+export function highSideOf(position) { return position === 'front' ? 'rotor' : 'drive'; }
+export function lowSideOf(position) { return position === 'front' ? 'drive' : 'rotor'; }
+export function imageSpecsFor(position) {
+  const P = cap(position), high = highSideOf(position), low = lowSideOf(position);
+  return [
+    { cid: `${position}-${high}-only`, caption: `${P} wheel, ${high} side spokes only`, sides: [high], pov: high },
+    { cid: `${position}-${low}-only`, caption: `${P} wheel, ${low} side spokes only`, sides: [low], pov: low },
+    { cid: `${position}-all-spokes`, caption: `${P} wheel, all spokes (${high} side view)`, sides: ['drive', 'rotor'], pov: high }
+  ];
+}
+
+// Renders the three images of a multi-color wheel. Each failure becomes an imageErrors line; nothing throws.
 async function renderWheelImages(wheel, renderPng, width) {
   const images = [], errors = [];
   let geom;
@@ -34,16 +53,14 @@ async function renderWheelImages(wheel, renderPng, width) {
     return { images, errors };
   }
   const colorsHex = { drive: wheel.colors.drive.map(hexFor), rotor: wheel.colors.rotor.map(hexFor) };
-  for (const pov of viewsFor(wheel.position)) {
-    const caption = `${wheel.label} wheel, ${cap(pov)} side view`;
-    const cid = `${wheel.position}-${pov}-view`;
+  for (const spec of imageSpecsFor(wheel.position)) {
     try {
-      const svg = wheelSvg({ config: wheel.config, geom, colorsHex, hubHex: wheel.hubColorHex, pov, size: width });
+      const svg = wheelSvg({ config: wheel.config, geom, colorsHex, hubHex: wheel.hubColorHex, pov: spec.pov, sides: spec.sides, size: width });
       const png = await renderPng(svg, { width });
       if (!png || !png.length) throw new Error('renderer returned no bytes');
-      images.push({ cid, filename: `${cid}.png`, caption, png, svg, position: wheel.position, pov });
+      images.push({ cid: spec.cid, filename: `${spec.cid}.png`, caption: spec.caption, png, svg, position: wheel.position, pov: spec.pov, sides: spec.sides });
     } catch (e) {
-      errors.push(`${caption}: image failed: ${e && e.message ? e.message : String(e)}`);
+      errors.push(`${spec.caption}: image failed: ${e && e.message ? e.message : String(e)}`);
     }
   }
   return { images, errors };
@@ -61,9 +78,9 @@ function lengthsFor(wheel, lengthCalculator) {
   }
 }
 
-/* ------------------------------------------------------------------ email */
+/* ------------------------------------------------------------------ email HTML */
 
-// The same look as the Standard report (style block copied from api/index.js sendEmailReport).
+// The same look as the Standard report (style block copied from api/index.js sendEmailReport). Used by the internal and the customer email.
 const STYLE = `
                 body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #333; line-height: 1.6; }
                 .container { max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
@@ -88,17 +105,20 @@ function colorRow(label, list) {
   return `<tr><td>${esc(label)}</td><td>${cells}</td></tr>`;
 }
 
-function wheelHtml(w, images, imageErrors, lengths) {
+// One wheel section. internal: lengths, fee check, warnings, image-failure lines. customer: component details, color tables and images only.
+function wheelHtml(w, images, imageErrors, opts) {
+  const internal = !!(opts && opts.internal), lengths = opts && opts.lengths;
   const imgs = images.filter((i) => i.position === w.position);
   const errs = imageErrors.filter((e) => e.startsWith(`${w.label} wheel`));
   let visual;
   if (!w.isMultiColor) {
-    visual = `<p><strong>${esc(w.label)} wheel: all ${esc(w.counts.all[0] ? w.counts.all[0].color : 'n/a')}</strong> (one color, no image)</p>`;
+    visual = `<p><strong>${esc(w.label)} wheel: all ${esc(w.counts.all[0] ? w.counts.all[0].color : 'n/a')}</strong>${internal ? ' (one color, no image)' : ''}</p>`;
   } else {
     visual = imgs.map((i) => `<img class="wheel-img" src="cid:${i.cid}" width="${IMAGE_WIDTH_PX}" alt="${esc(i.caption)}"><p class="caption">${esc(i.caption)}</p>`).join('');
-    visual += errs.map((e) => `<p class="failed">${esc(e)}</p>`).join('');
+    if (internal) visual += errs.map((e) => `<p class="failed">${esc(e)}</p>`).join('');
   }
-  const warnings = w.warnings.map((t) => `<p class="alert"><strong>NOTE:</strong> ${esc(t)}</p>`).join('');
+  const warnings = internal ? w.warnings.map((t) => `<p class="alert"><strong>NOTE:</strong> ${esc(t)}</p>`).join('') : '';
+  const feeRow = internal ? `<tr><td>Custom color fee</td><td>${w.isMultiColor ? (w.feeLines ? `${w.feeLines} ${TIMES_HTML} ${esc(SYSTEM_FEE.name)} line on the order` : 'expected, none found on the order') : 'not applicable (one color)'}</td></tr>` : '';
   return `
         <div class="wheel-section">
             <h3>${w.label.toUpperCase()} WHEEL</h3>
@@ -108,7 +128,7 @@ function wheelHtml(w, images, imageErrors, lengths) {
                 <tr><td>Hub color</td><td><span class="swatch" style="background:${w.hubColorHex}"></span>${esc(w.hubColor)}</td></tr>
                 ${w.position === 'rear' ? `<tr><td>Freehub</td><td>${esc(w.freehub || 'n/a')}</td></tr>` : ''}
                 <tr><td>Spoke count</td><td>${esc(w.spokeCountLabel)}</td></tr>
-                <tr><td>Custom color fee</td><td>${w.isMultiColor ? (w.feeLines ? `${w.feeLines} ${TIMES_HTML} ${esc(SYSTEM_FEE.name)} line on the order` : 'expected, none found on the order') : 'not applicable (one color)'}</td></tr>
+                ${feeRow}
             </table>
             <h4>Spoke Colors</h4>
             <table class="data-table">
@@ -117,11 +137,12 @@ function wheelHtml(w, images, imageErrors, lengths) {
                 ${colorRow(`Whole wheel (${w.total})`, w.counts.all)}
             </table>
             ${visual}
-            <p><em>${esc(lengths.text)}</em></p>
+            ${internal ? `<p><em>${esc(lengths.text)}</em></p>` : ''}
             ${warnings}
         </div>`;
 }
 
+// The order note (Shopify order, packing slip). Text only: the length line lives here, never images or customer wording.
 function noteText(wheels, lengthsByPos, imageErrors) {
   let note = 'AUTOMATED SYSTEM BUILD REPORT (Industry Nine SYSTEM spokes)\n';
   note += '--------------------------------------------------\n';
@@ -143,8 +164,10 @@ function noteText(wheels, lengthsByPos, imageErrors) {
   return note;
 }
 
+function orderNumberOf(orderData) { return orderData.order_number != null ? orderData.order_number : (orderData.name || 'n/a'); }
+
 /**
- * Builds the whole report. Never throws for data problems (they become warnings); only a broken recipe shape would.
+ * Builds the whole internal report. Never throws for data problems (they become warnings); only a broken recipe shape would.
  * @param {{ recipe: object, orderData?: object, componentData?: Map|null, lengthCalculator?: Function, renderPng?: Function, imageWidth?: number }} o
  */
 export async function buildSystemReport(o) {
@@ -159,11 +182,11 @@ export async function buildSystemReport(o) {
     const r = await renderWheelImages(w, renderPng, width);
     images.push(...r.images); imageErrors.push(...r.errors);
   }
-  const orderNumber = orderData.order_number != null ? orderData.order_number : (orderData.name || 'n/a');
+  const orderNumber = orderNumberOf(orderData);
   const orderAdminUrl = orderData.id ? `https://${process.env.SHOPIFY_STORE_DOMAIN}/admin/orders/${orderData.id}` : null;
   const hubModels = [...new Set(wheels.map((w) => w.hubModel))].join(' / ');
   const multi = wheels.filter((w) => w.isMultiColor).length;
-  const summary = wheels.map((w) => `<p><strong>${esc(w.label)} wheel (${esc(w.hubModel)}, ${esc(w.spokeCountLabel)}):</strong> ${esc(countsText(w.counts.all, TIMES_HTML)).replace(/&amp;times;/g, '&times;')}${w.isMultiColor ? '' : ' (one color)'}</p>`).join('');
+  const summary = wheels.map((w) => `<p><strong>${esc(w.label)} wheel (${esc(w.hubModel)}, ${esc(w.spokeCountLabel)}):</strong> ${w.counts.all.map((c) => `${esc(c.color)} ${TIMES_HTML}${c.n}`).join(', ')}${w.isMultiColor ? '' : ' (one color)'}</p>`).join('');
   const html = `
         <!DOCTYPE html>
         <html>
@@ -183,8 +206,8 @@ export async function buildSystemReport(o) {
                     <p><em>${esc(SYSTEM_LENGTHS_PENDING_TEXT.split(':')[0])}: ${Object.values(lengthsByPos).every((l) => l.pending) ? 'not calculated (method pending)' : 'see each wheel'}</em></p>
                 </div>
 
-                ${wheels.map((w) => wheelHtml(w, images, imageErrors, lengthsByPos[w.position])).join('')}
-                <p class="caption">Images: the viewed side is drawn at full strength, the far side at ${Math.round(FAR_SIDE_OPACITY * 100)}% opacity. Geometry and lacing are the Spoke Color Studio's own.</p>
+                ${wheels.map((w) => wheelHtml(w, images, imageErrors, { internal: true, lengths: lengthsByPos[w.position] })).join('')}
+                <p class="caption">Images: every spoke is drawn at full color; geometry and lacing are the Spoke Color Studio's own.</p>
             </div>
         </body>
         </html>
@@ -199,10 +222,62 @@ export async function buildSystemReport(o) {
   };
 }
 
-/* ------------------------------------------------------------------ Resend send with inline images */
+/* ------------------------------------------------------------------ customer email */
+
+// Where the customer email goes: the order's email, else the customer's. null when there is no usable address.
+export function customerRecipient(orderData) {
+  const cands = [orderData && orderData.email, orderData && orderData.customer && orderData.customer.email];
+  for (const c of cands) { const v = typeof c === 'string' ? c.trim() : ''; if (v && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return v; }
+  return null;
+}
+export function customerFirstName(orderData) {
+  const o = orderData || {};
+  const cands = [o.customer && o.customer.first_name, o.billing_address && o.billing_address.first_name, o.shipping_address && o.shipping_address.first_name];
+  for (const c of cands) { const v = typeof c === 'string' ? c.trim() : ''; if (v) return v; }
+  return null;
+}
+
+/**
+ * The customer version of the report: greeting, one sentence, per wheel the component details, the color tables and the same images.
+ * No lengths, no warnings, no fee/mismatch/geometry-source text, no build id, no inventory text. null when no wheel has 2+ colors.
+ * Returns { subject, html, fallbackHtml, images, wheels } - fallbackHtml is the same email without images (used if Resend rejects the attachments).
+ */
+export function buildCustomerEmail({ wheels, images, orderData }) {
+  if (!wheels || !wheels.some((w) => w.isMultiColor)) return null;
+  const orderData_ = orderData || {};
+  const orderNumber = orderNumberOf(orderData_);
+  const first = customerFirstName(orderData_);
+  const page = (imgs) => `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <style>${STYLE}</style>
+        </head>
+        <body>
+            <div class="container">
+                <h2>Your custom spoke colors, order #${esc(orderNumber)}</h2>
+                <p>${first ? `Hi ${esc(first)},` : 'Hi,'}</p>
+                <p>Here are the spoke colors you designed for your wheels.</p>
+                ${wheels.map((w) => wheelHtml(w, imgs, [], { internal: false })).join('')}
+            </div>
+        </body>
+        </html>
+    `;
+  return {
+    subject: `Your custom spoke colors, order #${orderNumber}`,
+    html: page(images || []),
+    fallbackHtml: page([]).replace(/<p class="caption">[\s\S]*?<\/p>/g, ''),
+    images: images || [],
+    wheels
+  };
+}
+
+/* ------------------------------------------------------------------ Resend sends with inline images */
 
 // Sends through the Resend REST API so the attachments can carry content_id (inline images, src="cid:..."). Gmail and Apple Mail show
-// cid images; data: URIs would not show in Gmail. If the send with images fails, the same email goes out text-only with a line per image.
+// cid images; data: URIs would not show in Gmail. If the send with images fails, the same email goes out text-only (the internal report
+// gets a line per image saying why; a report with `fallbackHtml`, the customer email, uses that instead and shows no technical text).
 // Returns { id, inline: boolean }. Throws only when both sends fail.
 export async function sendSystemEmail(o) {
   const apiKey = o.apiKey || process.env.RESEND_API_KEY;
@@ -211,7 +286,7 @@ export async function sendSystemEmail(o) {
   const replyTo = o.replyTo || 'LoamLabs Support <info@loamlabsusa.com>';
   const fetchImpl = o.fetchImpl || globalThis.fetch;
   if (!apiKey) throw new Error('RESEND_API_KEY is not set');
-  if (!to) throw new Error('BUILDER_EMAIL_ADDRESS is not set');
+  if (!to) throw new Error('recipient address is not set');
   const report = o.report;
 
   const post = async (body) => {
@@ -236,13 +311,42 @@ export async function sendSystemEmail(o) {
       return { id: data && data.id, inline: true };
     } catch (e) {
       console.error('I9-SYSTEM: email with inline images failed, retrying text-only:', e.message);
-      const lines = report.images.map((i) => `${i.caption}: image failed: email attachment rejected (${e.message})`);
-      const failedHtml = `<div class="container"><p class="failed">${lines.map(esc).join('<br>')}</p></div>`;
-      const html = report.html.replace(/<img class="wheel-img"[^>]*>/g, '').replace(/<\/body>/i, `${failedHtml}</body>`);
+      let html;
+      if (report.fallbackHtml) html = report.fallbackHtml;
+      else {
+        const lines = report.images.map((i) => `${i.caption}: image failed: email attachment rejected (${e.message})`);
+        const failedHtml = `<div class="container"><p class="failed">${lines.map(esc).join('<br>')}</p></div>`;
+        html = report.html.replace(/<img class="wheel-img"[^>]*>/g, '').replace(/<\/body>/i, `${failedHtml}</body>`);
+      }
       const data = await post({ ...base, html });
       return { id: data && data.id, inline: false, error: e.message };
     }
   }
   const data = await post({ ...base, html: report.html });
   return { id: data && data.id, inline: false };
+}
+
+/**
+ * Sends the customer version to the ORDER's customer, only when env SYSTEM_CUSTOMER_EMAIL is exactly "on" (default off). Never throws.
+ * Returns { sent: boolean, reason?: string, id?: string, to?: string }. Logs exactly one line when it does not send.
+ */
+export async function sendCustomerEmailIfEnabled({ customer, orderData, env = process.env, send = sendSystemEmail, log = console.log }) {
+  try {
+    if (!customer) return { sent: false, reason: 'no wheel with more than one spoke color' };
+    if (env[CUSTOMER_EMAIL_FLAG] !== 'on') {
+      log(`I9-SYSTEM: customer spoke-color email not sent (${CUSTOMER_EMAIL_FLAG} is not "on").`);
+      return { sent: false, reason: 'flag off' };
+    }
+    const to = customerRecipient(orderData);
+    if (!to) {
+      log('I9-SYSTEM: customer spoke-color email not sent (the order has no customer email address).');
+      return { sent: false, reason: 'no recipient' };
+    }
+    const r = await send({ report: customer, to, from: CUSTOMER_FROM, replyTo: CUSTOMER_REPLY_TO });
+    log(`✅ I9-SYSTEM: customer spoke-color email sent (${r.inline ? 'inline images' : 'text only'}). Resend ID: ${r.id}`);
+    return { sent: true, id: r.id, to, inline: r.inline };
+  } catch (error) {
+    console.error('🚨 I9-SYSTEM: failed to send the customer spoke-color email:', error);
+    return { sent: false, reason: 'error', error: error.message };
+  }
 }

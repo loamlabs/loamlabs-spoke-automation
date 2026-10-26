@@ -1,24 +1,37 @@
-// I9-SYSTEM: System build parsing, color counts, images (only for multi-color wheels), the length hook wiring and failure handling.
+// I9-SYSTEM: System build parsing, color counts, the 3-image set per multi-color wheel (no fading), the length hook wiring, the customer
+// email content and failure handling.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { loadSample } from './helpers/webhook-harness.mjs';
 import { findSystemBuildRecipe, systemWheels, isSystemFeeLineItem, SYSTEM_FEE } from '../_lib/system-build.js';
-import { buildSystemReport, viewsFor } from '../_lib/system-report.js';
+import { buildSystemReport, buildCustomerEmail, imageSpecsFor, customerRecipient, customerFirstName } from '../_lib/system-report.js';
+import * as wheelSvgModule from '../_lib/wheel-svg.js';
 import { SYSTEM_LENGTHS_PENDING_TEXT } from '../_lib/system-lengths.js';
+import { SYSTEM_SAMPLES } from '../samples/index.js';
 
-const fakePng = async (svg) => Buffer.from('PNG:' + svg.length); // no native renderer needed for these tests
+const fakePng = async (svg) => Buffer.from('PNG:' + svg.length); // no native renderer needed for most tests
 const recipeOf = (name) => { const o = loadSample('system', name); return { order: o, recipe: findSystemBuildRecipe(o).recipe }; };
+const SYSTEM_SAMPLE_NAMES = ['solix-24h-wheelset-multicolor', 'hydra2-wheelset-28f-32r', 'hydra2-wheelset-32f-32r', 'hydra2-front-28h-only', 'hydra2-front-32h-only', 'hydra2-rear-32h-only', 'solix-single-color-front', 'hydra2-rear-32h-all-different'];
 
-test('System builds are recognized, Standard builds are not', () => {
-  for (const n of ['solix-24h-wheelset-multicolor', 'hydra2-32h-wheelset', 'hydra2-28h-front-only', 'solix-single-color-front', 'hydra2-28h-rear-all-different']) {
-    assert.ok(findSystemBuildRecipe(loadSample('system', n)), n);
-  }
+test('System builds are recognized, Standard builds are not; the sample list is the real-wheel list (no Hydra2 28h rear)', () => {
+  assert.deepEqual(Object.keys(SYSTEM_SAMPLES).sort(), [...SYSTEM_SAMPLE_NAMES].sort());
+  for (const n of SYSTEM_SAMPLE_NAMES) assert.ok(findSystemBuildRecipe(loadSample('system', n)), n);
   for (const n of ['steel-jbend-wheelset', 'berd-straightpull-front', 'rimbrake-front-own-rear-hub']) {
     assert.equal(findSystemBuildRecipe(loadSample('standard', n)), null, n);
   }
   assert.equal(findSystemBuildRecipe({ line_items: [] }), null);
   assert.equal(findSystemBuildRecipe(null), null);
   assert.equal(findSystemBuildRecipe({ line_items: [{ properties: [{ name: '_is_custom_wheel_build', value: 'true' }, { name: '_build', value: '{not json' }] }] }), null);
+});
+
+test('every System sample is a combination a customer can build: Hydra2 front 28h/32h, Hydra2 rear 32h only, Solix 24h front and rear', () => {
+  for (const n of SYSTEM_SAMPLE_NAMES) {
+    const { order, recipe } = recipeOf(n);
+    for (const w of systemWheels(recipe, null, order)) {
+      const key = `${w.hubModel} ${w.position} ${w.total}h`;
+      assert.ok(['Hydra2 front 28h', 'Hydra2 front 32h', 'Hydra2 rear 32h', 'Solix front 24h', 'Solix rear 24h'].includes(key), `${n}: ${key} is not a real wheel`);
+    }
+  }
 });
 
 test('Solix 24h 2:1: counts per side follow the Studio value; front rotor side has 16 spokes, rear drive side has 16', () => {
@@ -31,8 +44,7 @@ test('Solix 24h 2:1: counts per side follow the Studio value; front rotor side h
   assert.equal(front.hubModel, 'Solix'); assert.equal(front.hubColor, 'Purple');
   assert.equal(rear.freehub, 'XD');
   assert.ok(front.isMultiColor && rear.isMultiColor);
-  // 2 x 1 at rotation 0 paints 16 of 24 spokes: a pair, then one skipped
-  assert.deepEqual(front.counts.all, [{ color: 'Orange', n: 16 }, { color: 'Black', n: 8 }]);
+  assert.equal(front.counts.all.reduce((s, c) => s + c.n, 0), 24);
   assert.deepEqual(rear.counts.rotor, [{ color: 'Turquoise', n: 8 }]);
   assert.equal(rear.counts.all.reduce((s, c) => s + c.n, 0), 24);
   assert.equal(front.feeLines, 1);
@@ -54,7 +66,7 @@ test('fee line detection by variant id or title; spoke-line mismatches are repor
   assert.ok(isSystemFeeLineItem({ variant_id: SYSTEM_FEE.variantId, title: 'whatever' }));
   assert.ok(isSystemFeeLineItem({ variant_id: 1, title: 'Custom Spoke Color Configuration' }));
   assert.equal(isSystemFeeLineItem({ variant_id: 1, title: 'Industry Nine SYSTEM Spokes' }), false);
-  const { order, recipe } = recipeOf('hydra2-28h-front-only');
+  const { order, recipe } = recipeOf('hydra2-front-28h-only');
   const broken = JSON.parse(JSON.stringify(order));
   broken.line_items.filter((li) => li.title === 'Industry Nine SYSTEM Spokes')[0].quantity += 1; // one spoke too many in the cart
   broken.line_items = broken.line_items.filter((li) => !isSystemFeeLineItem(li));                 // and the fee line is gone
@@ -63,37 +75,77 @@ test('fee line detection by variant id or title; spoke-line mismatches are repor
   assert.ok(front.warnings.some((w) => w.includes('no "Custom Spoke Color Configuration" line')), front.warnings.join(' | '));
 });
 
-test('report: two images per multi-color wheel in the right order, none for a single-color wheel; pending length line; note has no restock markers', async () => {
-  const { order, recipe } = recipeOf('solix-single-color-front');
-  const report = await buildSystemReport({ recipe, orderData: order, renderPng: fakePng });
-  assert.deepEqual(viewsFor('front'), ['rotor', 'drive']);
-  assert.deepEqual(viewsFor('rear'), ['drive', 'rotor']);
-  assert.deepEqual(report.images.map((i) => i.cid), ['rear-drive-view', 'rear-rotor-view']);
-  assert.deepEqual(report.images.map((i) => i.caption), ['Rear wheel, Drive side view', 'Rear wheel, Rotor side view']);
-  assert.deepEqual(report.imageErrors, []);
-  assert.ok(report.html.includes('Front wheel: all Black'));
-  assert.ok(report.html.includes('src="cid:rear-drive-view"'));
-  assert.ok(report.html.indexOf('FRONT WHEEL') < report.html.indexOf('REAR WHEEL'), 'front section before rear');
-  assert.ok(report.html.includes(SYSTEM_LENGTHS_PENDING_TEXT));
-  assert.ok(report.subject.includes('System'));
-  assert.ok(report.note.startsWith('AUTOMATED SYSTEM BUILD REPORT'));
-  assert.ok(report.note.includes('Drive side (16): Red ×16'));
-  assert.ok(report.note.includes(SYSTEM_LENGTHS_PENDING_TEXT));
-  assert.equal(report.note.includes('AUTOMATED SPOKE CALCULATION'), false, 'must not look like a Standard note');
-  assert.equal(/\(Adjusted\)/.test(report.note), false, 'must not carry restock markers');
-  assert.equal(report.note.includes('cid:'), false, 'no images in the note');
+/* ------------------------------------------------------------------ the 3-image set */
+
+test('image specs: a) high-tension side only, b) low-tension side only, c) all spokes from the high side; captions and ids per wheel', () => {
+  assert.deepEqual(imageSpecsFor('front').map((s) => [s.cid, s.caption, s.sides, s.pov]), [
+    ['front-rotor-only', 'Front wheel, rotor side spokes only', ['rotor'], 'rotor'],
+    ['front-drive-only', 'Front wheel, drive side spokes only', ['drive'], 'drive'],
+    ['front-all-spokes', 'Front wheel, all spokes (rotor side view)', ['drive', 'rotor'], 'rotor']
+  ]);
+  assert.deepEqual(imageSpecsFor('rear').map((s) => [s.cid, s.caption, s.sides, s.pov]), [
+    ['rear-drive-only', 'Rear wheel, drive side spokes only', ['drive'], 'drive'],
+    ['rear-rotor-only', 'Rear wheel, rotor side spokes only', ['rotor'], 'rotor'],
+    ['rear-all-spokes', 'Rear wheel, all spokes (drive side view)', ['drive', 'rotor'], 'drive']
+  ]);
 });
 
-test('report: front wheel images come first (rotor then drive), then rear (drive then rotor)', async () => {
+test('report: 3 images per multi-color wheel in order a, b, c, front wheel first; none for a single-color wheel; pending length line', async () => {
   const { order, recipe } = recipeOf('solix-24h-wheelset-multicolor');
   const report = await buildSystemReport({ recipe, orderData: order, renderPng: fakePng });
-  assert.deepEqual(report.images.map((i) => i.cid), ['front-rotor-view', 'front-drive-view', 'rear-drive-view', 'rear-rotor-view']);
-  const order_ = ['cid:front-rotor-view', 'cid:front-drive-view', 'cid:rear-drive-view', 'cid:rear-rotor-view'].map((c) => report.html.indexOf(c));
-  assert.ok(order_.every((p, i) => p > 0 && (i === 0 || p > order_[i - 1])), 'images appear in order in the HTML');
+  assert.deepEqual(report.images.map((i) => i.cid), ['front-rotor-only', 'front-drive-only', 'front-all-spokes', 'rear-drive-only', 'rear-rotor-only', 'rear-all-spokes']);
+  assert.deepEqual(report.images.map((i) => i.caption), [
+    'Front wheel, rotor side spokes only', 'Front wheel, drive side spokes only', 'Front wheel, all spokes (rotor side view)',
+    'Rear wheel, drive side spokes only', 'Rear wheel, rotor side spokes only', 'Rear wheel, all spokes (drive side view)'
+  ]);
+  const pos = report.images.map((i) => report.html.indexOf(`cid:${i.cid}`));
+  assert.ok(pos.every((p, i) => p > 0 && (i === 0 || p > pos[i - 1])), 'images appear in this order in the HTML');
+  assert.ok(report.html.indexOf('FRONT WHEEL') < report.html.indexOf('REAR WHEEL'), 'front section before rear');
+  assert.deepEqual(report.imageErrors, []);
+  assert.ok(report.html.includes(SYSTEM_LENGTHS_PENDING_TEXT));
+  assert.ok(report.subject.includes('System'));
+
+  const single = recipeOf('solix-single-color-front');
+  const r2 = await buildSystemReport({ recipe: single.recipe, orderData: single.order, renderPng: fakePng });
+  assert.deepEqual(r2.images.map((i) => i.cid), ['rear-drive-only', 'rear-rotor-only', 'rear-all-spokes'], 'only the multi-color rear wheel gets images');
+  assert.ok(r2.html.includes('Front wheel: all Black'));
+});
+
+test('SVG: every spoke at full opacity, no fading and no alpha anywhere; FAR_SIDE_OPACITY is gone', async () => {
+  assert.equal('FAR_SIDE_OPACITY' in wheelSvgModule, false, 'FAR_SIDE_OPACITY must be removed');
+  for (const n of SYSTEM_SAMPLE_NAMES) {
+    const { order, recipe } = recipeOf(n);
+    const report = await buildSystemReport({ recipe, orderData: order, renderPng: fakePng });
+    for (const img of report.images) {
+      assert.equal(/opacity/i.test(img.svg), false, `${n}/${img.cid}: the SVG must not contain any opacity attribute`);
+      assert.equal(/rgba\(|hsla\(|#[0-9a-f]{8}\b/i.test(img.svg), false, `${n}/${img.cid}: the SVG must not use alpha colors`);
+    }
+  }
+});
+
+test('SVG content per image: spokes-only draws one side, all-spokes draws both; white background; hub in the customer hub color; stem present', async () => {
+  const { order, recipe } = recipeOf('hydra2-wheelset-32f-32r');
+  const report = await buildSystemReport({ recipe, orderData: order, renderPng: fakePng });
+  const byId = Object.fromEntries(report.images.map((i) => [i.cid, i.svg]));
+  const lines = (svg, side) => { const m = new RegExp(`<g data-side="${side}">([\\s\\S]*?)</g>`).exec(svg); return m ? (m[1].match(/<line /g) || []).length : 0; };
+  // 32h Hydra2: 16 spokes per side, each spoke = edge line + color line
+  assert.equal(lines(byId['front-rotor-only'], 'rotor'), 32); assert.equal(lines(byId['front-rotor-only'], 'drive'), 0);
+  assert.equal(lines(byId['front-drive-only'], 'drive'), 32); assert.equal(lines(byId['front-drive-only'], 'rotor'), 0);
+  assert.equal(lines(byId['front-all-spokes'], 'drive'), 32); assert.equal(lines(byId['front-all-spokes'], 'rotor'), 32);
+  assert.equal(lines(byId['rear-drive-only'], 'drive'), 32); assert.equal(lines(byId['rear-drive-only'], 'rotor'), 0);
+  assert.equal(lines(byId['rear-rotor-only'], 'rotor'), 32); assert.equal(lines(byId['rear-rotor-only'], 'drive'), 0);
+  for (const svg of Object.values(byId)) {
+    assert.ok(svg.includes('<rect width="600" height="600" fill="#ffffff"/>'), 'white background');
+    assert.ok(svg.includes('fill="url(#stem)"'), 'valve stem');
+  }
+  // Black hub: the hub gradient stops are built from the customer's hub color (#1d1f23)
+  assert.ok(byId['front-all-spokes'].includes('stop-color="#1d1f23"'));
+  // the all-spokes image is mirrored for the rotor view: the same drive spoke ends at a different x than in a drive-side image
+  assert.notEqual(byId['front-rotor-only'], byId['front-drive-only']);
 });
 
 test('LENGTH-CALC HOOK wiring: numbers from the hook show up in the email and the note with no other change', async () => {
-  const { order, recipe } = recipeOf('hydra2-32h-wheelset');
+  const { order, recipe } = recipeOf('hydra2-wheelset-32f-32r');
   const fakeCalc = (wheel) => ({ left: wheel.position === 'front' ? 288 : 286, right: wheel.position === 'front' ? 288 : 284, note: 'stub' });
   const report = await buildSystemReport({ recipe, orderData: order, renderPng: fakePng, lengthCalculator: fakeCalc });
   assert.ok(report.html.includes('Left/Rotor 288 mm, Right/Drive 288 mm (stub)'));
@@ -101,23 +153,24 @@ test('LENGTH-CALC HOOK wiring: numbers from the hook show up in the email and th
   assert.equal(report.html.includes(SYSTEM_LENGTHS_PENDING_TEXT), false);
   const pending = await buildSystemReport({ recipe, orderData: order, renderPng: fakePng, lengthCalculator: () => null });
   assert.ok(pending.html.includes(SYSTEM_LENGTHS_PENDING_TEXT));
+  assert.ok(pending.note.includes(SYSTEM_LENGTHS_PENDING_TEXT));
   const throwing = await buildSystemReport({ recipe, orderData: order, renderPng: fakePng, lengthCalculator: () => { throw new Error('boom'); } });
   assert.ok(throwing.note.includes('calculator error: boom'));
 });
 
-test('a failing renderer never fails the report: text stays, an "image failed" line appears per image', async () => {
-  const { order, recipe } = recipeOf('hydra2-28h-front-only');
+test('a failing renderer never fails the report: text stays, an "image failed" line appears per image (3 per wheel)', async () => {
+  const { order, recipe } = recipeOf('hydra2-front-28h-only');
   const report = await buildSystemReport({ recipe, orderData: order, renderPng: async () => { throw new Error('native binary missing'); } });
   assert.equal(report.images.length, 0);
-  assert.equal(report.imageErrors.length, 2);
-  assert.ok(report.imageErrors[0].startsWith('Front wheel, Rotor side view: image failed: native binary missing'));
+  assert.equal(report.imageErrors.length, 3);
+  assert.ok(report.imageErrors[0].startsWith('Front wheel, rotor side spokes only: image failed: native binary missing'));
   assert.ok(report.html.includes('image failed: native binary missing'));
   assert.ok(report.html.includes('Green'));
   assert.ok(report.note.includes('IMAGES:'));
 });
 
 test('hub metafields from Shopify override the sample geometry; the Studio value length mismatch is repaired like the Studio does', async () => {
-  const { order, recipe } = recipeOf('hydra2-28h-front-only');
+  const { order, recipe } = recipeOf('hydra2-front-28h-only');
   const componentData = new Map();
   componentData.set(recipe.components.frontHub.variantId, { hub_flange_diameter_right: '47.5', hub_flange_diameter_left: '45', hub_flange_offset_left: '33', hub_flange_offset_right: '24' });
   componentData.set(recipe.components.frontRim.variantId, { rim_erd: '592' });
@@ -131,4 +184,76 @@ test('hub metafields from Shopify override the sample geometry; the Studio value
   assert.equal(b.colors.drive.length, 14);
   assert.ok(b.colors.drive.every((c) => c === 'Black'));
   assert.ok(b.warnings.some((w) => w.includes('Studio spoke map has 2 entries')));
+});
+
+/* ------------------------------------------------------------------ the order note */
+
+test('order note: text only, carries the length line (pending text, or the numbers once the hook returns them), no images, no customer wording', async () => {
+  const { order, recipe } = recipeOf('hydra2-wheelset-28f-32r');
+  const pending = await buildSystemReport({ recipe, orderData: order, renderPng: fakePng });
+  assert.equal((pending.note.match(/Spoke lengths for System hubs: not calculated \(method pending\)/g) || []).length, 2, 'one length line per wheel');
+  const numbers = await buildSystemReport({ recipe, orderData: order, renderPng: fakePng, lengthCalculator: () => ({ left: 280, right: 282 }) });
+  assert.equal((numbers.note.match(/Left\/Rotor 280 mm, Right\/Drive 282 mm/g) || []).length, 2);
+  for (const note of [pending.note, numbers.note]) {
+    assert.ok(note.startsWith('AUTOMATED SYSTEM BUILD REPORT'));
+    assert.ok(note.includes('Drive side (14): ') && note.includes('Rotor side (16): '));
+    assert.equal(/cid:|<img|\.png|Hi |Here are the spoke colors/i.test(note), false, 'no images or customer wording in the note');
+    assert.equal(note.includes('AUTOMATED SPOKE CALCULATION'), false, 'must not look like a Standard note');
+    assert.equal(/\(Adjusted\)/.test(note), false, 'must not carry restock markers');
+  }
+});
+
+/* ------------------------------------------------------------------ customer email */
+
+test('customer email: greeting, one sentence, component details, color tables, the same 3 images per wheel; NO lengths, warnings, fee/mismatch/sample text, build id', async () => {
+  const { order, recipe } = recipeOf('hydra2-wheelset-28f-32r');
+  // make the internal report noisy on purpose: a spoke-line mismatch and a missing fee line produce warnings
+  const noisy = JSON.parse(JSON.stringify(order));
+  noisy.line_items.filter((li) => li.title === 'Industry Nine SYSTEM Spokes')[0].quantity += 1;
+  noisy.line_items = noisy.line_items.filter((li) => !isSystemFeeLineItem(li));
+  const report = await buildSystemReport({ recipe, orderData: noisy, renderPng: fakePng, lengthCalculator: () => ({ left: 281, right: 283, note: 'stub' }) });
+  assert.ok(report.warnings.length > 0 && report.html.includes('NOTE:'), 'the internal email is noisy');
+  const c = buildCustomerEmail({ wheels: report.wheels, images: report.images, orderData: noisy });
+  assert.equal(c.subject, 'Your custom spoke colors, order #90002');
+  const html = c.html;
+  assert.ok(html.includes('<p>Hi Alex,</p>'));
+  assert.ok(html.includes('Here are the spoke colors you designed for your wheels.'));
+  for (const w of ['<td>Rim</td>', '<td>Hub</td>', '<td>Hub color</td>', '<td>Freehub</td>', '<td>Spoke count</td>', 'Drive side (14)', 'Rotor side (14)', 'Drive side (16)', 'Rotor side (16)']) assert.ok(html.includes(w), w);
+  assert.ok(html.includes('Freehub') && html.includes('MS'));
+  assert.deepEqual([...html.matchAll(/src="cid:([a-z-]+)"/g)].map((m) => m[1]), report.images.map((i) => i.cid), 'same images, same order');
+  assert.ok(html.indexOf('FRONT WHEEL') < html.indexOf('REAR WHEEL'));
+  for (const forbidden of [/Spoke lengths/i, /not calculated/i, /method pending/i, /Left\/Rotor/, /stub/, /NOTE:/, /class="alert"/, /class="failed"/, /does not match|do not match/i,
+    /Custom color fee/i, /Custom Spoke Color Configuration/i, /sample/i, /geometry/i, /inventory/i, /Length Variant/i, /Build ID/i, /LL-90002-SYS/, /admin\/orders/, /\bmm\b/]) {
+    assert.equal(forbidden.test(html), false, `customer email must not match ${forbidden}`);
+  }
+  assert.equal(/image failed/i.test(c.fallbackHtml), false);
+  assert.equal(c.fallbackHtml.includes('cid:'), false, 'the fallback (text-only) version has no images');
+  assert.ok(c.fallbackHtml.includes('Here are the spoke colors you designed'));
+});
+
+test('customer email: only for orders with a multi-color wheel; a single-color wheel keeps just its text line; no name -> "Hi,"', async () => {
+  const solo = recipeOf('hydra2-front-32h-only'), single = recipeOf('solix-single-color-front');
+  const report = await buildSystemReport({ recipe: single.recipe, orderData: single.order, renderPng: fakePng });
+  const c = buildCustomerEmail({ wheels: report.wheels, images: report.images, orderData: single.order });
+  assert.ok(c.html.includes('Front wheel: all Black'));
+  assert.equal(c.html.includes('one color, no image'), false, 'internal wording stays out of the customer email');
+  const allSingle = JSON.parse(JSON.stringify(single.recipe));
+  allSingle.system.studio.spokes.rear.drive = allSingle.system.studio.spokes.rear.drive.map(() => 'Black');
+  const o2 = JSON.parse(JSON.stringify(single.order));
+  const wheels = systemWheels(allSingle, null, o2);
+  assert.equal(buildCustomerEmail({ wheels, images: [], orderData: o2 }), null, 'no multi-color wheel -> no customer email');
+  const nameless = JSON.parse(JSON.stringify(solo.order)); delete nameless.customer.first_name;
+  const r2 = await buildSystemReport({ recipe: solo.recipe, orderData: nameless, renderPng: fakePng });
+  assert.ok(buildCustomerEmail({ wheels: r2.wheels, images: r2.images, orderData: nameless }).html.includes('<p>Hi,</p>'));
+});
+
+test('customer recipient: order.email, else customer.email; first name from the customer, then billing / shipping', () => {
+  assert.equal(customerRecipient({ email: ' a@b.co ', customer: { email: 'c@d.co' } }), 'a@b.co');
+  assert.equal(customerRecipient({ email: '', customer: { email: 'c@d.co' } }), 'c@d.co');
+  assert.equal(customerRecipient({ email: null, customer: null }), null);
+  assert.equal(customerRecipient({ email: 'not-an-address' }), null);
+  assert.equal(customerFirstName({ customer: { first_name: 'Sam' }, billing_address: { first_name: 'Bill' } }), 'Sam');
+  assert.equal(customerFirstName({ billing_address: { first_name: 'Bill' } }), 'Bill');
+  assert.equal(customerFirstName({ shipping_address: { first_name: 'Ship' } }), 'Ship');
+  assert.equal(customerFirstName({}), null);
 });

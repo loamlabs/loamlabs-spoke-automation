@@ -7,11 +7,14 @@
 //      or { "order": { ...full Shopify order payload with the _build line... } }
 //      or { "build": { ...the _build recipe object (or its JSON string)... }, "orderNumber": 12345 }
 //   options: "send": false (default true) returns the report without emailing; "useShopify": true fetches the hub/rim metafields
-//            from the store (default false: sample geometry only); "imageWidth": 600
+//            from the store (default false: sample geometry only); "imageWidth": 600;
+//            "customer": true renders/sends the CUSTOMER version (greeting, component details, color tables, images; no lengths or
+//            warnings) and sends it ONLY to BUILDER_EMAIL_ADDRESS, never to the order's or a sample's customer address, and it ignores
+//            the SYSTEM_CUSTOMER_EMAIL flag (that flag only guards the real webhook). With customer:true the internal email is not sent.
 //   response: { ok, subject, wheels, images: [{ filename, bytes }], imageErrors, warnings, note, emailId, inline, html? (when send is false) }
 
 import { findSystemBuildRecipe, isSystemBuildRecipe } from '../_lib/system-build.js';
-import { buildSystemReport, sendSystemEmail } from '../_lib/system-report.js';
+import { buildSystemReport, sendSystemEmail, buildCustomerEmail } from '../_lib/system-report.js';
 import { SYSTEM_SAMPLES } from '../samples/index.js';
 
 const allowCors = (fn) => async (req, res) => {
@@ -82,6 +85,20 @@ async function handler(req, res) {
             images: report.images.map((i) => ({ filename: i.filename, cid: i.cid, bytes: i.png.length, caption: i.caption })),
             imageErrors: report.imageErrors, warnings: report.warnings, lengths: report.lengths, note: report.note, shopifyError
         };
+
+        // Customer version: test sends go to the builder address only, never to the sample's / order's customer address.
+        if (body.customer === true) {
+            const customer = buildCustomerEmail({ wheels: report.wheels, images: report.images, orderData });
+            if (!customer) return res.status(200).json({ ...summary, customer: true, sent: false, reason: 'no wheel with more than one spoke color (the webhook sends no customer email for this order)' });
+            const testCustomer = { ...customer, subject: `[Customer version test] ${customer.subject}` };
+            const customerSummary = { ...summary, customer: true, subject: testCustomer.subject, note: undefined, warnings: undefined, lengths: undefined };
+            if (body.send === false) return res.status(200).json({ ...customerSummary, sent: false, html: testCustomer.html });
+            const to = process.env.BUILDER_EMAIL_ADDRESS;
+            if (!to) return res.status(500).json({ ok: false, error: 'BUILDER_EMAIL_ADDRESS is not set' });
+            const sent = await sendSystemEmail({ report: testCustomer, to, from: 'LoamLabs <info@loamlabsusa.com>', replyTo: 'info@loamlabsusa.com' });
+            return res.status(200).json({ ...customerSummary, sent: true, emailId: sent.id, inline: sent.inline, sendError: sent.error || null, to });
+        }
+
         if (body.send === false) return res.status(200).json({ ...summary, sent: false, html: report.html });
         const sent = await sendSystemEmail({ report, orderData });
         return res.status(200).json({ ...summary, sent: true, emailId: sent.id, inline: sent.inline, sendError: sent.error || null, to: process.env.BUILDER_EMAIL_ADDRESS });

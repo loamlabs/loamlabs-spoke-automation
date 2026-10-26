@@ -72,6 +72,13 @@ Required environment variables (configured in Vercel):
 - `RESEND_API_KEY`
 - `INTERNAL_API_SECRET`
 
+Optional:
+- `SYSTEM_CUSTOMER_EMAIL` - **off by default.** Industry Nine System orders (Spoke Color Studio) always send the internal report to `BUILDER_EMAIL_ADDRESS`. A second email with the customer's spoke colors and wheel images goes to the order's customer (`order.email`, else `customer.email`) **only when this variable is exactly `on`**. Any other value, or the variable missing, sends nothing to customers (one log line says so). Never sent on `orders/cancelled`.
+
+## I9 System builds
+
+System orders (`spokeInterface: "system"` in the `_build` recipe) skip the Length Variant deduction and restock logic completely. The order note carries the color tables and the spoke length line (`not calculated (method pending)` until `_lib/system-lengths.js` is implemented). The internal email adds three wheel images per multi-color wheel (high-tension side spokes only, low-tension side spokes only, all spokes). `api/test-system-email.js` (header `x-internal-secret`) sends the internal or, with `"customer": true`, the customer version of a sample to `BUILDER_EMAIL_ADDRESS` only. `npm test` runs the tests, `npm run proof:standard` proves Standard orders are unchanged.
+
 ## Testing
 
 The project includes an internal testing harness accessible via secure API endpoint. This allows manual calculation verification without creating test orders in production.

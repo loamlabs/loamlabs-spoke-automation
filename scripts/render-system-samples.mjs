@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { findSystemBuildRecipe } from '../_lib/system-build.js';
-import { buildSystemReport, sendSystemEmail } from '../_lib/system-report.js';
+import { buildSystemReport, sendSystemEmail, buildCustomerEmail } from '../_lib/system-report.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..');
@@ -32,11 +32,13 @@ for (const name of names) {
     html = html.split(`cid:${img.cid}`).join(img.filename);
   }
   fs.writeFileSync(path.join(dir, 'email.html'), html);
+  const customer = buildCustomerEmail({ wheels: report.wheels, images: report.images, orderData: order });
+  if (customer) { let ch = customer.html; for (const img of report.images) ch = ch.split(`cid:${img.cid}`).join(img.filename); fs.writeFileSync(path.join(dir, 'customer-email.html'), ch); }
   fs.writeFileSync(path.join(dir, 'note.txt'), report.note);
   fs.writeFileSync(path.join(dir, 'report.json'), JSON.stringify({ subject: report.subject, warnings: report.warnings, imageErrors: report.imageErrors, lengths: report.lengths, wheels: report.wheels.map((w) => ({ position: w.position, hubModel: w.hubModel, hubColor: w.hubColor, spokeCountLabel: w.spokeCountLabel, isMultiColor: w.isMultiColor, counts: w.counts, config: w.config, feeLines: w.feeLines })), images: report.images.map((i) => ({ filename: i.filename, bytes: i.png.length, caption: i.caption })) }, null, 2));
   const ms = Date.now() - t0;
   console.log(`${name}: ${report.images.length} image(s) ${report.images.map((i) => `${i.filename} ${(i.png.length / 1024).toFixed(1)}KB`).join(', ')}${report.imageErrors.length ? ' | ERRORS: ' + report.imageErrors.join('; ') : ''} | ${ms} ms${report.warnings.length ? ' | warnings: ' + report.warnings.join(' / ') : ''}`);
-  index += `<h2>${name}</h2><p><a href="${name}/email.html">email.html</a> | <a href="${name}/note.txt">note.txt</a> | <a href="${name}/report.json">report.json</a></p><div style="display:flex;gap:12px;flex-wrap:wrap">` +
+  index += `<h2>${name}</h2><p><a href="${name}/email.html">email.html</a> | <a href="${name}/customer-email.html">customer-email.html</a> |<a href="${name}/note.txt">note.txt</a> | <a href="${name}/report.json">report.json</a></p><div style="display:flex;gap:12px;flex-wrap:wrap">` +
     report.images.map((i) => `<figure style="margin:0"><img src="${name}/${i.filename}" width="300"><figcaption>${i.caption}</figcaption></figure>`).join('') + '</div>';
   if (send) {
     try { const r = await sendSystemEmail({ report, orderData: order }); console.log(`   sent: ${r.id} (${r.inline ? 'inline images' : 'text only'})`); }

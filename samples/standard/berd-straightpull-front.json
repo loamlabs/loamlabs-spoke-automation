@@ -4,12 +4,17 @@
   "order_number": 80002,
   "name": "#80002",
   "email": "customer@example.com",
+  "customer": {
+    "first_name": "Alex",
+    "last_name": "Sample",
+    "email": "customer@example.com"
+  },
   "note": null,
   "location_id": null,
   "financial_status": "paid",
   "line_items": [
     {
-      "id": 15065,
+      "id": 15089,
       "title": "Custom Wheel Build",
       "name": "Custom Wheel Build",
       "variant_title": null,
@@ -41,7 +46,7 @@
       ]
     },
     {
-      "id": 15066,
+      "id": 15090,
       "title": "Reserve 30|SL",
       "name": "Reserve 30|SL",
       "variant_title": "29\" / 28h",
@@ -65,7 +70,7 @@
       ]
     },
     {
-      "id": 15067,
+      "id": 15091,
       "title": "DT Swiss 240 Straight Pull Front Hub",
       "name": "DT Swiss 240 Straight Pull Front Hub",
       "variant_title": "28h / Black / 15x110mm",
@@ -89,7 +94,7 @@
       ]
     },
     {
-      "id": 15068,
+      "id": 15092,
       "title": "Berd PolyLight",
       "name": "Berd PolyLight",
       "variant_title": "Orange Berd / 280mm",
@@ -113,7 +118,7 @@
       ]
     },
     {
-      "id": 15069,
+      "id": 15093,
       "title": "Berd Nipples",
       "name": "Berd Nipples",
       "variant_title": "Black",

@@ -19,7 +19,11 @@ export const TEST_ENV = {
   BUILDER_EMAIL_ADDRESS: 'builder@example.com',
   INTERNAL_API_SECRET: 'internal-test'
 };
-export function applyTestEnv() { Object.assign(process.env, TEST_ENV); }
+export function applyTestEnv(extra) {
+  Object.assign(process.env, TEST_ENV);
+  delete process.env.SYSTEM_CUSTOMER_EMAIL; // the customer-email flag is OFF unless a test sets it through opts.env
+  if (extra) Object.assign(process.env, extra);
+}
 
 export function loadSample(kind, name) {
   return JSON.parse(fs.readFileSync(path.join(here, '..', '..', 'samples', kind, name + '.json'), 'utf8'));
@@ -83,10 +87,10 @@ function fakeRes() {
  * @param {string} indexPath absolute path of the api/index.js to test
  * @param {'orders/create'|'orders/cancelled'} topic
  * @param {object} orderData the sample order
- * @param {{ mock?: ReturnType<typeof createMock>, quiet?: boolean }} opts
+ * @param {{ mock?: ReturnType<typeof createMock>, quiet?: boolean, env?: object }} opts  env = extra process.env values for this run (e.g. SYSTEM_CUSTOMER_EMAIL: 'on')
  */
 export async function runWebhook(indexPath, topic, orderData, opts = {}) {
-  applyTestEnv();
+  applyTestEnv(opts.env);
   const mock = opts.mock || createMock(loadMockShopify());
   const rawBody = JSON.stringify(orderData);
   const hmac = createHmac('sha256', process.env.SHOPIFY_WEBHOOK_SECRET).update(rawBody).digest('base64');

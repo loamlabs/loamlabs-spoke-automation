@@ -7,6 +7,7 @@
 // the two cannot silently drift. If you change the lacing in the theme, port the change here (and vice versa) and run the tests.
 //
 // Everything below the "ported" line is the theme code with the minimum of edits (ESM export, no DOM, no palettes).
+// Last synced with the theme commit c54dcb9 (agent-b-integration): LACING_PHASE_HOLES = { 'front:32': -2, 'front:24': -4, 'rear:24': 2 }.
 //
 //   geometry(config) -> { front?: { drive: [spoke], rotor: [spoke] }, rear?: {...} }
 //   spoke = { hub, rim, rimIndex, rank, vrank, sweep }
@@ -129,16 +130,24 @@ function assignMajority(n, cross, holes, phase) {
   return out;
 }
 
-// Lacing phase per wheel: rotates the WHOLE lacing (hub holes and the spoke-to-rim-hole assignment together) relative to the rim and the valve.
-// Key = '<position>:<hub count>', value = rotation in RIM HOLES (negative = counter-clockwise as seen from the drive side). Every spoke keeps
-// its sweep and deviation; the rim holes (and so the valve, vrank and the patterns) do not move; spoke index k is re-counted from the hub holes.
-//   Hydra2 front 32h: the valve stem must sit between parallel spokes -> 2 rim holes counter-clockwise.
-var LACING_PHASE_HOLES = { 'front:32': -2 };
+// ONE place for the lacing phase of each wheel: rotates the WHOLE lacing (hub holes, spoke-to-rim-hole assignment and which rim holes belong to
+// which side) rigidly relative to the rim and the valve. Every spoke keeps its sweep and deviation; the set of rim hole angles and the valve do
+// not move, so vrank and the patterns stay put (only which side owns which rim hole can shift on a 2:1 wheel).
+//   Key   = '<position>:<hub count>'   (hub count = total spokes = rim holes)
+//   Value = rotation in RIM HOLES (one hole = 360 / hub count degrees).
+//   SIGN  = angles in this file are the drive-side view, measured clockwise from 12 o'clock:
+//           positive = clockwise seen from the DRIVE side, negative = counter-clockwise seen from the drive side
+//           (= clockwise seen from the ROTOR side, because the rotor view is the mirror image).
+//   Hydra2 front 32h : -2  the valve stem sits between parallel spokes (2 holes counter-clockwise, drive-side view)
+//   Solix front 24h  : -4  clockwise 4 holes (60 degrees) seen from the ROTOR side, to match photos of real wheels
+//   Solix rear 24h   : +2  clockwise 2 holes (30 degrees) seen from the DRIVE side, to match photos of real wheels
+// When the step is a whole number of hub holes the spokes are re-counted from the hub holes (k = 0 is the hub hole at the usual start angle);
+// otherwise the hub holes turn with the lacing and spoke index k is kept.
+var LACING_PHASE_HOLES = { 'front:32': -2, 'front:24': -4, 'rear:24': 2 };
 function rotateLacing(list, stepDeg) {
-  var n = list.length, pitch = 360 / n, q = Math.round(stepDeg / pitch);
-  if (Math.abs(stepDeg - q * pitch) > 1e-6) { warn('lacing phase of ' + stepDeg + ' degrees is not a whole number of hub holes; ignored'); return list; }
+  var n = list.length, pitch = 360 / n, q = Math.round(stepDeg / pitch), whole = Math.abs(stepDeg - q * pitch) < 1e-6;
   return list.map(function (_, k) {
-    var o = list[(((k - q) % n) + n) % n];
+    var o = list[whole ? (((k - q) % n) + n) % n : k];
     return { hub: (((o.hub + stepDeg) % 360) + 360) % 360, rim: (((o.rim + stepDeg) % 360) + 360) % 360, s: o.s };
   });
 }

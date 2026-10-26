@@ -4,12 +4,17 @@
   "order_number": 80001,
   "name": "#80001",
   "email": "customer@example.com",
+  "customer": {
+    "first_name": "Alex",
+    "last_name": "Sample",
+    "email": "customer@example.com"
+  },
   "note": "Please ship by Friday.",
   "location_id": null,
   "financial_status": "paid",
   "line_items": [
     {
-      "id": 15056,
+      "id": 15080,
       "title": "Custom Wheel Build",
       "name": "Custom Wheel Build",
       "variant_title": null,
@@ -41,7 +46,7 @@
       ]
     },
     {
-      "id": 15057,
+      "id": 15081,
       "title": "We Are One Union",
       "name": "We Are One Union",
       "variant_title": "29\" / 32h",
@@ -65,7 +70,7 @@
       ]
     },
     {
-      "id": 15058,
+      "id": 15082,
       "title": "Industry Nine 1/1 Classic Front Hub",
       "name": "Industry Nine 1/1 Classic Front Hub",
       "variant_title": "32h / Black / 15x110mm",
@@ -89,7 +94,7 @@
       ]
     },
     {
-      "id": 15059,
+      "id": 15083,
       "title": "Sapim D-Light J-Bend",
       "name": "Sapim D-Light J-Bend",
       "variant_title": "Black / 290mm",
@@ -113,7 +118,7 @@
       ]
     },
     {
-      "id": 15060,
+      "id": 15084,
       "title": "Sapim Polyax Brass Nipples",
       "name": "Sapim Polyax Brass Nipples",
       "variant_title": "Black",
@@ -137,7 +142,7 @@
       ]
     },
     {
-      "id": 15061,
+      "id": 15085,
       "title": "We Are One Union",
       "name": "We Are One Union",
       "variant_title": "29\" / 32h",
@@ -161,7 +166,7 @@
       ]
     },
     {
-      "id": 15062,
+      "id": 15086,
       "title": "Industry Nine 1/1 Classic Rear Hub",
       "name": "Industry Nine 1/1 Classic Rear Hub",
       "variant_title": "32h / Black / 12x148mm",
@@ -185,7 +190,7 @@
       ]
     },
     {
-      "id": 15063,
+      "id": 15087,
       "title": "Sapim D-Light J-Bend",
       "name": "Sapim D-Light J-Bend",
       "variant_title": "Silver / 288mm",
@@ -209,7 +214,7 @@
       ]
     },
     {
-      "id": 15064,
+      "id": 15088,
       "title": "Sapim Polyax Brass Nipples",
       "name": "Sapim Polyax Brass Nipples",
       "variant_title": "Black",

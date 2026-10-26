@@ -10,7 +10,7 @@ import { SYSTEM_SAMPLE_GEOMETRY, SYSTEM_HUB_MODELS, SYSTEM_FEE, sideCounts } fro
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const outSystem = path.join(here, '..', 'samples', 'system'), outStandard = path.join(here, '..', 'samples', 'standard');
-fs.mkdirSync(outSystem, { recursive: true }); fs.mkdirSync(outStandard, { recursive: true });
+fs.rmSync(outSystem, { recursive: true, force: true }); fs.mkdirSync(outSystem, { recursive: true }); fs.mkdirSync(outStandard, { recursive: true });
 
 const COLORS = ['Black', 'Blue', 'Bronze', 'Gold', 'Green', 'Lime', 'Orange', 'Pink', 'Purple', 'Red', 'Silver', 'Turquoise'];
 const TIMES = '×';
@@ -108,14 +108,15 @@ function systemOrder(name, { buildType, model, wheels, orderNumber, note, freehu
   });
   const order = {
     id: 6000000000 + orderNumber, admin_graphql_api_id: gid('Order', 6000000000 + orderNumber), order_number: orderNumber, name: `#${orderNumber}`,
-    email: 'customer@example.com', note: note || null, location_id: null, financial_status: 'paid', line_items: lineItems,
+    email: 'customer@example.com', customer: { first_name: 'Alex', last_name: 'Sample', email: 'customer@example.com' }, note: note || null, location_id: null, financial_status: 'paid', line_items: lineItems,
     _sample: { name, description: `Sample System order: ${name}` }
   };
   fs.writeFileSync(path.join(outSystem, name + '.json'), JSON.stringify(order, null, 2) + '\n');
   return order;
 }
 
-// 1) Solix 24h 2:1 front + rear, several colors
+// Real wheels only (what a customer can build): Hydra2 front 28h / 32h, Hydra2 rear 32h only; Solix 24h front and rear.
+// 1) Solix 24h 2:1 wheel set, several colors
 systemOrder('solix-24h-wheelset-multicolor', {
   buildType: 'Wheel Set', model: 'Solix', orderNumber: 90001, note: 'Customer note: please match the purple hubs to my frame.',
   wheels: {
@@ -123,31 +124,48 @@ systemOrder('solix-24h-wheelset-multicolor', {
     rear: { model: 'Solix', total: 24, hubColor: 'Purple', base: 'Black', paint: (side, k, p) => (side === 'rotor' ? 'Turquoise' : (p.vrank % 3 === 1 ? 'Lime' : 'Black')) } // rotor side Turquoise, Every 3rd Lime on the drive side
   }
 });
-// 2) Hydra2 front 32h + rear 32h
-systemOrder('hydra2-32h-wheelset', {
+// 2) Hydra2 wheel set, 28h front + 32h rear
+systemOrder('hydra2-wheelset-28f-32r', {
   buildType: 'Wheel Set', model: 'Hydra2', orderNumber: 90002, freehub: 'MS',
   wheels: {
-    front: { model: 'Hydra2', total: 32, hubColor: 'Black', base: 'Silver', paint: pairs(4, 0, 'Red', 'Silver') },           // 2 x 2 (shows the front:32 lacing phase)
+    front: { model: 'Hydra2', total: 28, hubColor: 'Black', base: 'Silver', paint: pairs(4, 0, 'Red', 'Silver') },
     rear: { model: 'Hydra2', total: 32, hubColor: 'Black', base: 'Black', paint: (side, k, p) => (side === 'rotor' ? 'Blue' : (p.vrank % 4 === 2 ? 'Gold' : 'Black')) }
   }
 });
-// 3) front-only System build (Hydra2 28h)
-systemOrder('hydra2-28h-front-only', {
-  buildType: 'Front', model: 'Hydra2', orderNumber: 90003,
+// 3) Hydra2 wheel set, 32h front + 32h rear (shows the front 32h lacing phase)
+systemOrder('hydra2-wheelset-32f-32r', {
+  buildType: 'Wheel Set', model: 'Hydra2', orderNumber: 90003, freehub: 'XD',
+  wheels: {
+    front: { model: 'Hydra2', total: 32, hubColor: 'Black', base: 'Silver', paint: pairs(4, 0, 'Red', 'Silver') },
+    rear: { model: 'Hydra2', total: 32, hubColor: 'Black', base: 'Black', paint: (side, k, p) => (side === 'rotor' ? 'Blue' : (p.vrank % 4 === 2 ? 'Gold' : 'Black')) }
+  }
+});
+// 4) front-only builds
+systemOrder('hydra2-front-28h-only', {
+  buildType: 'Front', model: 'Hydra2', orderNumber: 90004,
   wheels: { front: { model: 'Hydra2', total: 28, hubColor: 'Orange', base: 'Black', paint: every(4, 0, 'Green', 'Black') } }
 });
-// 4) a single-color wheel (no image) next to a multi-color one
+systemOrder('hydra2-front-32h-only', {
+  buildType: 'Front', model: 'Hydra2', orderNumber: 90005,
+  wheels: { front: { model: 'Hydra2', total: 32, hubColor: 'Black', base: 'Black', paint: every(4, 1, 'Pink', 'Black') } }
+});
+// 5) rear-only build (Hydra2 rear is 32h only)
+systemOrder('hydra2-rear-32h-only', {
+  buildType: 'Rear', model: 'Hydra2', orderNumber: 90006, freehub: 'HG',
+  wheels: { rear: { model: 'Hydra2', total: 32, hubColor: 'Silver', base: 'Black', paint: pairs(4, 2, 'Purple', 'Black') } }
+});
+// 6) a single-color wheel (text line only) next to a multi-color one
 systemOrder('solix-single-color-front', {
-  buildType: 'Wheel Set', model: 'Solix', orderNumber: 90004,
+  buildType: 'Wheel Set', model: 'Solix', orderNumber: 90007,
   wheels: {
     front: { model: 'Solix', total: 24, hubColor: 'Black', base: 'Black', paint: solid('Black') },                           // one color: text line only
     rear: { model: 'Solix', total: 24, hubColor: 'Black', base: 'Black', paint: sideSolid('drive', 'Red', 'Black') }        // drive side Red
   }
 });
-// 5) every spoke a different color (12 colors cycling over 28 spokes), rear-only
-systemOrder('hydra2-28h-rear-all-different', {
-  buildType: 'Rear', model: 'Hydra2', orderNumber: 90005, freehub: 'HG',
-  wheels: { rear: { model: 'Hydra2', total: 28, hubColor: 'Gold', base: 'Black', paint: (side, k, p) => COLORS[p.vrank % COLORS.length] } }
+// 7) every spoke a different color on the Hydra2 rear 32h (12 colors cycling over 32 spokes, so neighbours always differ)
+systemOrder('hydra2-rear-32h-all-different', {
+  buildType: 'Rear', model: 'Hydra2', orderNumber: 90008, freehub: 'HG',
+  wheels: { rear: { model: 'Hydra2', total: 32, hubColor: 'Gold', base: 'Black', paint: (side, k, p) => COLORS[p.vrank % COLORS.length] } }
 });
 
 /* ------------------------------------------------------------------ Standard builds (classic path, unchanged code) + Shopify mock data */
@@ -174,7 +192,7 @@ function standardOrder(name, { buildType, orderNumber, note, specs, components }
   });
   const order = {
     id: 6000000000 + orderNumber, admin_graphql_api_id: gid('Order', 6000000000 + orderNumber), order_number: orderNumber, name: `#${orderNumber}`,
-    email: 'customer@example.com', note: note || null, location_id: null, financial_status: 'paid', line_items: lineItems,
+    email: 'customer@example.com', customer: { first_name: 'Alex', last_name: 'Sample', email: 'customer@example.com' }, note: note || null, location_id: null, financial_status: 'paid', line_items: lineItems,
     _sample: { name, description: `Sample Standard order: ${name}` }
   };
   fs.writeFileSync(path.join(outStandard, name + '.json'), JSON.stringify(order, null, 2) + '\n');

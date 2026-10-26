@@ -1,0 +1,364 @@
+{
+  "id": 6000090002,
+  "admin_graphql_api_id": "gid://shopify/Order/6000090002",
+  "order_number": 90002,
+  "name": "#90002",
+  "email": "customer@example.com",
+  "customer": {
+    "first_name": "Alex",
+    "last_name": "Sample",
+    "email": "customer@example.com"
+  },
+  "note": null,
+  "location_id": null,
+  "financial_status": "paid",
+  "line_items": [
+    {
+      "id": 15024,
+      "title": "Custom Wheel Build",
+      "name": "Custom Wheel Build",
+      "variant_title": null,
+      "quantity": 1,
+      "price": "0.00",
+      "product_id": 1,
+      "variant_id": 1,
+      "properties": [
+        {
+          "name": "_BuildID",
+          "value": "LL-90002-SYS"
+        },
+        {
+          "name": "_bundle_id",
+          "value": "LL-90002-SYS"
+        },
+        {
+          "name": "_is_custom_wheel_build",
+          "value": "true"
+        },
+        {
+          "name": "_EstLeadTime",
+          "value": "2-3 weeks"
+        },
+        {
+          "name": "_build",
+          "value": "{\"step\":3,\"buildType\":\"Wheel Set\",\"ridingStyle\":\"trail\",\"ridingStyleDisplay\":\"Trail\",\"spokeInterface\":\"system\",\"system\":{\"v\":1,\"studioOpened\":true,\"studio\":{\"v\":1,\"hubColor\":{\"front\":\"Black\",\"rear\":\"Black\"},\"base\":{\"front\":{\"drive\":\"Silver\",\"rotor\":\"Silver\"},\"rear\":{\"drive\":\"Black\",\"rotor\":\"Black\"}},\"spokes\":{\"front\":{\"drive\":[\"Silver\",\"Red\",\"Silver\",\"Red\",\"Silver\",\"Red\",\"Silver\",\"Red\",\"Silver\",\"Red\",\"Silver\",\"Red\",\"Silver\",\"Red\"],\"rotor\":[\"Red\",\"Silver\",\"Red\",\"Silver\",\"Red\",\"Silver\",\"Red\",\"Silver\",\"Red\",\"Silver\",\"Red\",\"Silver\",\"Red\",\"Silver\"]},\"rear\":{\"drive\":[\"Gold\",\"Black\",\"Gold\",\"Black\",\"Gold\",\"Black\",\"Gold\",\"Black\",\"Gold\",\"Black\",\"Gold\",\"Black\",\"Gold\",\"Black\",\"Gold\",\"Black\"],\"rotor\":[\"Blue\",\"Blue\",\"Blue\",\"Blue\",\"Blue\",\"Blue\",\"Blue\",\"Blue\",\"Blue\",\"Blue\",\"Blue\",\"Blue\",\"Blue\",\"Blue\",\"Blue\",\"Blue\"]}},\"accent\":\"Orange\"}},\"customerSupplied\":{\"front\":{},\"rear\":{}},\"specs\":{\"brakeStyle\":\"6-Bolt\",\"systemHub\":\"Hydra2\",\"freehubType\":\"MS\",\"frontSpokeCount\":\"28h\",\"frontHubSpacing\":\"15x110mm\",\"frontWheelSize\":\"29\\\"\",\"rearSpokeCount\":\"32h\",\"rearHubSpacing\":\"12x148mm\",\"rearWheelSize\":\"29\\\"\"},\"components\":{\"frontRim\":{\"variantId\":\"gid://shopify/ProductVariant/4013\",\"title\":\"Industry Nine Enduro S Carbon\",\"variantTitle\":\"29\\\" / 28h\",\"sku\":\"RIM-front\",\"price\":520,\"vendor\":\"Industry Nine\",\"selectedOptions\":[{\"name\":\"Size\",\"value\":\"29\\\"\"},{\"name\":\"Spoke Count\",\"value\":\"28h\"}],\"quantityAvailable\":5,\"leadTimeDays\":0,\"weight_g\":460,\"rim_erd\":\"590\"},\"frontHub\":{\"variantId\":\"gid://shopify/ProductVariant/5013\",\"title\":\"Industry Nine Hydra2 SYSTEM Front Hub - 6-Bolt\",\"variantTitle\":\"28h / Black / 15x110mm\",\"sku\":\"HUB-front\",\"price\":240,\"vendor\":\"Industry Nine\",\"spec_spoke_count\":\"28h\",\"spec_brake_interface\":[\"6-Bolt\"],\"spec_hub_spacing\":\"15x110mm\",\"spec_freehub\":null,\"selectedOptions\":[{\"name\":\"Spoke Count\",\"value\":\"28h\"},{\"name\":\"Color\",\"value\":\"Black\"},{\"name\":\"Hub Spacing\",\"value\":\"15x110mm\"}],\"leadTimeDays\":0,\"wheelModel\":\"Industry Nine Hydra2 SYSTEM\",\"quantityAvailable\":3,\"weight_g\":150},\"frontSpokes\":{\"variantId\":\"gid://shopify/ProductVariant/7010\",\"title\":\"Industry Nine SYSTEM Spokes\",\"variantTitle\":\"Silver / -\",\"sku\":\"I9-SYS-SIL\",\"price\":70,\"unitPrice\":2.5,\"vendor\":\"Industry Nine\",\"selectedOptions\":[{\"name\":\"Color\",\"value\":\"Silver\"},{\"name\":\"Length\",\"value\":\"-\"}],\"quantityAvailable\":500,\"leadTimeDays\":0,\"wheelModel\":null,\"selectedColor\":\"Silver\",\"weight_g\":5.95,\"i9\":true},\"frontNipples\":null,\"frontValveStem\":null,\"frontAssemblyService\":null,\"frontTubelessTape\":null,\"frontRequiredAddons\":[{\"name\":\"Custom Spoke Color Configuration\",\"price\":25,\"variantGid\":\"gid://shopify/ProductVariant/67791816196403\",\"costInCents\":2500,\"i9Fee\":true}],\"rearRim\":{\"variantId\":\"gid://shopify/ProductVariant/4018\",\"title\":\"Industry Nine Enduro S Carbon\",\"variantTitle\":\"29\\\" / 32h\",\"sku\":\"RIM-rear\",\"price\":520,\"vendor\":\"Industry Nine\",\"selectedOptions\":[{\"name\":\"Size\",\"value\":\"29\\\"\"},{\"name\":\"Spoke Count\",\"value\":\"32h\"}],\"quantityAvailable\":5,\"leadTimeDays\":0,\"weight_g\":460,\"rim_erd\":\"590\"},\"rearHub\":{\"variantId\":\"gid://shopify/ProductVariant/5018\",\"title\":\"Industry Nine Hydra2 SYSTEM Rear Hub - 6-Bolt\",\"variantTitle\":\"32h / Black / 12x148mm\",\"sku\":\"HUB-rear\",\"price\":460,\"vendor\":\"Industry Nine\",\"spec_spoke_count\":\"32h\",\"spec_brake_interface\":[\"6-Bolt\"],\"spec_hub_spacing\":\"12x148mm\",\"spec_freehub\":\"MS\",\"selectedOptions\":[{\"name\":\"Spoke Count\",\"value\":\"32h\"},{\"name\":\"Color\",\"value\":\"Black\"},{\"name\":\"Hub Spacing\",\"value\":\"12x148mm\"}],\"leadTimeDays\":0,\"wheelModel\":\"Industry Nine Hydra2 SYSTEM\",\"quantityAvailable\":3,\"weight_g\":290},\"rearSpokes\":{\"variantId\":\"gid://shopify/ProductVariant/7000\",\"title\":\"Industry Nine SYSTEM Spokes\",\"variantTitle\":\"Black / -\",\"sku\":\"I9-SYS-BLA\",\"price\":80,\"unitPrice\":2.5,\"vendor\":\"Industry Nine\",\"selectedOptions\":[{\"name\":\"Color\",\"value\":\"Black\"},{\"name\":\"Length\",\"value\":\"-\"}],\"quantityAvailable\":500,\"leadTimeDays\":0,\"wheelModel\":null,\"selectedColor\":\"Black\",\"weight_g\":5.95,\"i9\":true},\"rearNipples\":null,\"rearValveStem\":null,\"rearAssemblyService\":null,\"rearTubelessTape\":null,\"rearRequiredAddons\":[{\"name\":\"Custom Spoke Color Configuration\",\"price\":25,\"variantGid\":\"gid://shopify/ProductVariant/67791816196403\",\"costInCents\":2500,\"i9Fee\":true}],\"rearComponentFreehub\":null},\"selectedOptionalAddons\":{},\"buildId\":\"LL-90002-SYS\",\"_ui\":{\"activeVendor\":{},\"valveStemExplicitlyRemoved\":false,\"step2AutoSelected\":{}}}"
+        },
+        {
+          "name": "Front Spoke Colors",
+          "value": "Silver ×14, Red ×14"
+        },
+        {
+          "name": "Front Drive Side",
+          "value": "1 Silver, 2 Red, 3 Silver, 4 Red, 5 Silver, 6 Red, 7 Silver, 8 Red, 9 Silver, 10 Red, 11 Silver, 12 Red, 13 Silver, 14 Red"
+        },
+        {
+          "name": "Front Rotor Side",
+          "value": "1 Red, 2 Silver, 3 Red, 4 Silver, 5 Red, 6 Silver, 7 Red, 8 Silver, 9 Red, 10 Silver, 11 Red, 12 Silver, 13 Red, 14 Silver"
+        },
+        {
+          "name": "Rear Spoke Colors",
+          "value": "Blue ×16, Gold ×8, Black ×8"
+        },
+        {
+          "name": "Rear Drive Side",
+          "value": "1 Gold, 2 Black, 3 Gold, 4 Black, 5 Gold, 6 Black, 7 Gold, 8 Black, 9 Gold, 10 Black, 11 Gold, 12 Black, 13 Gold, 14 Black, 15 Gold, 16 Black"
+        },
+        {
+          "name": "Rear Rotor Side",
+          "value": "1 Blue, 2 Blue, 3 Blue, 4 Blue, 5 Blue, 6 Blue, 7 Blue, 8 Blue, 9 Blue, 10 Blue, 11 Blue, 12 Blue, 13 Blue, 14 Blue, 15 Blue, 16 Blue"
+        },
+        {
+          "name": "System Hub",
+          "value": "Hydra2"
+        },
+        {
+          "name": "Freehub",
+          "value": "MS"
+        }
+      ]
+    },
+    {
+      "id": 15013,
+      "title": "Industry Nine Enduro S Carbon",
+      "name": "Industry Nine Enduro S Carbon - 29\" / 28h",
+      "variant_title": "29\" / 28h",
+      "quantity": 1,
+      "price": "0.00",
+      "sku": null,
+      "product_id": 90014,
+      "variant_id": 91014,
+      "properties": [
+        {
+          "name": "_BuildID",
+          "value": "LL-90002-SYS"
+        },
+        {
+          "name": "_bundle_id",
+          "value": "LL-90002-SYS"
+        },
+        {
+          "name": "Wheel",
+          "value": "Front"
+        }
+      ]
+    },
+    {
+      "id": 15014,
+      "title": "Industry Nine Hydra2 SYSTEM Front Hub - 6-Bolt",
+      "name": "Industry Nine Hydra2 SYSTEM Front Hub - 6-Bolt - 28h / Black / 15x110mm",
+      "variant_title": "28h / Black / 15x110mm",
+      "quantity": 1,
+      "price": "0.00",
+      "sku": null,
+      "product_id": 90015,
+      "variant_id": 91015,
+      "properties": [
+        {
+          "name": "_BuildID",
+          "value": "LL-90002-SYS"
+        },
+        {
+          "name": "_bundle_id",
+          "value": "LL-90002-SYS"
+        },
+        {
+          "name": "Wheel",
+          "value": "Front"
+        }
+      ]
+    },
+    {
+      "id": 15015,
+      "title": "Industry Nine SYSTEM Spokes",
+      "name": "Industry Nine SYSTEM Spokes - Silver / -",
+      "variant_title": "Silver / -",
+      "quantity": 14,
+      "price": "0.00",
+      "sku": null,
+      "product_id": 700,
+      "variant_id": 7010,
+      "properties": [
+        {
+          "name": "_BuildID",
+          "value": "LL-90002-SYS"
+        },
+        {
+          "name": "_bundle_id",
+          "value": "LL-90002-SYS"
+        },
+        {
+          "name": "Wheel",
+          "value": "Front"
+        }
+      ]
+    },
+    {
+      "id": 15016,
+      "title": "Industry Nine SYSTEM Spokes",
+      "name": "Industry Nine SYSTEM Spokes - Red / -",
+      "variant_title": "Red / -",
+      "quantity": 14,
+      "price": "0.00",
+      "sku": null,
+      "product_id": 700,
+      "variant_id": 7009,
+      "properties": [
+        {
+          "name": "_BuildID",
+          "value": "LL-90002-SYS"
+        },
+        {
+          "name": "_bundle_id",
+          "value": "LL-90002-SYS"
+        },
+        {
+          "name": "Wheel",
+          "value": "Front"
+        }
+      ]
+    },
+    {
+      "id": 15017,
+      "title": "Custom Spoke Color Configuration",
+      "name": "Custom Spoke Color Configuration",
+      "variant_title": "Default Title",
+      "quantity": 1,
+      "price": "0.00",
+      "sku": null,
+      "product_id": 6779,
+      "variant_id": 67791816196403,
+      "properties": [
+        {
+          "name": "_BuildID",
+          "value": "LL-90002-SYS"
+        },
+        {
+          "name": "_bundle_id",
+          "value": "LL-90002-SYS"
+        },
+        {
+          "name": "Wheel",
+          "value": "Front"
+        }
+      ]
+    },
+    {
+      "id": 15018,
+      "title": "Industry Nine Enduro S Carbon",
+      "name": "Industry Nine Enduro S Carbon - 29\" / 32h",
+      "variant_title": "29\" / 32h",
+      "quantity": 1,
+      "price": "0.00",
+      "sku": null,
+      "product_id": 90019,
+      "variant_id": 91019,
+      "properties": [
+        {
+          "name": "_BuildID",
+          "value": "LL-90002-SYS"
+        },
+        {
+          "name": "_bundle_id",
+          "value": "LL-90002-SYS"
+        },
+        {
+          "name": "Wheel",
+          "value": "Rear"
+        }
+      ]
+    },
+    {
+      "id": 15019,
+      "title": "Industry Nine Hydra2 SYSTEM Rear Hub - 6-Bolt",
+      "name": "Industry Nine Hydra2 SYSTEM Rear Hub - 6-Bolt - 32h / Black / 12x148mm",
+      "variant_title": "32h / Black / 12x148mm",
+      "quantity": 1,
+      "price": "0.00",
+      "sku": null,
+      "product_id": 90020,
+      "variant_id": 91020,
+      "properties": [
+        {
+          "name": "_BuildID",
+          "value": "LL-90002-SYS"
+        },
+        {
+          "name": "_bundle_id",
+          "value": "LL-90002-SYS"
+        },
+        {
+          "name": "Wheel",
+          "value": "Rear"
+        },
+        {
+          "name": "_Freehub_Type",
+          "value": "MS"
+        }
+      ]
+    },
+    {
+      "id": 15020,
+      "title": "Industry Nine SYSTEM Spokes",
+      "name": "Industry Nine SYSTEM Spokes - Blue / -",
+      "variant_title": "Blue / -",
+      "quantity": 16,
+      "price": "0.00",
+      "sku": null,
+      "product_id": 700,
+      "variant_id": 7001,
+      "properties": [
+        {
+          "name": "_BuildID",
+          "value": "LL-90002-SYS"
+        },
+        {
+          "name": "_bundle_id",
+          "value": "LL-90002-SYS"
+        },
+        {
+          "name": "Wheel",
+          "value": "Rear"
+        }
+      ]
+    },
+    {
+      "id": 15021,
+      "title": "Industry Nine SYSTEM Spokes",
+      "name": "Industry Nine SYSTEM Spokes - Gold / -",
+      "variant_title": "Gold / -",
+      "quantity": 8,
+      "price": "0.00",
+      "sku": null,
+      "product_id": 700,
+      "variant_id": 7003,
+      "properties": [
+        {
+          "name": "_BuildID",
+          "value": "LL-90002-SYS"
+        },
+        {
+          "name": "_bundle_id",
+          "value": "LL-90002-SYS"
+        },
+        {
+          "name": "Wheel",
+          "value": "Rear"
+        }
+      ]
+    },
+    {
+      "id": 15022,
+      "title": "Industry Nine SYSTEM Spokes",
+      "name": "Industry Nine SYSTEM Spokes - Black / -",
+      "variant_title": "Black / -",
+      "quantity": 8,
+      "price": "0.00",
+      "sku": null,
+      "product_id": 700,
+      "variant_id": 7000,
+      "properties": [
+        {
+          "name": "_BuildID",
+          "value": "LL-90002-SYS"
+        },
+        {
+          "name": "_bundle_id",
+          "value": "LL-90002-SYS"
+        },
+        {
+          "name": "Wheel",
+          "value": "Rear"
+        }
+      ]
+    },
+    {
+      "id": 15023,
+      "title": "Custom Spoke Color Configuration",
+      "name": "Custom Spoke Color Configuration",
+      "variant_title": "Default Title",
+      "quantity": 1,
+      "price": "0.00",
+      "sku": null,
+      "product_id": 6779,
+      "variant_id": 67791816196403,
+      "properties": [
+        {
+          "name": "_BuildID",
+          "value": "LL-90002-SYS"
+        },
+        {
+          "name": "_bundle_id",
+          "value": "LL-90002-SYS"
+        },
+        {
+          "name": "Wheel",
+          "value": "Rear"
+        }
+      ]
+    }
+  ],
+  "_sample": {
+    "name": "hydra2-wheelset-28f-32r",
+    "description": "Sample System order: hydra2-wheelset-28f-32r"
+  }
+}

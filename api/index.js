@@ -11,7 +11,7 @@ import {
 } from '../_lib/calculator.js';
 // I9-SYSTEM: Industry Nine System builds (Spoke Color Studio) take their own report path; Standard builds are untouched.
 import { findSystemBuildRecipe } from '../_lib/system-build.js';
-import { buildSystemReport, sendSystemEmail } from '../_lib/system-report.js';
+import { buildSystemReport, sendSystemEmail, buildCustomerEmail, sendCustomerEmailIfEnabled } from '../_lib/system-report.js';
 
 // --- Vercel Config ---
 export const config = { api: { bodyParser: false } };
@@ -287,6 +287,15 @@ async function handleSystemOrderCreate(orderData, buildRecipe) {
             console.log(`✅ I9-SYSTEM: report email sent (${sent.inline ? 'inline images' : 'text only'}). Resend ID: ${sent.id}`);
         } catch (error) {
             console.error("🚨 I9-SYSTEM: failed to send the report email:", error);
+        }
+
+        // Customer version (spoke colors and images only, no lengths or warnings). OFF unless env SYSTEM_CUSTOMER_EMAIL is "on".
+        // Own try/catch: whatever happens here cannot affect the internal email above or the webhook answer.
+        try {
+            const customer = buildCustomerEmail({ wheels: report.wheels, images: report.images, orderData });
+            await sendCustomerEmailIfEnabled({ customer, orderData });
+        } catch (error) {
+            console.error("🚨 I9-SYSTEM: customer email step failed:", error);
         }
     } catch (error) {
         console.error("🚨 I9-SYSTEM: CRASH inside the System order path:", error);
