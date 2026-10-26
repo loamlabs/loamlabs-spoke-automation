@@ -13,9 +13,24 @@
 //            the SYSTEM_CUSTOMER_EMAIL flag (that flag only guards the real webhook). With customer:true the internal email is not sent.
 //   response: { ok, subject, wheels, images: [{ filename, bytes }], imageErrors, warnings, note, emailId, inline, html? (when send is false) }
 
+import { timingSafeEqual } from 'node:crypto';
 import { findSystemBuildRecipe, isSystemBuildRecipe } from '../_lib/system-build.js';
 import { buildSystemReport, sendSystemEmail, buildCustomerEmail } from '../_lib/system-report.js';
 import { SYSTEM_SAMPLES } from '../samples/index.js';
+
+// REVIEW: constant-time secret comparison (fails closed when the env var is missing or the header is absent / not a single string).
+export function secretMatches(provided, expected) {
+  if (typeof expected !== 'string' || !expected || typeof provided !== 'string') return false;
+  const a = Buffer.from(provided, 'utf8'), b = Buffer.from(expected, 'utf8');
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+// REVIEW: the render width is staff input but it sizes a native bitmap (20000 px = 1.7 GB); keep it within what an email can use.
+export const IMAGE_WIDTH_RANGE = [100, 2000];
+export function clampImageWidth(v) {
+  const n = Number(v);
+  if (!isFinite(n)) return undefined;
+  return Math.min(IMAGE_WIDTH_RANGE[1], Math.max(IMAGE_WIDTH_RANGE[0], Math.round(n)));
+}
 
 const allowCors = (fn) => async (req, res) => {
     res.setHeader('Access-Control-Allow-Credentials', true);
@@ -51,8 +66,7 @@ async function fetchComponentMetafields(recipe) {
 
 async function handler(req, res) {
     if (req.method !== 'POST') { res.setHeader('Allow', 'POST'); return res.status(405).json({ error: 'Method Not Allowed' }); }
-    const secret = process.env.INTERNAL_API_SECRET;
-    if (!secret || req.headers['x-internal-secret'] !== secret) return res.status(401).json({ error: 'Unauthorized' });
+    if (!secretMatches(req.headers['x-internal-secret'], process.env.INTERNAL_API_SECRET)) return res.status(401).json({ error: 'Unauthorized' });
 
     try {
         const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
@@ -78,7 +92,7 @@ async function handler(req, res) {
         let componentData = null, shopifyError = null;
         if (body.useShopify) { try { componentData = await fetchComponentMetafields(recipe); } catch (e) { shopifyError = e.message; } }
 
-        const report = await buildSystemReport({ recipe, orderData, componentData, imageWidth: body.imageWidth || undefined });
+        const report = await buildSystemReport({ recipe, orderData, componentData, imageWidth: body.imageWidth != null ? clampImageWidth(body.imageWidth) : undefined });
         const summary = {
             ok: true, subject: report.subject,
             wheels: report.wheels.map((w) => ({ position: w.position, hubModel: w.hubModel, hubColor: w.hubColor, spokeCountLabel: w.spokeCountLabel, isMultiColor: w.isMultiColor, counts: w.counts, geometrySource: w.config.source, feeLines: w.feeLines })),
