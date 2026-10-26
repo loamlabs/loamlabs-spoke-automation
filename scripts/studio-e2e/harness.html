@@ -1,0 +1,77 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Studio e2e capture harness</title>
+<link rel="stylesheet" href="/theme/assets/spoke-studio.css">
+<body style="font-family:sans-serif"><pre id="log">starting...</pre>
+<script src="/theme/assets/spoke-studio.js"></script>
+<script>
+// I9-SYSTEM: drives the REAL Spoke Color Studio (the theme's assets/spoke-studio.js) with real clicks, then records the value it saves and where it
+// draws every spoke in each view. scripts/studio-e2e/capture.mjs serves this page and writes the result to tests/fixtures/studio-e2e-capture.json.
+(function () {
+  var log = function (m) { document.getElementById('log').textContent += '\n' + m; };
+  var COLORS = [['Black', '#1d1f23'], ['Blue', '#1f62d6'], ['Bronze', '#8d6a3e'], ['Gold', '#dcae2a'], ['Green', '#2f9e48'], ['Lime', '#a5d12b'],
+    ['Orange', '#f07a1a'], ['Pink', '#ee5ba3'], ['Purple', '#7b3fb9'], ['Red', '#d0262b'], ['Silver', '#c3c8cf'], ['Turquoise', '#20b2aa']];
+  var PALETTE = COLORS.map(function (c) { return { name: c[0], hex: c[1] }; });
+  var $ = function (sel) { var el = document.querySelector('.lls-root ' + sel); if (!el) throw new Error('not found: ' + sel); return el; };
+  var click = function (sel) { $(sel).click(); };
+  function rgbToHex(rgb) { var m = /rgb\((\d+),\s*(\d+),\s*(\d+)\)/.exec(rgb); return m ? '#' + [1, 2, 3].map(function (i) { return ('0' + (+m[i]).toString(16)).slice(-2); }).join('') : rgb; }
+  var ang = function (x, y, c) { return ((Math.atan2(x - c, -(y - c)) * 180 / Math.PI) + 360) % 360; };
+
+  // The spokes of the big wheel as drawn right now: per side, per spoke k: hub / rim angle (as seen in this view), hub radius / rim radius, color.
+  function grab(cfgW, pov, sidesShown) {
+    var svg = document.querySelector('.lls-root .lls-wheel-wrap svg.lls-spokes');
+    var box = +svg.getAttribute('width'), c = box / 2, lines = [].slice.call(svg.querySelectorAll('line')), idx = 0, out = {};
+    // The Studio sizes the wheel from the window: a tiny or hidden window gives a zero or NEGATIVE box and every coordinate comes out mirrored through the
+    // centre. Refuse to record anything in that case (use a window at least 900 x 700).
+    if (!(box >= 200)) throw new Error('viewport too small for the Studio: wheel box is ' + box + ' px (window ' + window.innerWidth + ' x ' + window.innerHeight + '); enlarge the window to at least 900 x 700');
+    var order = sidesShown.length === 2 ? (pov === 'drive' ? ['rotor', 'drive'] : ['drive', 'rotor']) : sidesShown; // far side first, like the Studio
+    order.forEach(function (side) {
+      var n = cfgW[side].n; out[side] = [];
+      for (var k = 0; k < n; k++) {
+        var halo = lines[idx++], core = lines[idx++]; void halo;
+        var x1 = +core.getAttribute('x1'), y1 = +core.getAttribute('y1'), x2 = +core.getAttribute('x2'), y2 = +core.getAttribute('y2');
+        var rRim = Math.hypot(x2 - c, y2 - c), rHub = Math.hypot(x1 - c, y1 - c);
+        out[side].push({ k: k, hub: +ang(x1, y1, c).toFixed(4), rim: +ang(x2, y2, c).toFixed(4), ratio: +(rHub / rRim).toFixed(5), color: core.getAttribute('stroke') });
+      }
+    });
+    if (idx !== lines.length) throw new Error('unexpected number of spoke lines: ' + lines.length + ' vs ' + idx);
+    var hubEl = document.querySelector('.lls-root .lls-wheel-wrap .lls-hub');
+    return { box: box, hubColor: rgbToHex(getComputedStyle(hubEl).backgroundColor), spokes: out };
+  }
+
+  function runJob(job) {
+    var pos = job.position, cfgW = job.config.wheels[pos], last = null;
+    var cfg = { title: job.id, spokeColors: PALETTE, hubColors: {}, wheels: {}, startWheel: pos, defaultBase: 'Black', defaultAccent: 'Orange', theme: 'light' };
+    cfg.hubColors[pos] = PALETTE; cfg.wheels[pos] = cfgW;
+    try { localStorage.setItem('loamStudioTheme', 'light'); } catch (e) { /* fine */ }
+    LoamStudio.open({ config: cfg, onChange: function (v) { last = v; }, onClose: function () {} });
+    // paint, through the Studio's own buttons
+    job.ops.forEach(function (op) {
+      if (op.op === 'accent') click('[data-act="accent"][data-name="' + op.name + '"]');
+      else if (op.op === 'pattern') click('[data-act="pattern"][data-id="' + op.id + '"]');
+      else if (op.op === 'paint') click('button.lls-spoke[data-side="' + op.side + '"][data-k="' + op.k + '"]');
+      else throw new Error('unknown op ' + op.op);
+    });
+    var value = JSON.parse(JSON.stringify(last)), views = {};
+    var high = job.highSide, low = job.lowSide;
+    click('[data-act="view"][data-v="' + high + '"]'); views.highOnly = grab(cfgW, high, [high]);
+    click('[data-act="view"][data-v="' + low + '"]'); views.lowOnly = grab(cfgW, low, [low]);
+    // the full wheel seen from the high-tension side: "Full wheel" takes its pov from the side shown last, so go through the high side first
+    click('[data-act="view"][data-v="' + high + '"]'); click('[data-act="viewfull"]');
+    var flipB = document.querySelector('.lls-root .lls-flip-b').textContent.toLowerCase();
+    var povNow = flipB.indexOf('rotor') === 0 ? 'rotor' : 'drive';
+    if (povNow !== high) { click('[data-act="flip"]'); povNow = high; }
+    views.all = grab(cfgW, povNow, ['drive', 'rotor']);
+    LoamStudio.close();
+    return { id: job.id, sample: job.sample, position: pos, hubModel: job.hubModel, total: cfgW.rimHoles, description: job.description, highSide: high, lowSide: low, value: value, views: views };
+  }
+
+  fetch('/jobs.json').then(function (r) { return r.json(); }).then(function (jobs) {
+    var results = [];
+    jobs.forEach(function (job) { log('running ' + job.id); results.push(runJob(job)); });
+    return fetch('/save', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ results: results }) });
+  }).then(function (r) { return r.text(); }).then(function (t) { log('DONE ' + t); document.title = 'DONE'; })
+    .catch(function (e) { log('ERROR ' + (e && e.stack || e)); document.title = 'ERROR'; fetch('/error', { method: 'POST', body: String(e && e.stack || e) }); });
+})();
+</script>
+</body>

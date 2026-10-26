@@ -9,6 +9,10 @@ import {
     isLacingPossible,
     calculateBerdFinalLength
 } from '../_lib/calculator.js';
+// I9-SYSTEM: Industry Nine System builds (Spoke Color Studio) take their own report path; Standard builds are untouched.
+import { findSystemBuildRecipe } from '../_lib/system-build.js';
+import { buildSystemReport, sendSystemEmail, buildCustomerEmail, sendCustomerEmailIfEnabled } from '../_lib/system-report.js';
+import { claimSystemOrder, releaseSystemOrder, noteShowsProcessed } from '../_lib/system-dedupe.js';
 
 // --- Vercel Config ---
 export const config = { api: { bodyParser: false } };
@@ -260,9 +264,83 @@ async function getPrimaryLocationId() {
     }
 }
 
+// I9-SYSTEM: a System build has one spoke product ("Industry Nine SYSTEM Spokes", Color only, length "-"), so there is no Length
+// Variant to deduct and no spoke length yet. This path never touches inventory (not for the spokes, not for the "Custom Spoke Color
+// Configuration" fee line); it writes the color report to the order note and emails Jerry the report with the wheel images.
+// It never throws: every failure is logged and the webhook still answers 200 (Shopify must not retry).
+// The order's current note from Shopify, or null when it cannot be read (the caller then processes the order anyway).
+async function getOrderNote(orderGid) {
+    if (!orderGid) return null;
+    try {
+        const data = await shopifyAdminApiQuery(`query orderNote($id: ID!) { order(id: $id) { note } }`, { id: orderGid });
+        return data && data.order ? (data.order.note || '') : null;
+    } catch (error) {
+        console.warn(`I9-SYSTEM: could not read the live order note (${error.message}); processing the order anyway.`);
+        return null;
+    }
+}
+
+async function handleSystemOrderCreate(orderData, buildRecipe) {
+    // Idempotency: Shopify can deliver orders/create more than once, and a duplicate must not send the internal or the customer email
+    // again (see _lib/system-dedupe.js). Layer 1: claim the order in this process, synchronously, before any await.
+    const dedupeKey = orderData.admin_graphql_api_id || (orderData.id != null ? String(orderData.id) : null);
+    if (!claimSystemOrder(dedupeKey)) {
+        console.log(`I9-SYSTEM: order #${orderData.order_number} is already being processed or was just processed (duplicate delivery); nothing sent.`);
+        return;
+    }
+    try {
+        // Layer 2: the order's live note in Shopify holds the report marker that THIS path appended (written before any email goes out).
+        // REVIEW: compared against the delivered note, not searched on its own: the delivered note is customer text (see _lib/system-dedupe.js).
+        if (noteShowsProcessed(await getOrderNote(orderData.admin_graphql_api_id), orderData.note)) {
+            console.log(`I9-SYSTEM: order #${orderData.order_number} already has its System report in the order note (duplicate delivery); nothing sent.`);
+            return;
+        }
+        console.log(`I9-SYSTEM: System build detected on order #${orderData.order_number}; skipping Length Variant inventory.`);
+        // metafields for the hub flange / rim ERD (null is fine: sample geometry). REVIEW: a recipe whose components is not an object
+        // (tampered _build) used to throw inside fetchComponentData and drop the whole report; now it is reported with sample geometry.
+        const componentData = buildRecipe.components && typeof buildRecipe.components === 'object' ? await fetchComponentData(buildRecipe) : null;
+        const report = await buildSystemReport({ recipe: buildRecipe, orderData, componentData });
+        report.warnings.forEach(w => console.warn('I9-SYSTEM note:', w));
+        report.imageErrors.forEach(e => console.error('I9-SYSTEM image:', e));
+
+        // same note preservation as the Standard path
+        let finalNote = report.note;
+        if (orderData.note) {
+            finalNote = orderData.note + "\n\n--------------------------------------------------\n\n" + finalNote;
+        }
+        await addNoteToOrder(orderData.admin_graphql_api_id, finalNote);
+
+        try {
+            const sent = await sendSystemEmail({ report, orderData });
+            console.log(`✅ I9-SYSTEM: report email sent (${sent.inline ? 'inline images' : 'text only'}). Resend ID: ${sent.id}`);
+        } catch (error) {
+            console.error("🚨 I9-SYSTEM: failed to send the report email:", error);
+        }
+
+        // Customer version (spoke colors and images only, no lengths or warnings). OFF unless env SYSTEM_CUSTOMER_EMAIL is "on".
+        // Own try/catch: whatever happens here cannot affect the internal email above or the webhook answer.
+        try {
+            const customer = buildCustomerEmail({ wheels: report.wheels, images: report.images, orderData });
+            await sendCustomerEmailIfEnabled({ customer, orderData });
+        } catch (error) {
+            console.error("🚨 I9-SYSTEM: customer email step failed:", error);
+        }
+    } catch (error) {
+        console.error("🚨 I9-SYSTEM: CRASH inside the System order path:", error);
+        releaseSystemOrder(dedupeKey); // nothing durable was written: let a re-delivery try again
+    }
+}
+
 async function handleOrderCreate(orderData) {
+    // I9-SYSTEM: System builds never reach the Length Variant logic below.
+    const systemBuild = findSystemBuildRecipe(orderData);
+    if (systemBuild) {
+        await handleSystemOrderCreate(orderData, systemBuild.recipe);
+        return;
+    }
+
     // 1. Location ID Check
-    let locationId = process.env.SHOPIFY_PRIMARY_LOCATION_ID; 
+    let locationId = process.env.SHOPIFY_PRIMARY_LOCATION_ID;
     if (!locationId) {
         if (orderData.location_id) {
             locationId = orderData.location_id;
@@ -370,6 +448,12 @@ async function handleOrderCreate(orderData) {
 }
 
 async function handleOrderCancelled(orderData) {
+    // I9-SYSTEM: nothing was deducted for a System build (and its note never carries "(Adjusted)" lines), so there is nothing to restock.
+    if (findSystemBuildRecipe(orderData)) {
+        console.log(`I9-SYSTEM: cancelled order #${orderData.order_number} is a System build; no Length Variant inventory to restock.`);
+        return;
+    }
+
     const wheelBuildLineItem = orderData.line_items.find(item => item.properties?.some(p => p.name === '_is_custom_wheel_build' && p.value === 'true'));
     
     // Check if we should process this cancellation
