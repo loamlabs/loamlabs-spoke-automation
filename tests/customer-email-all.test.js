@@ -33,7 +33,7 @@ for (const c of CASES) {
     assert.equal(customer.subject, `Your custom spoke colors, order #${c.order}`);
     assert.deepEqual(cids(customer), c.images);
     assert.deepEqual(cids(internal), c.images, 'the internal report carries the same images');
-    assert.ok(customer.html.includes('Hi Alex,') && customer.html.includes('Here are the spoke colors you designed for your wheels.'));
+    assert.ok(customer.html.includes('Hi Alex,') && customer.html.includes('Here are the spoke colors for your wheels.'));
     assert.equal(/Spoke lengths|not calculated|NOTE:|Build ID|Custom color fee|inventory/i.test(customer.html), false, 'no internal text in the customer email');
     assert.ok(internal.html.includes('Spoke lengths for System hubs: not calculated (method pending)'), 'the internal report is unchanged');
     assert.equal(r.inventoryAdjustments.length, 0);

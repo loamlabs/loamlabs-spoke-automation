@@ -157,7 +157,7 @@ test('Resend rejecting the customer attachments: the customer gets the text-only
   assert.equal(customer.length, 1, 'only the text-only retry was recorded as accepted');
   assert.equal(customer[0].attachments, undefined);
   assert.equal(/image failed|attachment|rejected|<img/i.test(customer[0].html), false);
-  assert.ok(customer[0].html.includes('Here are the spoke colors you designed for your wheels.'));
+  assert.ok(customer[0].html.includes('Here are the spoke colors for your wheels.'));
 });
 
 test('Standard order still deducts inventory through the SDK email path (System code and the customer flag not in the way)', async () => {

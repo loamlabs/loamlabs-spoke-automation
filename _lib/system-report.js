@@ -258,7 +258,7 @@ export function buildCustomerEmail({ wheels, images, orderData }) {
             <div class="container">
                 <h2>Your custom spoke colors, order #${esc(orderNumber)}</h2>
                 <p>${first ? `Hi ${esc(first)},` : 'Hi,'}</p>
-                <p>Here are the spoke colors you designed for your wheels.</p>
+                <p>Here are the spoke colors for your wheels.</p>
                 ${wheels.map((w) => wheelHtml(w, imgs, [], { internal: false })).join('')}
             </div>
         </body>

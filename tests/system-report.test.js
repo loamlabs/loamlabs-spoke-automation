@@ -217,7 +217,7 @@ test('customer email: greeting, one sentence, component details, color tables, t
   assert.equal(c.subject, 'Your custom spoke colors, order #90002');
   const html = c.html;
   assert.ok(html.includes('<p>Hi Alex,</p>'));
-  assert.ok(html.includes('Here are the spoke colors you designed for your wheels.'));
+  assert.ok(html.includes('Here are the spoke colors for your wheels.'));
   for (const w of ['<td>Rim</td>', '<td>Hub</td>', '<td>Hub color</td>', '<td>Freehub</td>', '<td>Spoke count</td>', 'Drive side (14)', 'Rotor side (14)', 'Drive side (16)', 'Rotor side (16)']) assert.ok(html.includes(w), w);
   assert.ok(html.includes('Freehub') && html.includes('MS'));
   assert.deepEqual([...html.matchAll(/src="cid:([a-z-]+)"/g)].map((m) => m[1]), report.images.map((i) => i.cid), 'same images, same order');
@@ -228,7 +228,7 @@ test('customer email: greeting, one sentence, component details, color tables, t
   }
   assert.equal(/image failed/i.test(c.fallbackHtml), false);
   assert.equal(c.fallbackHtml.includes('cid:'), false, 'the fallback (text-only) version has no images');
-  assert.ok(c.fallbackHtml.includes('Here are the spoke colors you designed'));
+  assert.ok(c.fallbackHtml.includes('Here are the spoke colors for your wheels.'));
 });
 
 test('customer email: built for every System build (solid wheels included), null only without wheels; a solid wheel keeps its text line; no name -> "Hi,"', async () => {
