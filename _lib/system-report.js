@@ -35,20 +35,23 @@ function countsText(list, times = TIMES) { return list.map((c) => `${c.color} ${
 // A wheel that is ONE solid color gets only c): a single all-spokes image (same view, same caption style), no side-only images.
 export function highSideOf(position) { return position === 'front' ? 'rotor' : 'drive'; }
 export function lowSideOf(position) { return position === 'front' ? 'drive' : 'rotor'; }
-export function imageSpecsFor(position, solid = false) {
+// labels (optional, Standard wheels): { drive: 'Right side', rotor: 'Left side' }; the captions then say "right side" / "left side" instead of "drive side" / "rotor side".
+export function imageSpecsFor(position, solid = false, labels = null) {
   const P = cap(position), high = highSideOf(position), low = lowSideOf(position);
-  const all = { cid: `${position}-all-spokes`, caption: `${P} wheel, all spokes (${high} side view)`, sides: ['drive', 'rotor'], pov: high };
+  const word = (s) => (labels && labels[s] ? String(labels[s]).toLowerCase() : `${s} side`);
+  const all = { cid: `${position}-all-spokes`, caption: `${P} wheel, all spokes (${word(high)} view)`, sides: ['drive', 'rotor'], pov: high };
   if (solid) return [all];
   return [
-    { cid: `${position}-${high}-only`, caption: `${P} wheel, ${high} side spokes only`, sides: [high], pov: high },
-    { cid: `${position}-${low}-only`, caption: `${P} wheel, ${low} side spokes only`, sides: [low], pov: low },
+    { cid: `${position}-${high}-only`, caption: `${P} wheel, ${word(high)} spokes only`, sides: [high], pov: high },
+    { cid: `${position}-${low}-only`, caption: `${P} wheel, ${word(low)} spokes only`, sides: [low], pov: low },
     all
   ];
 }
 
 // Renders the images of a wheel: three for a multi-color wheel, one (all spokes) for a solid-color wheel. Each failure becomes an imageErrors line; nothing throws.
-async function renderWheelImages(wheel, renderPng, width) {
+export async function renderWheelImages(wheel, renderPng, width) {
   const images = [], errors = [];
+  if (!wheel.config) { errors.push(`${wheel.label} wheel: image failed: no wheel geometry in the build data`); return { images, errors }; }
   let geom;
   try {
     geom = geometry({ wheels: { [wheel.position]: wheel.config } })[wheel.position];
@@ -56,8 +59,9 @@ async function renderWheelImages(wheel, renderPng, width) {
     errors.push(`${wheel.label} wheel: image failed: geometry error: ${e.message}`);
     return { images, errors };
   }
-  const colorsHex = { drive: wheel.colors.drive.map(hexFor), rotor: wheel.colors.rotor.map(hexFor) };
-  for (const spec of imageSpecsFor(wheel.position, !wheel.isMultiColor)) {
+  const hexOf = wheel.hexOf || hexFor;
+  const colorsHex = { drive: wheel.colors.drive.map((c) => hexOf(c)), rotor: wheel.colors.rotor.map((c) => hexOf(c)) };
+  for (const spec of imageSpecsFor(wheel.position, !wheel.isMultiColor, wheel.sideLabels || null)) {
     try {
       const svg = wheelSvg({ config: wheel.config, geom, colorsHex, hubHex: wheel.hubColorHex, pov: spec.pov, sides: spec.sides, size: width });
       const png = await renderPng(svg, { width });
@@ -104,8 +108,8 @@ const STYLE = `
                 .swatch { display: inline-block; width: 11px; height: 11px; border-radius: 50%; border: 1px solid rgba(0,0,0,.4); vertical-align: -1px; margin-right: 4px; }
 `;
 
-function colorRow(label, list) {
-  const cells = list.map((c) => `<span class="swatch" style="background:${hexFor(c.color)}"></span>${esc(c.color)} ${TIMES_HTML}${c.n}`).join(', ');
+export function colorRow(label, list, hexOf = hexFor) {
+  const cells = list.map((c) => `<span class="swatch" style="background:${hexOf(c.color)}"></span>${esc(c.color)} ${TIMES_HTML}${c.n}`).join(', ');
   return `<tr><td>${esc(label)}</td><td>${cells}</td></tr>`;
 }
 
@@ -133,9 +137,9 @@ function wheelHtml(w, images, imageErrors, opts) {
             </table>
             <h4>Spoke Colors</h4>
             <table class="data-table">
-                ${colorRow(`Drive side (${w.config.drive.n})`, w.counts.drive)}
-                ${colorRow(`Rotor side (${w.config.rotor.n})`, w.counts.rotor)}
-                ${colorRow(`Whole wheel (${w.total})`, w.counts.all)}
+                ${colorRow(`${(w.sideLabels && w.sideLabels.drive) || 'Drive side'} (${w.colors.drive.length})`, w.counts.drive, w.hexOf)}
+                ${colorRow(`${(w.sideLabels && w.sideLabels.rotor) || 'Rotor side'} (${w.colors.rotor.length})`, w.counts.rotor, w.hexOf)}
+                ${colorRow(`Whole wheel (${w.total})`, w.counts.all, w.hexOf)}
             </table>
             ${visual}
             ${internal ? `<p><em>${esc(lengths.text)}</em></p>` : ''}

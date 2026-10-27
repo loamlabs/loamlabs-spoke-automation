@@ -72,6 +72,36 @@ for (const sample of SAMPLES) {
   }
 }
 console.table(rows);
-fs.writeFileSync(path.join(outDir, 'summary.json'), JSON.stringify({ beforeDir, rows, differences: diffs, generatedAt: new Date().toISOString() }, null, 2));
-console.log(diffs ? `\n${diffs} DIFFERENCE(S) between before and after. See ${outDir}` : `\nAll Standard outputs identical before and after. Files in ${outDir}`);
+
+// ---- INTENDED ADDITIONS: Standard orders that carry the theme's standardStudio key (samples/standard/std-*.json). These are expected to differ, but ONLY by
+// additions: the note and the internal email must keep every old line (nothing removed), the subject, the recipient and the inventory / restock behavior must stay
+// identical. The differences are written out as unified diffs in out/standard-proof/diff/ for review. A removed line or a changed inventory is a failure.
+const INTENDED = fs.readdirSync(path.join(root, 'samples', 'standard')).filter((f) => /^std-.*\.json$/.test(f)).map((f) => f.replace(/\.json$/, ''));
+fs.mkdirSync(path.join(outDir, 'diff'), { recursive: true });
+const gitDiff = (a, b) => { try { return execFileSync('git', ['-c', 'core.safecrlf=false', '-c', 'core.autocrlf=false', 'diff', '--no-index', '--no-color', '--unified=1', a, b], { maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] }).toString(); } catch (e) { return e.stdout ? e.stdout.toString() : String(e); } };
+const countLines = (d, sign) => d.split('\n').filter((l) => l.startsWith(sign) && !l.startsWith(sign.repeat(3))).length;
+const intendedRows = [];
+let unexpected = 0;
+for (const sample of INTENDED) {
+  for (const topic of EVENTS) {
+    const before = await run(path.join(beforeDir, 'api', 'index.js'), sample, topic);
+    const after = await run(path.join(afterDir, 'api', 'index.js'), sample, topic);
+    save('before', sample, topic, before); save('after', sample, topic, after);
+    const stem = `${sample}.${topic.replace('/', '-')}`;
+    const noteDiff = gitDiff(path.join(outDir, 'before', stem + '.note.txt'), path.join(outDir, 'after', stem + '.note.txt'));
+    const emailDiff = gitDiff(path.join(outDir, 'before', stem + '.email.html'), path.join(outDir, 'after', stem + '.email.html'));
+    fs.writeFileSync(path.join(outDir, 'diff', stem + '.note.diff'), noteDiff || '(identical)\n');
+    fs.writeFileSync(path.join(outDir, 'diff', stem + '.email.diff'), emailDiff || '(identical)\n');
+    const removed = countLines(noteDiff, '-') + countLines(emailDiff, '-');
+    const invSame = JSON.stringify(before.inventoryAdjustments) === JSON.stringify(after.inventoryAdjustments);
+    const ok = removed === 0 && invSame && before.status === after.status && before.emailSubject === after.emailSubject && JSON.stringify(before.emailTo) === JSON.stringify(after.emailTo) && before.emailCount === after.emailCount;
+    if (!ok) unexpected++;
+    intendedRows.push({ sample, topic, 'note lines added': countLines(noteDiff, '+'), 'email lines added': countLines(emailDiff, '+'), 'old lines removed': removed, inventory: invSame ? `identical (${after.inventoryAdjustments.length} adj.)` : 'DIFFERENT', subject: before.emailSubject === after.emailSubject ? 'identical' : 'DIFFERENT', 'sent via': `${before.emailVia || '-'} -> ${after.emailVia || '-'}`, verdict: ok ? 'additions only' : 'UNEXPECTED' });
+  }
+}
+console.log('\nIntended additions (orders that carry standardStudio; diffs in out/standard-proof/diff/):');
+console.table(intendedRows);
+diffs += unexpected;
+fs.writeFileSync(path.join(outDir, 'summary.json'), JSON.stringify({ beforeDir, rows, intendedRows, differences: diffs, generatedAt: new Date().toISOString() }, null, 2));
+console.log(diffs ? `\n${diffs} DIFFERENCE(S) that are not intended. See ${outDir}` : `\nAll unkeyed Standard outputs identical before and after; keyed ones differ by additions only. Files in ${outDir}`);
 process.exit(diffs ? 1 : 0);

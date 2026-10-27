@@ -12,7 +12,11 @@ import {
 // I9-SYSTEM: Industry Nine System builds (Spoke Color Studio) take their own report path; Standard builds are untouched.
 import { findSystemBuildRecipe } from '../_lib/system-build.js';
 import { buildSystemReport, sendSystemEmail, buildCustomerEmail, sendCustomerEmailIfEnabled } from '../_lib/system-report.js';
-import { claimSystemOrder, releaseSystemOrder, noteShowsProcessed } from '../_lib/system-dedupe.js';
+import { claimSystemOrder, releaseSystemOrder, noteShowsProcessed, STANDARD_REPORT_MARKER } from '../_lib/system-dedupe.js';
+// STANDARD-STUDIO: Standard orders that carry the standardStudio key get color images, a painted-spoke list and the customer email as ADDITIONS.
+// Orders without the key take today's path unchanged.
+import { isStandardStudioRecipe } from '../_lib/standard-build.js';
+import { buildStandardAdditions } from '../_lib/standard-report.js';
 
 // --- Vercel Config ---
 export const config = { api: { bodyParser: false } };
@@ -359,11 +363,29 @@ async function handleOrderCreate(orderData) {
     const wheelBuildLineItem = orderData.line_items.find(item => item.properties?.some(p => p.name === '_is_custom_wheel_build' && p.value === 'true'));
 
     if (wheelBuildLineItem) {
+        let standardDedupeKey = null; // STANDARD-STUDIO: set only for orders that carry the standardStudio key
         try {
             const buildProperty = wheelBuildLineItem.properties.find(p => p.name === '_build');
             if (!buildProperty || !buildProperty.value) return;
 
             const buildRecipe = JSON.parse(buildProperty.value);
+
+            // STANDARD-STUDIO: duplicate-delivery guard (same layers as the System path, see _lib/system-dedupe.js), only for orders that carry the
+            // standardStudio key. A re-delivered orders/create then sends no second email, writes no second note and deducts no second inventory.
+            const standardKeyed = isStandardStudioRecipe(buildRecipe);
+            if (standardKeyed) {
+                standardDedupeKey = orderData.admin_graphql_api_id || (orderData.id != null ? String(orderData.id) : null);
+                if (!claimSystemOrder(standardDedupeKey)) {
+                    console.log(`STANDARD-STUDIO: order #${orderData.order_number} is already being processed or was just processed (duplicate delivery); nothing done.`);
+                    standardDedupeKey = null;
+                    return;
+                }
+                if (noteShowsProcessed(await getOrderNote(orderData.admin_graphql_api_id), orderData.note, STANDARD_REPORT_MARKER)) {
+                    console.log(`STANDARD-STUDIO: order #${orderData.order_number} already has its spoke report in the order note (duplicate delivery); nothing done.`);
+                    return;
+                }
+            }
+
             const componentData = await fetchComponentData(buildRecipe);
             
             if (componentData) {
@@ -427,8 +449,16 @@ async function handleOrderCreate(orderData) {
                     wheel.inventory = { left: leftResult, right: rightResult };
                 }
                 
+                // STANDARD-STUDIO: the color report additions (images, color tables, painted-spoke list). Never throws; absent for orders without the key.
+                let standardExtra = null;
+                if (standardKeyed) {
+                    try { standardExtra = await buildStandardAdditions({ recipe: buildRecipe, orderData, componentData, buildReport }); }
+                    catch (error) { console.error("🚨 STANDARD-STUDIO: could not build the color report additions:", error); }
+                }
+
                 // --- NOTE PRESERVATION LOGIC ---
                 let finalNote = formatNote(buildReport);
+                if (standardExtra && standardExtra.noteText) finalNote += standardExtra.noteText;
                 
                 // If the customer left a note, keep it and append our report below
                 if (orderData.note) {
@@ -437,10 +467,22 @@ async function handleOrderCreate(orderData) {
                 
                 await addNoteToOrder(orderData.admin_graphql_api_id, finalNote);
                 // -------------------------------
-                await sendEmailReport(buildReport, orderData, buildRecipe);
+                await sendEmailReport(buildReport, orderData, buildRecipe, standardExtra);
+
+                // STANDARD-STUDIO: the customer version (colors and images only), under the same flag as System (SYSTEM_CUSTOMER_EMAIL === 'on'), same
+                // recipient rules, own try/catch: nothing here can affect the internal email, the note or the webhook answer.
+                if (standardExtra && standardExtra.wheels.length) {
+                    try {
+                        const customer = buildCustomerEmail({ wheels: standardExtra.wheels, images: standardExtra.images, orderData });
+                        await sendCustomerEmailIfEnabled({ customer, orderData });
+                    } catch (error) {
+                        console.error("🚨 STANDARD-STUDIO: customer email step failed:", error);
+                    }
+                }
             }
         } catch (error) {
             console.error("🚨 CRASH inside main logic:", error);
+            if (standardDedupeKey) releaseSystemOrder(standardDedupeKey); // STANDARD-STUDIO: nothing durable was written: let a re-delivery try again
         }
     } else {
         console.log('ℹ️ No custom wheel build found in this order.');
@@ -576,7 +618,7 @@ async function handleOrderCancelled(orderData) {
     await addNoteToOrder(orderData.admin_graphql_api_id, restockNote);
 }
 
-function runCalculationEngine(buildRecipe, componentData) {
+export function runCalculationEngine(buildRecipe, componentData) {
     console.log("--- RUNNING CALCULATION ENGINE V4 (with FINAL buildType fix) ---");
 
     const results = { front: null, rear: null, errors: [] };
@@ -775,7 +817,7 @@ if (hubType !== 'Straight Pull') {
     return results;
 }
 
-function formatNote(report) {
+export function formatNote(report) {
     let note = "AUTOMATED SPOKE CALCULATION & INVENTORY\n";
     
     // --- NEW: QUICK-SCAN SUMMARY AT THE TOP ---
@@ -856,7 +898,9 @@ function formatNote(report) {
     return note;
 }
 
-async function sendEmailReport(report, orderData, buildRecipe) {
+export async function sendEmailReport(report, orderData, buildRecipe, extra) {
+    // STANDARD-STUDIO: extra = { html, images } for orders that carry standardStudio (color tables, images, painted-spoke list); undefined otherwise
+    const extraHtml = extra && extra.html ? extra.html : '';
     const resend = new Resend(process.env.RESEND_API_KEY);
     const recipientEmail = process.env.BUILDER_EMAIL_ADDRESS;
     const orderNumber = orderData.order_number;
@@ -997,11 +1041,26 @@ async function sendEmailReport(report, orderData, buildRecipe) {
 
                 <!-- Full Details -->
                 ${generateWheelHtml(report.front, 'Front')}
-                ${generateWheelHtml(report.rear, 'Rear')}
+                ${generateWheelHtml(report.rear, 'Rear')}${extraHtml}
             </div>
         </body>
         </html>
     `;
+
+    // STANDARD-STUDIO: with images the email goes through the Resend REST API so the wheel images can be inline attachments (content ids), like System;
+    // the sender, reply-to and subject are exactly today's. If that fails the normal SDK send below still runs (without images).
+    if (extra && extra.images && extra.images.length) {
+        try {
+            const sent = await sendSystemEmail({
+                report: { subject: `Spoke Calculation Complete for Order #${orderNumber}`, html: emailHtml, images: extra.images },
+                to: recipientEmail, from: 'Spoke Calculator <calculator@loamlabsusa.com>', replyTo: 'LoamLabs Support <info@loamlabsusa.com>'
+            });
+            console.log(`✅ Successfully sent email report to ${recipientEmail} (${sent.inline ? 'inline images' : 'text only'}). Resend ID: ${sent.id}`);
+            return;
+        } catch (error) {
+            console.error("🚨 STANDARD-STUDIO: the email with images failed, sending it without images:", error);
+        }
+    }
 
     try {
         const { data, error } = await resend.emails.send({

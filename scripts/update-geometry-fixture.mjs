@@ -1,21 +1,21 @@
-// I9-SYSTEM: regenerates tests/fixtures/studio-geometry.json from the THEME's LoamStudio.geometry (never from the backend copy).
-// Usage: node scripts/update-geometry-fixture.mjs            (theme at ../loamlabs-system-builder/theme-dev)
-//        LOAM_THEME_DIR=<theme-dev folder> node scripts/update-geometry-fixture.mjs
+// I9-SYSTEM: regenerates the geometry fixtures from the THEME's LoamStudio.geometry (never from the backend copy):
+//   tests/fixtures/studio-geometry.json            the System sandbox wheels
+//   tests/fixtures/studio-geometry-standard.json   the 38 Standard wheels (compact)
+// Usage: node scripts/update-geometry-fixture.mjs                       (reads the theme branch agent-a-standard-studio of ../loamlabs-system-builder/theme-dev)
+//        LOAM_THEME_DIR=<theme-dev folder> LOAM_THEME_REF=<git ref | worktree> node scripts/update-geometry-fixture.mjs
 import fs from 'node:fs';
 import path from 'node:path';
-import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
-import { SANDBOX_WHEELS } from '../tests/fixtures/sandbox-wheels.js';
+import { SANDBOX_WHEELS, STANDARD_WHEELS } from '../tests/fixtures/sandbox-wheels.js';
+import { themeSource, loadStudio } from '../tests/helpers/theme-studio.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const themeDir = process.env.LOAM_THEME_DIR || path.resolve(here, '..', '..', 'loamlabs-system-builder', 'theme-dev');
-const themeFile = path.join(themeDir, 'assets', 'spoke-studio.js');
-if (!fs.existsSync(themeFile)) { console.error('theme file not found: ' + themeFile); process.exit(1); }
-
-const window = {};
-vm.runInNewContext(fs.readFileSync(themeFile, 'utf8'), { window, console });
-const out = {};
-for (const [name, cfg] of Object.entries(SANDBOX_WHEELS)) out[name] = JSON.parse(JSON.stringify(window.LoamStudio.geometry(cfg)));
-const target = path.join(here, '..', 'tests', 'fixtures', 'studio-geometry.json');
-fs.writeFileSync(target, JSON.stringify(out, null, 1) + '\n');
-console.log('wrote ' + target + ' from ' + themeFile);
+const src = themeSource();
+if (!src) { console.error('LOAM_THEME_DIR=skip: nothing to do'); process.exit(1); }
+const Studio = loadStudio(src);
+const plain = (o) => JSON.parse(JSON.stringify(o));
+const make = (wheels) => Object.fromEntries(Object.entries(wheels).map(([name, cfg]) => [name, plain(Studio.geometry(cfg))]));
+const dir = path.join(here, '..', 'tests', 'fixtures');
+fs.writeFileSync(path.join(dir, 'studio-geometry.json'), JSON.stringify(make(SANDBOX_WHEELS), null, 1) + '\n');
+fs.writeFileSync(path.join(dir, 'studio-geometry-standard.json'), JSON.stringify(make(STANDARD_WHEELS)) + '\n');
+console.log(`wrote geometry fixtures from ${src.origin}`);

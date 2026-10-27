@@ -15,6 +15,8 @@
 
 // First words of every System order note (see noteText in _lib/system-report.js). Used to recognize an already processed order.
 export const SYSTEM_REPORT_MARKER = 'AUTOMATED SYSTEM BUILD REPORT';
+// First words of every Standard order note (formatNote in api/index.js). The same guard protects Standard orders that carry the standardStudio key.
+export const STANDARD_REPORT_MARKER = 'AUTOMATED SPOKE CALCULATION & INVENTORY';
 
 export const CLAIM_TTL_MS = 30 * 60 * 1000;
 
@@ -46,9 +48,9 @@ export function noteHasSystemReport(note) {
   return typeof note === 'string' && note.includes(SYSTEM_REPORT_MARKER);
 }
 
-function markerCount(note) {
+function markerCount(note, marker = SYSTEM_REPORT_MARKER) {
   if (typeof note !== 'string') return 0;
-  return note.split(SYSTEM_REPORT_MARKER).length - 1;
+  return note.split(marker).length - 1;
 }
 
 // REVIEW: the delivered payload's note is the customer's checkout note (or, for an order duplicated in the admin, a copy of an old
@@ -56,7 +58,8 @@ function markerCount(note) {
 // staff-duplicated System order, was silently skipped. The record of processing is the marker that the System path APPENDED, i.e.
 // the live note holds one more marker than the delivered note. (Shopify re-delivers the original payload, so on a duplicate delivery
 // the delivered note is the same as on the first one.) liveNote null = could not be read -> not processed (fail open, as before).
-export function noteShowsProcessed(liveNote, deliveredNote) {
+// marker defaults to the System one; the Standard path passes STANDARD_REPORT_MARKER.
+export function noteShowsProcessed(liveNote, deliveredNote, marker = SYSTEM_REPORT_MARKER) {
   if (typeof liveNote !== 'string') return false;
-  return markerCount(liveNote) > markerCount(deliveredNote);
+  return markerCount(liveNote, marker) > markerCount(deliveredNote, marker);
 }

@@ -7,7 +7,7 @@
 // the two cannot silently drift. If you change the lacing in the theme, port the change here (and vice versa) and run the tests.
 //
 // Everything below the "ported" line is the theme code with the minimum of edits (ESM export, no DOM, no palettes).
-// Last synced with the theme commit e7f7c70 (agent-b-integration): LACING_PHASE_HOLES = { 'front:32': -2, 'rear:28': 2 } plus the explicit LACING_2TO1_24H table for the Solix 24h wheels.
+// Last synced with the theme commit 63330f2 (branch agent-a-standard-studio; adds radial crossing 0 for Standard wheels); earlier: e7f7c70 (agent-b-integration): LACING_PHASE_HOLES = { 'front:32': -2, 'rear:28': 2 } plus the explicit LACING_2TO1_24H table for the Solix 24h wheels.
 //
 //   geometry(config) -> { front?: { drive: [spoke], rotor: [spoke] }, rear?: {...} }
 //   spoke = { hub, rim, rimIndex, rank, vrank, sweep }
@@ -26,6 +26,8 @@ const WHEEL_ORDER = ['front', 'rear'];
 
 function num(v, d) { v = Number(v); return isFinite(v) && v > 0 ? v : d; }
 function diff(a, b) { return Math.abs(((a - b + 540) % 360) - 180); }
+// Crossing as given: a number from 0 (radial) up; a missing / invalid value keeps the old default of 3. (Theme commit 63330f2.)
+function crossOf(v) { return (v === 0 || v === '0') ? 0 : num(v, 3); }
 function warn(msg) { if (typeof console !== 'undefined' && console.warn) console.warn('[studio-geometry] ' + msg); }
 
 // The wheel part of the Studio's normalizeConfig (palettes, titles and hub colors are not needed for the lacing).
@@ -43,8 +45,8 @@ export function normalizeWheels(cfg) {
       key: key,
       erd: num(w.erd, 568), rimHoles: total, ratio: nd === nr ? '1:1' : '2:1',
       rimHolePhase: Number(w.rimHolePhase != null ? w.rimHolePhase : (cfg.rimHolePhase != null ? cfg.rimHolePhase : 1)) === 0 ? 0 : 1,
-      drive: { n: nd, pcd: num(w.drive.pcd, 50), cross: num(w.drive.cross, 3) },
-      rotor: { n: nr, pcd: num(w.rotor.pcd, 50), cross: num(w.rotor.cross, 3) }
+      drive: { n: nd, pcd: num(w.drive.pcd, 50), cross: crossOf(w.drive.cross) },
+      rotor: { n: nr, pcd: num(w.rotor.pcd, 50), cross: crossOf(w.rotor.cross) }
     };
     keys.push(key);
   });
@@ -74,6 +76,10 @@ function rimHoles(w) {
 // Each hub hole goes to the rim hole nearest its laced target (crossing sets the sweep angle).
 // phase = angular offset of the hub holes (illustrative, not engineering-accurate).
 function assign(n, cross, holes, phase) {
+  if (cross === 0) { // radial: every spoke runs straight out, so each hub hole sits at the angle of its own rim hole
+    var rad = holes.slice().sort(function (a, b) { return a - b; });
+    return rad.map(function (a, i) { return { hub: a, rim: a, s: i % 2 === 0 ? 1 : -1 }; });
+  }
   var delta = 360 * cross / n, tg = [], k, i, r;
   for (k = 0; k < n; k++) {
     var h = k * 360 / n + phase, s = k % 2 === 0 ? 1 : -1;

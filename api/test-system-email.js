@@ -12,11 +12,18 @@
 //            warnings) and sends it ONLY to BUILDER_EMAIL_ADDRESS, never to the order's or a sample's customer address, and it ignores
 //            the SYSTEM_CUSTOMER_EMAIL flag (that flag only guards the real webhook). With customer:true the internal email is not sent.
 //   response: { ok, subject, wheels, images: [{ filename, bytes }], imageErrors, warnings, note, emailId, inline, html? (when send is false) }
+//   Standard samples (samples/standard/std-*.json, orders whose _build carries standardStudio) work the same way: the internal report is today's Standard report
+//   plus the color additions (images, painted-spoke list), calculated from the sample's own metafields (or the store's with "useShopify": true); nothing is adjusted
+//   in inventory and no note is written. "customer": true sends the customer version to BUILDER_EMAIL_ADDRESS only.
 
 import { timingSafeEqual } from 'node:crypto';
 import { findSystemBuildRecipe, isSystemBuildRecipe } from '../_lib/system-build.js';
 import { buildSystemReport, sendSystemEmail, buildCustomerEmail } from '../_lib/system-report.js';
-import { SYSTEM_SAMPLES } from '../samples/index.js';
+import { SYSTEM_SAMPLES, STANDARD_STUDIO_SAMPLES } from '../samples/index.js';
+// STANDARD-STUDIO: Standard orders that carry the standardStudio key (the same report the webhook builds, sent to the builder address only)
+import { findStandardStudioRecipe, isStandardStudioRecipe } from '../_lib/standard-build.js';
+import { buildStandardAdditions } from '../_lib/standard-report.js';
+import { runCalculationEngine, formatNote, sendEmailReport } from './index.js';
 
 // REVIEW: constant-time secret comparison (fails closed when the env var is missing or the header is absent / not a single string).
 export function secretMatches(provided, expected) {
@@ -64,6 +71,46 @@ async function fetchComponentMetafields(recipe) {
     return map;
 }
 
+// STANDARD-STUDIO: the Standard report for a sample / posted order, sent to the builder address only. Never writes a note, never adjusts inventory.
+async function standardTest(res, body, orderData, recipe) {
+    let componentData = null, shopifyError = null;
+    if (body.useShopify) { try { componentData = await fetchComponentMetafields(recipe); } catch (e) { shopifyError = e.message; } }
+    else if (orderData && orderData._sample && orderData._sample.metafields) componentData = new Map(Object.entries(orderData._sample.metafields));
+    const buildReport = componentData ? runCalculationEngine(recipe, componentData) : { front: null, rear: null, errors: ['no component data: spoke lengths are not calculated'] };
+    for (const pos of ['front', 'rear']) { // the webhook shows the adjusted inventory here; a test shows the calculated lengths and adjusts nothing
+        const w = buildReport[pos];
+        if (w && w.calculationSuccessful) {
+            const per = (parseInt(String(recipe.specs && recipe.specs[pos + 'SpokeCount'] || '').replace('h', ''), 10) || 0) / 2;
+            w.inventory = { left: { quantity: per, length: w.lengths.left.rounded, status: 'test only, nothing adjusted' }, right: { quantity: per, length: w.lengths.right.rounded, status: 'test only, nothing adjusted' } };
+        }
+    }
+    const extra = await buildStandardAdditions({ recipe, orderData, componentData, buildReport, imageWidth: body.imageWidth != null ? clampImageWidth(body.imageWidth) : undefined });
+    const orderNumber = orderData.order_number != null ? orderData.order_number : 'TEST';
+    const summary = {
+        ok: true, standard: true, subject: `Spoke Calculation Complete for Order #${orderNumber}`,
+        wheels: extra.wheels.map((w) => ({ position: w.position, spokeProduct: w.spokeProduct, hubColor: w.hubColor, isMultiColor: w.isMultiColor, counts: w.counts, sideLabels: w.sideLabels, expectedFee: w.expectedFee, feeLines: w.feeLines })),
+        images: extra.images.map((i) => ({ filename: i.filename, cid: i.cid, bytes: i.png.length, caption: i.caption })),
+        imageErrors: extra.imageErrors, warnings: extra.warnings,
+        paintPlans: extra.paintPlans, lengths: Object.fromEntries(['front', 'rear'].filter((p) => buildReport[p] && buildReport[p].calculationSuccessful).map((p) => [p, { left: buildReport[p].lengths.left.rounded, right: buildReport[p].lengths.right.rounded }])),
+        note: formatNote(buildReport) + extra.noteText, shopifyError
+    };
+    const to = process.env.BUILDER_EMAIL_ADDRESS;
+    if (body.customer === true) {
+        const customer = buildCustomerEmail({ wheels: extra.wheels, images: extra.images, orderData });
+        if (!customer) return res.status(200).json({ ...summary, customer: true, sent: false, reason: 'the build has no wheel with a spoke product (the webhook sends no customer email for this order)' });
+        const testCustomer = { ...customer, subject: `[Customer version test] ${customer.subject}` };
+        const customerSummary = { ...summary, customer: true, subject: testCustomer.subject, note: undefined, warnings: undefined, lengths: undefined, paintPlans: undefined };
+        if (body.send === false) return res.status(200).json({ ...customerSummary, sent: false, html: testCustomer.html });
+        if (!to) return res.status(500).json({ ok: false, error: 'BUILDER_EMAIL_ADDRESS is not set' });
+        const sent = await sendSystemEmail({ report: testCustomer, to, from: 'LoamLabs <info@loamlabsusa.com>', replyTo: 'info@loamlabsusa.com' });
+        return res.status(200).json({ ...customerSummary, sent: true, emailId: sent.id, inline: sent.inline, sendError: sent.error || null, to });
+    }
+    if (body.send === false) return res.status(200).json({ ...summary, sent: false, html: extra.html });
+    if (!to) return res.status(500).json({ ok: false, error: 'BUILDER_EMAIL_ADDRESS is not set' });
+    await sendEmailReport(buildReport, orderData, recipe, extra); // the webhook's own internal email function; goes to BUILDER_EMAIL_ADDRESS
+    return res.status(200).json({ ...summary, sent: true, to });
+}
+
 async function handler(req, res) {
     if (req.method !== 'POST') { res.setHeader('Allow', 'POST'); return res.status(405).json({ error: 'Method Not Allowed' }); }
     if (!secretMatches(req.headers['x-internal-secret'], process.env.INTERNAL_API_SECRET)) return res.status(401).json({ error: 'Unauthorized' });
@@ -72,22 +119,24 @@ async function handler(req, res) {
         const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
         let orderData, recipe;
         if (body.sample) {
-            orderData = Object.prototype.hasOwnProperty.call(SYSTEM_SAMPLES, body.sample) ? SYSTEM_SAMPLES[body.sample] : null;
-            if (!orderData) return res.status(400).json({ error: `unknown sample "${body.sample}"`, samples: Object.keys(SYSTEM_SAMPLES) });
+            orderData = Object.prototype.hasOwnProperty.call(SYSTEM_SAMPLES, body.sample) ? SYSTEM_SAMPLES[body.sample]
+                : (Object.prototype.hasOwnProperty.call(STANDARD_STUDIO_SAMPLES, body.sample) ? STANDARD_STUDIO_SAMPLES[body.sample] : null);
+            if (!orderData) return res.status(400).json({ error: `unknown sample "${body.sample}"`, samples: [...Object.keys(SYSTEM_SAMPLES), ...Object.keys(STANDARD_STUDIO_SAMPLES)] });
             orderData = JSON.parse(JSON.stringify(orderData));
-            recipe = findSystemBuildRecipe(orderData)?.recipe;
+            recipe = findSystemBuildRecipe(orderData)?.recipe || findStandardStudioRecipe(orderData)?.recipe;
         } else if (body.order) {
             orderData = body.order;
-            recipe = findSystemBuildRecipe(orderData)?.recipe;
-            if (!recipe) return res.status(400).json({ error: 'the order has no System build (_is_custom_wheel_build line with a System _build)' });
+            recipe = findSystemBuildRecipe(orderData)?.recipe || findStandardStudioRecipe(orderData)?.recipe;
+            if (!recipe) return res.status(400).json({ error: 'the order has no System build and no Standard build with standardStudio (_is_custom_wheel_build line with a _build)' });
         } else if (body.build) {
             recipe = typeof body.build === 'string' ? JSON.parse(body.build) : body.build;
-            if (!isSystemBuildRecipe(recipe)) return res.status(400).json({ error: 'the _build is not a System build (spokeInterface !== "system")' });
+            if (!isSystemBuildRecipe(recipe) && !isStandardStudioRecipe(recipe)) return res.status(400).json({ error: 'the _build is neither a System build (spokeInterface "system") nor a Standard build with standardStudio' });
             orderData = { order_number: body.orderNumber || 'TEST', id: null, line_items: [], note: null };
         } else {
             return res.status(400).json({ error: 'post { sample } or { order } or { build }', samples: Object.keys(SYSTEM_SAMPLES) });
         }
-        if (!recipe) return res.status(400).json({ error: 'no System build recipe found' });
+        if (!recipe) return res.status(400).json({ error: 'no System or Standard build recipe found' });
+        if (isStandardStudioRecipe(recipe)) return await standardTest(res, body, orderData, recipe);
 
         let componentData = null, shopifyError = null;
         if (body.useShopify) { try { componentData = await fetchComponentMetafields(recipe); } catch (e) { shopifyError = e.message; } }

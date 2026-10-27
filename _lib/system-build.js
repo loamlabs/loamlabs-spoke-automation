@@ -67,7 +67,7 @@ export const MAX_NAME_CHARS = 40;             // color names ("Turquoise" is 9);
 export const MAX_TITLE_CHARS = 200;           // component titles copied from the recipe
 export function clip(s, max) { s = String(s == null ? '' : s); return s.length > max ? s.slice(0, max) + '…' : s; }
 
-function propValue(lineItem, name) {
+export function propValue(lineItem, name) {
   const p = Array.isArray(lineItem?.properties) ? lineItem.properties.find((x) => x && x.name === name) : null;
   return p ? p.value : undefined;
 }
@@ -149,12 +149,12 @@ export function sideCounts(model, pos, total) {
   return { drive: Math.ceil(total / 2), rotor: Math.floor(total / 2) };
 }
 
-function optionValue(comp, name) {
+export function optionValue(comp, name) {
   const o = Array.isArray(comp?.selectedOptions) ? comp.selectedOptions.find((x) => x && String(x.name).toLowerCase() === name.toLowerCase()) : null;
   return o ? o.value : null;
 }
 // A positive number from a metafield / recipe field, or null; REVIEW: with an optional [min, max] range (out of range = null).
-function metaNumber(meta, key, range) {
+export function metaNumber(meta, key, range) {
   const v = meta && typeof meta === 'object' ? meta[key] : undefined;
   const n = parseFloat(v);
   if (!isFinite(n) || n <= 0) return null;
@@ -163,7 +163,7 @@ function metaNumber(meta, key, range) {
 }
 
 // Metafields for a component (componentData is the webhook's Map variantId -> merged product+variant metafields, or null).
-function metaFor(componentData, comp) {
+export function metaFor(componentData, comp) {
   if (!componentData || !comp?.variantId) return null;
   const get = typeof componentData.get === 'function' ? (k) => componentData.get(k) : (k) => componentData[k];
   return get(comp.variantId) || null;

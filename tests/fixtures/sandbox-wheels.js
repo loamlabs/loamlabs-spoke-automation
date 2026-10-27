@@ -31,3 +31,16 @@ export const GOLDEN_WHEELS = {
   solix30: { wheels: { rear: { erd: 570, rimHoles: 30, drive: { n: 20, pcd: 52, cross: 3.5 }, rotor: { n: 10, pcd: 40, cross: 1.4 } } } },
   solix36: { wheels: { rear: { erd: 580, rimHoles: 36, drive: { n: 24, pcd: 54, cross: 3.5 }, rotor: { n: 12, pcd: 42, cross: 1.4 } } } }
 };
+
+// The Standard builder's wheels: every combination the Studio can draw for a Standard (1:1) wheel, front and rear, 20/24/28/32/36 holes, crossing 0 (radial)
+// to 4 where the lacing angle cross * 360 / spokes-per-side is under 90 degrees. That is 38 wheels. Named like the theme's golden file: std-<front|rear>-<N>h-x<cross>.
+// Geometry is angles only, so erd and pcd are sample numbers.
+export const STANDARD_WHEELS = (() => {
+  const out = {};
+  for (const pos of ['front', 'rear']) for (const holes of [20, 24, 28, 32, 36]) for (let cross = 0; cross <= 4; cross++) {
+    const n = holes / 2;
+    if (cross * 360 / n >= 90) continue;
+    out[`std-${pos}-${holes}h-x${cross}`] = { wheels: { [pos]: { erd: 600, rimHoles: holes, drive: { n, pcd: 58, cross }, rotor: { n, pcd: 58, cross } } } };
+  }
+  return out;
+})();
