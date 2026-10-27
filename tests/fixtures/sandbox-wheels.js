@@ -34,13 +34,18 @@ export const GOLDEN_WHEELS = {
 
 // The Standard builder's wheels: every combination the Studio can draw for a Standard (1:1) wheel, front and rear, 20/24/28/32/36 holes, crossing 0 (radial)
 // to 4 where the lacing angle cross * 360 / spokes-per-side is under 90 degrees. That is 38 wheels. Named like the theme's golden file: std-<front|rear>-<N>h-x<cross>.
-// Geometry is angles only, so erd and pcd are sample numbers.
+// Without autoValvePhase the geometry is angles only; with it (STANDARD_AUTO_WHEELS) erd and pcd matter (the valve angle is measured as drawn), so they are the
+// theme test's own numbers: erd 600, pcd 54.
 export const STANDARD_WHEELS = (() => {
   const out = {};
   for (const pos of ['front', 'rear']) for (const holes of [20, 24, 28, 32, 36]) for (let cross = 0; cross <= 4; cross++) {
     const n = holes / 2;
     if (cross * 360 / n >= 90) continue;
-    out[`std-${pos}-${holes}h-x${cross}`] = { wheels: { [pos]: { erd: 600, rimHoles: holes, drive: { n, pcd: 58, cross }, rotor: { n, pcd: 58, cross } } } };
+    out[`std-${pos}-${holes}h-x${cross}`] = { wheels: { [pos]: { erd: 600, rimHoles: holes, drive: { n, pcd: 54, cross }, rotor: { n, pcd: 54, cross } } } };
   }
   return out;
 })();
+
+// The same 38 wheels with config.autoValvePhase: true (theme commit 4308879), named like the theme's golden file: std-auto-<front|rear>-<N>h-x<cross>.
+// The Standard path of the backend ALWAYS draws with this flag; System never does.
+export const STANDARD_AUTO_WHEELS = Object.fromEntries(Object.entries(STANDARD_WHEELS).map(([name, cfg]) => [name.replace('std-', 'std-auto-'), { autoValvePhase: true, ...cfg }]));

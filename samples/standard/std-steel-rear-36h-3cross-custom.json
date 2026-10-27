@@ -1,0 +1,208 @@
+{
+  "id": 6000091006,
+  "admin_graphql_api_id": "gid://shopify/Order/6000091006",
+  "order_number": 91006,
+  "name": "#91006",
+  "email": "customer@example.com",
+  "customer": {
+    "first_name": "Alex",
+    "last_name": "Sample",
+    "email": "customer@example.com"
+  },
+  "note": null,
+  "location_id": null,
+  "financial_status": "paid",
+  "line_items": [
+    {
+      "id": 15155,
+      "title": "Custom Wheel Build",
+      "name": "Custom Wheel Build",
+      "variant_title": null,
+      "quantity": 1,
+      "price": "0.00",
+      "product_id": 1,
+      "variant_id": 1,
+      "properties": [
+        {
+          "name": "_BuildID",
+          "value": "LL-91006-STD"
+        },
+        {
+          "name": "_bundle_id",
+          "value": "LL-91006-STD"
+        },
+        {
+          "name": "_is_custom_wheel_build",
+          "value": "true"
+        },
+        {
+          "name": "_EstLeadTime",
+          "value": "2-3 weeks"
+        },
+        {
+          "name": "_build",
+          "value": "{\"step\":3,\"buildType\":\"Rear\",\"ridingStyle\":\"trail\",\"ridingStyleDisplay\":\"Trail\",\"spokeInterface\":\"standard\",\"system\":null,\"customerSupplied\":{\"front\":{},\"rear\":{}},\"specs\":{\"brakeStyle\":\"6-Bolt\",\"frontWheelSize\":\"29\\\"\",\"rearWheelSize\":\"29\\\"\",\"rearSpokeCount\":\"36h\",\"rearHubSpacing\":\"12x148mm\",\"freehubType\":\"XD\"},\"components\":{\"rearRim\":{\"variantId\":\"gid://shopify/ProductVariant/1004\",\"title\":\"We Are One Union\",\"variantTitle\":\"29\\\" / 36h\",\"vendor\":\"We Are One\",\"price\":520,\"selectedOptions\":[{\"name\":\"Size\",\"value\":\"29\\\"\"},{\"name\":\"Spoke Count\",\"value\":\"36h\"}]},\"rearHub\":{\"variantId\":\"gid://shopify/ProductVariant/1005\",\"title\":\"Hope Pro 4 Rear Hub\",\"variantTitle\":\"36h / Black / 12x148mm\",\"vendor\":\"Hope\",\"price\":300,\"spec_freehub\":\"XD\",\"selectedOptions\":[{\"name\":\"Color\",\"value\":\"Black\"}]},\"rearSpokes\":{\"variantId\":\"gid://shopify/ProductVariant/1006\",\"title\":\"Sapim D-Light J-Bend\",\"variantTitle\":\"Black / 290mm\",\"vendor\":\"Sapim\",\"price\":2,\"selectedOptions\":[{\"name\":\"Color\",\"value\":\"Black\"},{\"name\":\"Length\",\"value\":\"290mm\"}],\"selectedColor\":\"Black\"},\"rearNipples\":{\"variantId\":\"gid://shopify/ProductVariant/1101\",\"title\":\"Sapim Polyax Brass Nipples\",\"variantTitle\":\"Black\",\"vendor\":\"Sapim\",\"price\":0.3}},\"selectedOptionalAddons\":{},\"buildId\":\"LL-91006-STD\",\"_ui\":{\"activeVendor\":{},\"valveStemExplicitlyRemoved\":false,\"step2AutoSelected\":{}},\"standardStudio\":{\"v\":1,\"studioOpened\":true,\"studio\":{\"v\":1,\"hubColor\":{\"rear\":\"Black\"},\"base\":{\"rear\":{\"drive\":\"Black\",\"rotor\":\"Black\"}},\"spokes\":{\"rear\":{\"drive\":[\"Black\",\"Silver\",\"Black\",\"Silver\",\"Black\",\"Silver\",\"Black\",\"Silver\",\"Black\",\"Silver\",\"Black\",\"Silver\",\"Black\",\"Black\",\"Black\",\"Black\",\"Black\",\"Black\"],\"rotor\":[\"Silver\",\"Black\",\"Silver\",\"Black\",\"Silver\",\"Black\",\"Silver\",\"Black\",\"Silver\",\"Black\",\"Silver\",\"Black\",\"Silver\",\"Silver\",\"Silver\",\"Silver\",\"Silver\",\"Silver\"]}},\"accent\":\"Silver\"},\"wheels\":{\"rear\":{\"erd\":596,\"drive\":{\"n\":18,\"pcd\":58,\"cross\":3},\"rotor\":{\"n\":18,\"pcd\":58,\"cross\":3},\"sideLabels\":{\"drive\":\"Drive side\",\"rotor\":\"Non-drive side\"}}},\"colors\":{\"Black\":\"#1d1f23\",\"Silver\":\"#c3c8cf\"},\"paint\":{\"blank\":\"White Berd\",\"wheels\":{\"rear\":{\"paintColors\":[]}}}}}"
+        },
+        {
+          "name": "Rear Spoke Colors",
+          "value": "Black ×18, Silver ×18"
+        },
+        {
+          "name": "Rear Drive Side",
+          "value": "1 Black, 2 Silver, 3 Black, 4 Silver, 5 Black, 6 Silver, 7 Black, 8 Silver, 9 Black, 10 Silver, 11 Black, 12 Silver, 13 Black, 14 Black, 15 Black, 16 Black, 17 Black, 18 Black"
+        },
+        {
+          "name": "Rear Rotor Side",
+          "value": "1 Silver, 2 Black, 3 Silver, 4 Black, 5 Silver, 6 Black, 7 Silver, 8 Black, 9 Silver, 10 Black, 11 Silver, 12 Black, 13 Silver, 14 Silver, 15 Silver, 16 Silver, 17 Silver, 18 Silver"
+        }
+      ]
+    },
+    {
+      "id": 15150,
+      "title": "We Are One Union",
+      "name": "We Are One Union",
+      "variant_title": "29\" / 36h",
+      "quantity": 1,
+      "price": "0.00",
+      "product_id": 90151,
+      "variant_id": 91151,
+      "properties": [
+        {
+          "name": "_BuildID",
+          "value": "LL-91006-STD"
+        },
+        {
+          "name": "_bundle_id",
+          "value": "LL-91006-STD"
+        },
+        {
+          "name": "Wheel",
+          "value": "Rear"
+        }
+      ]
+    },
+    {
+      "id": 15151,
+      "title": "Hope Pro 4 Rear Hub",
+      "name": "Hope Pro 4 Rear Hub",
+      "variant_title": "36h / Black / 12x148mm",
+      "quantity": 1,
+      "price": "0.00",
+      "product_id": 90152,
+      "variant_id": 91152,
+      "properties": [
+        {
+          "name": "_BuildID",
+          "value": "LL-91006-STD"
+        },
+        {
+          "name": "_bundle_id",
+          "value": "LL-91006-STD"
+        },
+        {
+          "name": "Wheel",
+          "value": "Rear"
+        }
+      ]
+    },
+    {
+      "id": 15152,
+      "title": "Sapim D-Light J-Bend",
+      "name": "Sapim D-Light J-Bend",
+      "variant_title": "Black / 290mm",
+      "quantity": 18,
+      "price": "0.00",
+      "product_id": 90153,
+      "variant_id": 91153,
+      "properties": [
+        {
+          "name": "_BuildID",
+          "value": "LL-91006-STD"
+        },
+        {
+          "name": "_bundle_id",
+          "value": "LL-91006-STD"
+        },
+        {
+          "name": "Wheel",
+          "value": "Rear"
+        }
+      ]
+    },
+    {
+      "id": 15153,
+      "title": "Sapim D-Light J-Bend",
+      "name": "Sapim D-Light J-Bend",
+      "variant_title": "Silver / 290mm",
+      "quantity": 18,
+      "price": "0.00",
+      "product_id": 90154,
+      "variant_id": 91154,
+      "properties": [
+        {
+          "name": "_BuildID",
+          "value": "LL-91006-STD"
+        },
+        {
+          "name": "_bundle_id",
+          "value": "LL-91006-STD"
+        },
+        {
+          "name": "Wheel",
+          "value": "Rear"
+        }
+      ]
+    },
+    {
+      "id": 15154,
+      "title": "Custom Spoke Color Configuration",
+      "name": "Custom Spoke Color Configuration",
+      "variant_title": "Mixed colors",
+      "quantity": 1,
+      "price": "0.00",
+      "product_id": 90155,
+      "variant_id": 67791816196403,
+      "properties": [
+        {
+          "name": "_BuildID",
+          "value": "LL-91006-STD"
+        },
+        {
+          "name": "_bundle_id",
+          "value": "LL-91006-STD"
+        },
+        {
+          "name": "Wheel",
+          "value": "Rear"
+        }
+      ]
+    }
+  ],
+  "_sample": {
+    "name": "std-steel-rear-36h-3cross-custom",
+    "description": "Rear 36h 3-cross steel, custom: Black x18 + Silver x18 (fee: Mixed colors)",
+    "metafields": {
+      "gid://shopify/ProductVariant/1004": {
+        "rim_erd": "596",
+        "rim_washer_policy": "Optional",
+        "nipple_washer_thickness": "0.6",
+        "rim_target_tension_kgf": "120",
+        "rim_spoke_hole_offset": "0",
+        "_parent_product_id": "gid://shopify/Product/101"
+      },
+      "gid://shopify/ProductVariant/1005": {
+        "hub_type": "Classic Flange",
+        "hub_flange_diameter_left": "58",
+        "hub_flange_diameter_right": "58",
+        "hub_flange_offset_left": "35",
+        "hub_flange_offset_right": "20",
+        "hub_spoke_hole_diameter": "2.6",
+        "_parent_product_id": "gid://shopify/Product/104"
+      },
+      "gid://shopify/ProductVariant/1006": {
+        "spoke_cross_section_area_mm2": "2.3",
+        "_parent_product_id": "gid://shopify/Product/103"
+      }
+    }
+  }
+}

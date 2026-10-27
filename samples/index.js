@@ -13,6 +13,10 @@ import solixBothSolid from './system/solix-24h-wheelset-both-solid-black.json' w
 import stdSteelSolid from './standard/std-steel-wheelset-solid.json' with { type: 'json' };
 import stdBerdRearCustom from './standard/std-berd-rear-custom-two-painted.json' with { type: 'json' };
 import stdBerdFrontRadial from './standard/std-berd-front-24h-radial-solid-purple.json' with { type: 'json' };
+import stdBerdRear24Cross2 from './standard/std-berd-rear-24h-2cross-custom.json' with { type: 'json' };
+import stdSteelFront32Cross3 from './standard/std-steel-front-32h-3cross-two-colors.json' with { type: 'json' };
+import stdSteelRear36Cross3 from './standard/std-steel-rear-36h-3cross-custom.json' with { type: 'json' };
+import stdSteelFront28Cross3 from './standard/std-steel-front-28h-3cross-custom.json' with { type: 'json' };
 
 export const SYSTEM_SAMPLES = {
   'solix-24h-wheelset-multicolor': solix24,
@@ -32,5 +36,9 @@ export const SYSTEM_SAMPLES = {
 export const STANDARD_STUDIO_SAMPLES = {
   'std-steel-wheelset-solid': stdSteelSolid,
   'std-berd-rear-custom-two-painted': stdBerdRearCustom,
-  'std-berd-front-24h-radial-solid-purple': stdBerdFrontRadial
+  'std-berd-front-24h-radial-solid-purple': stdBerdFrontRadial,
+  'std-berd-rear-24h-2cross-custom': stdBerdRear24Cross2,
+  'std-steel-front-32h-3cross-two-colors': stdSteelFront32Cross3,
+  'std-steel-rear-36h-3cross-custom': stdSteelRear36Cross3,
+  'std-steel-front-28h-3cross-custom': stdSteelFront28Cross3
 };

@@ -54,7 +54,10 @@ export async function renderWheelImages(wheel, renderPng, width) {
   if (!wheel.config) { errors.push(`${wheel.label} wheel: image failed: no wheel geometry in the build data`); return { images, errors }; }
   let geom;
   try {
-    geom = geometry({ wheels: { [wheel.position]: wheel.config } })[wheel.position];
+    // Standard wheels are ALWAYS drawn with the Studio's autoValvePhase (valve between the two most parallel spokes), exactly as the Standard builder opens the Studio;
+    // System wheels never (they keep the hand-measured phases). The flag is the strict boolean the Studio expects.
+    const cfg = wheel.standard === true ? { autoValvePhase: true, wheels: { [wheel.position]: wheel.config } } : { wheels: { [wheel.position]: wheel.config } };
+    geom = geometry(cfg)[wheel.position];
   } catch (e) {
     errors.push(`${wheel.label} wheel: image failed: geometry error: ${e.message}`);
     return { images, errors };

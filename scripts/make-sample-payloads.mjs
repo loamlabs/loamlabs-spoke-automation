@@ -382,5 +382,41 @@ stdKeyedOrder('std-berd-front-24h-radial-solid-purple', {
   }
 });
 
+// ---- round 3: the exact wheels Jerry reported for the valve position (the Standard drawings use autoValvePhase). Generated after everything above so no id moves.
+const STEEL_SPOKES = (v) => ({ v, p: 103, title: 'Sapim D-Light J-Bend', vendor: 'Sapim', fields: { spoke_cross_section_area_mm2: '2.3' } });
+// 4) rear 24h, 2-cross, Berd, custom: Robin Red x6 + Black Berd x6 on the drive side, Mallard Green x6 + Black Berd x6 on the other (fee: Berd multi-color)
+stdKeyedOrder('std-berd-rear-24h-2cross-custom', {
+  orderNumber: 91004, buildType: 'Rear', brake: 'Centerlock',
+  description: 'Rear 24h 2-cross Berd, custom: Robin Red x6 + Mallard Green x6 (painted) + Black Berd x12; the valve must sit between two parallel spokes (rotated 2 holes from the old drawing)',
+  wheels: {
+    rear: { total: 24, cross: 2, pcd: 50, base: 'Black Berd', counts: { drive: { 'Robin Red': 6, 'Black Berd': 6 }, rotor: { 'Mallard Green': 6, 'Black Berd': 6 } },
+      rim: { v: 6004, p: 601, ...BERD_RIM }, hub: { v: 6005, p: 602, color: 'Black', ...BERD_HUB('rear', { l: 34, r: 20 }) }, spokes: { v: 6006, p: 603, title: 'Berd PolyLight', vendor: 'Berd', fields: { spoke_model_group: 'PolyLight' } } }
+  }
+});
+// 5) front 32h, 3-cross, steel, custom with two colors
+stdKeyedOrder('std-steel-front-32h-3cross-two-colors', {
+  orderNumber: 91005, buildType: 'Front', brake: '6-Bolt',
+  description: 'Front 32h 3-cross steel, custom two colors: Black x16 + Silver x16 (fee: Mixed colors)',
+  wheels: {
+    front: { total: 32, cross: 3, pcd: 58, base: 'Black', counts: { drive: { Black: 10, Silver: 6 }, rotor: { Black: 6, Silver: 10 } }, rim: { v: 1001, p: 101, ...STEEL_RIM }, hub: { v: 1002, p: 102, color: 'Black', ...STEEL_HUB('front') }, spokes: STEEL_SPOKES(1003) }
+  }
+});
+// 6) rear 36h, 3-cross, steel, custom
+stdKeyedOrder('std-steel-rear-36h-3cross-custom', {
+  orderNumber: 91006, buildType: 'Rear', brake: '6-Bolt',
+  description: 'Rear 36h 3-cross steel, custom: Black x18 + Silver x18 (fee: Mixed colors)',
+  wheels: {
+    rear: { total: 36, cross: 3, pcd: 58, base: 'Black', counts: { drive: { Black: 12, Silver: 6 }, rotor: { Black: 6, Silver: 12 } }, rim: { v: 1004, p: 101, ...STEEL_RIM }, hub: { v: 1005, p: 104, color: 'Black', ...STEEL_HUB('rear') }, spokes: STEEL_SPOKES(1006) }
+  }
+});
+// 7) front 28h, 3-cross, steel, custom
+stdKeyedOrder('std-steel-front-28h-3cross-custom', {
+  orderNumber: 91007, buildType: 'Front', brake: '6-Bolt',
+  description: 'Front 28h 3-cross steel, custom: Black x14 + Silver x14 (fee: Mixed colors)',
+  wheels: {
+    front: { total: 28, cross: 3, pcd: 58, base: 'Black', counts: { drive: { Black: 9, Silver: 5 }, rotor: { Black: 5, Silver: 9 } }, rim: { v: 1001, p: 101, ...STEEL_RIM }, hub: { v: 1002, p: 102, color: 'Black', ...STEEL_HUB('front') }, spokes: STEEL_SPOKES(1003) }
+  }
+});
+
 fs.writeFileSync(path.join(outStandard, 'mock-shopify.json'), JSON.stringify(mock, null, 2) + '\n');
 console.log('wrote samples to', outSystem, 'and', outStandard);
