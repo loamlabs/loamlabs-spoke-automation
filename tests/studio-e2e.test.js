@@ -3,6 +3,8 @@
 // clicks (pattern buttons and individual spoke paints) and, for each wheel, the saved value plus the position of every drawn spoke in three views
 // were written down. Here the saved value goes through OUR pipeline (recipe -> buildSystemReport -> the SVG of each image) and every spoke is
 // compared: same hub hole, same RIM HOLE, same color. Re-record after a Studio change with: node scripts/studio-e2e/capture.mjs
+// Since round 5 the images draw each side's spokes in the Studio's over/under order (trailing group last), not in spoke-number order, so the spokes of both
+// sides of the comparison are lined up by their hub hole angle instead of by their position in the list (a hub hole holds exactly one spoke).
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -33,6 +35,7 @@ function spokesOfSvg(svg) {
   }
   return out;
 }
+const byHub = (list) => list.slice().sort((a, b) => ((a.hub + 0.5) % 360) - ((b.hub + 0.5) % 360)); // clockwise from 12 o'clock, shifted so a hole at exactly 0 degrees sorts the same on both sides
 const hubColorOfSvg = (svg) => /<radialGradient id="hubshine"[\s\S]*?<stop offset="1" stop-color="(#[0-9a-f]{6})"/i.exec(svg)[1];
 
 // Compares one Studio view with one email image; returns a list of mismatch descriptions (empty = identical)
@@ -42,8 +45,9 @@ function compareView(label, studio, svg, holes) {
   if (studioSides.join() !== mineSides.join()) return [`${label}: sides drawn differ (Studio ${studioSides}, image ${mineSides})`];
   for (const side of studioSides) {
     if (studio.spokes[side].length !== mine[side].length) { bad.push(`${label} ${side}: ${studio.spokes[side].length} spokes in the Studio, ${mine[side].length} in the image`); continue; }
-    studio.spokes[side].forEach((s, k) => {
-      const m = mine[side][k], hole = (a) => (((Math.round(a * holes / 360 - 0.5)) % holes) + holes) % holes;
+    const studioSpokes = byHub(studio.spokes[side]), mineSpokes = byHub(mine[side]);
+    studioSpokes.forEach((s, k) => {
+      const m = mineSpokes[k], hole = (a) => (((Math.round(a * holes / 360 - 0.5)) % holes) + holes) % holes;
       if (hole(s.rim) !== hole(m.rim)) bad.push(`${label} ${side} k=${k}: rim hole ${hole(s.rim)} in the Studio, ${hole(m.rim)} in the image`);
       if (angDiff(s.rim, m.rim) > 0.05) bad.push(`${label} ${side} k=${k}: rim angle ${s.rim} vs ${m.rim.toFixed(3)}`);
       if (angDiff(s.hub, m.hub) > 0.4) bad.push(`${label} ${side} k=${k}: hub hole angle ${s.hub} vs ${m.hub.toFixed(3)}`);

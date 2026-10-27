@@ -13,6 +13,7 @@ import { findStandardStudioRecipe, standardWheels } from '../_lib/standard-build
 import { renderWheelImages, buildSystemReport, buildCustomerEmail } from '../_lib/system-report.js';
 import { wheelSvg } from '../_lib/wheel-svg.js';
 import { geometry } from '../_lib/studio-geometry.js';
+import { orderIgnored } from './helpers/svg-spokes.mjs';
 
 const png = async () => Buffer.from('PNG');
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -139,7 +140,7 @@ test('the arrow stays inside the image, outside the rim, above the hub (never ov
   }
 });
 
-test('spokes, rim, valve and hub are unchanged: the SVG without the arrow is exactly what commit 692c311 drew (System and Standard, every image)', async (t) => {
+test('spokes, rim, valve and hub are unchanged: the SVG without the arrow equals what commit 692c311 drew, apart from the spoke paint order of round 5 (System and Standard, every image)', async (t) => {
   let tmp;
   try {
     tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'wheelsvg-r3-'));
@@ -155,8 +156,8 @@ test('spokes, rim, valve and hub are unchanged: the SVG without the arrow is exa
       for (const img of images) {
         const stripped = img.svg.replace(/<g data-roll="(cw|ccw)">.*?<\/g>/, '');
         const before = old.wheelSvg({ config: w.config, geom, colorsHex, hubHex: w.hubColorHex, pov: img.pov, sides: img.sides, size: 600 });
-        assert.equal(stripped, before, `${name} ${img.cid}`);
-        assert.equal(wheelSvg({ config: w.config, geom, colorsHex, hubHex: w.hubColorHex, pov: img.pov, sides: img.sides, size: 600, arrow: false }), before);
+        assert.equal(orderIgnored(stripped), orderIgnored(before), `${name} ${img.cid}`); // the spoke paint order changed in round 5 (spoke-order.test.js); the set of spokes and everything else is as in 692c311
+        assert.equal(wheelSvg({ config: w.config, geom, colorsHex, hubHex: w.hubColorHex, pov: img.pov, sides: img.sides, size: 600, arrow: false }), stripped);
         n++;
       }
     }

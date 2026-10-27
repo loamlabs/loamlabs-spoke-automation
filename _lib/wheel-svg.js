@@ -16,6 +16,12 @@
 //     size      box width/height in px (default 600)
 //     arrow     false leaves out the rolling-forward arrow (default: drawn)
 //
+// Spoke paint order inside ONE side (the Studio's FINAL_CROSS_TOP, assets/spoke-studio.js ART.spokeLayer): the spokes of one group are drawn first and the
+// other group on top, so at the outermost crossing of a side every spoke of the top group crosses over every spoke of the other, whatever the colors.
+// Leading = geometry sweep +1 (the rim hole is clockwise of the hub hole in the drive-side view, even spoke numbers), trailing = sweep -1 (odd numbers);
+// trailing is on top (the Studio's shipped value). The order depends on nothing else, and it is the same in a rotor-side (mirrored) view. Inside a group the
+// spokes keep their spoke-number order. The far side of an all-spokes image is still drawn first, so it stays behind the near side.
+//
 // Rolling-forward arrow (the Studio's "Arrow B", assets/spoke-studio.js ART.rollArrow): an arc over the top of the rim with an arrowhead, showing
 // which way the wheel turns when the bike rolls forward as seen from the side facing the viewer: clockwise looking at the drive side,
 // counter-clockwise looking at the rotor side (the Studio: ccw = pov === 'rotor'). Solid colour only (the Studio's fading tail is a plain arc here);
@@ -23,6 +29,7 @@
 
 export const RIM_COLOR = '#3b4148';   // .lls-preview .lls-rim (light) and --rim of the light theme
 export const ARROW_COLOR = '#2a6fd0';  // medium blue, solid (the Studio's --rollarrow #0b57c4 / #6db2ff, without the fade)
+export const FINAL_CROSS_TOP = 'trailing'; // which group of a side's spokes is drawn on top: 'trailing' (shipped in the Studio) or 'leading'
 export const EDGE_COLOR = '#8e939a';  // thin dark edge around every spoke (opaque; the Studio's 32% black edge over white, a little darker)
 
 // REVIEW: every number written into the SVG must be finite and sane. Coordinates in the 1e8 range (rim_erd = 0.0001 from a tampered
@@ -71,7 +78,10 @@ export function wheelSvg(o) {
   sides.forEach((side) => {
     const rh = wh[side].pcd / 2 * scale;
     let lines = '';
-    (g[side] || []).forEach((p, k) => {
+    const topS = FINAL_CROSS_TOP === 'leading' ? 1 : -1; // geometry sweep of the group that is drawn on top
+    const list = (g[side] || []).map((p, k) => ({ p, k }));
+    const ordered = list.filter(({ p }) => p.sweep !== topS).concat(list.filter(({ p }) => p.sweep === topS)); // stable: spoke-number order inside a group
+    ordered.forEach(({ p, k }) => {
       const a1 = (pov === 'drive' ? p.hub : (360 - p.hub) % 360) * Math.PI / 180;
       const a2 = (pov === 'drive' ? p.rim : (360 - p.rim) % 360) * Math.PI / 180;
       const x1 = c + rh * Math.sin(a1), y1 = c - rh * Math.cos(a1), x2 = c + rimR * Math.sin(a2), y2 = c - rimR * Math.cos(a2);

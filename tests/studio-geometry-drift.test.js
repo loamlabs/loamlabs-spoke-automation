@@ -1,7 +1,7 @@
 // I9-SYSTEM: the backend's vendored lacing geometry (_lib/studio-geometry.js) must equal the theme's LoamStudio.geometry, for the System wheels AND the
 // Standard wheels. Run with: npm test
 //
-// The theme's Studio is read from a git REF of the theme repo (default: commit 4308879, pinned by id; LOAM_THEME_REF=<branch> shows newer theme work that is not synced yet); see
+// The theme's Studio is read from a git REF of the theme repo (default: commit dd908ad, pinned by id; LOAM_THEME_REF=<branch> shows newer theme work that is not synced yet); see
 // tests/helpers/theme-studio.mjs for LOAM_THEME_DIR / LOAM_THEME_REF. When the theme is not there the live tests FAIL on purpose (set LOAM_THEME_DIR=skip
 // to run only the fixture comparisons), so a drift can never pass unnoticed.
 // tests/fixtures/studio-geometry.json and studio-geometry-standard.json are snapshots of the theme's output; regenerate them with
