@@ -28,7 +28,7 @@ test('System wheel set: 200, no inventory adjustment, no variant lookup, note wr
   const email = r.restEmails[0];
   assert.deepEqual(email.to, ['builder@example.com']);
   assert.ok(email.subject.includes('System Build Report for Order #90001'));
-  assert.deepEqual(email.attachments.map((a) => a.content_id), ['front-rotor-only', 'front-drive-only', 'front-all-spokes', 'rear-drive-only', 'rear-rotor-only', 'rear-all-spokes']);
+  assert.deepEqual(email.attachments.map((a) => a.content_id), ['front-all-spokes', 'front-rotor-only', 'front-drive-only', 'rear-all-spokes', 'rear-drive-only', 'rear-rotor-only']);
   assert.ok(email.attachments.every((a) => a.content_type === 'image/png' && Buffer.from(a.content, 'base64').subarray(1, 4).toString() === 'PNG'), 'real PNG bytes');
   assert.ok(email.html.includes('src="cid:front-rotor-only"'));
   assert.ok(r.logs.some(([, m]) => m.includes('customer spoke-color email not sent (SYSTEM_CUSTOMER_EMAIL is not "on")')), 'one log line says why nothing went to the customer');
@@ -51,7 +51,7 @@ test('flag off (unset, "off", "ON", "true", "1"): nothing is ever sent to the cu
   assert.equal(customer.from, 'LoamLabs <info@loamlabsusa.com>');
   assert.equal(customer.reply_to, 'info@loamlabsusa.com');
   assert.equal(customer.subject, 'Your custom spoke colors, order #90002');
-  assert.deepEqual(customer.attachments.map((a) => a.content_id), ['front-rotor-only', 'front-drive-only', 'front-all-spokes', 'rear-drive-only', 'rear-rotor-only', 'rear-all-spokes']);
+  assert.deepEqual(customer.attachments.map((a) => a.content_id), ['front-all-spokes', 'front-rotor-only', 'front-drive-only', 'rear-all-spokes', 'rear-drive-only', 'rear-rotor-only']);
   assert.ok(customer.html.includes('Hi Alex,'));
   assert.equal(/Spoke lengths|not calculated|NOTE:|Build ID|inventory/i.test(customer.html), false, 'no internal text in the customer email');
   assert.deepEqual(internal.to, ['builder@example.com'], 'the internal email still goes to the builder only');
@@ -100,7 +100,7 @@ test('Resend rejecting the CUSTOMER email (images and text-only) leaves the inte
 });
 
 test('System front-only and rear-only orders: 200, nothing deducted, 3 images for the one wheel', async () => {
-  for (const [name, cids] of [['hydra2-front-28h-only', ['front-rotor-only', 'front-drive-only', 'front-all-spokes']], ['hydra2-rear-32h-all-different', ['rear-drive-only', 'rear-rotor-only', 'rear-all-spokes']]]) {
+  for (const [name, cids] of [['hydra2-front-28h-only', ['front-all-spokes', 'front-rotor-only', 'front-drive-only']], ['hydra2-rear-32h-all-different', ['rear-all-spokes', 'rear-drive-only', 'rear-rotor-only']]]) {
     const r = await runWebhook(INDEX, 'orders/create', loadSample('system', name));
     assert.equal(r.status, 200, name);
     assert.equal(r.inventoryAdjustments.length, 0, name);
@@ -111,7 +111,7 @@ test('System front-only and rear-only orders: 200, nothing deducted, 3 images fo
 test('System solid front wheel: one all-spokes image for it (not the side-only images), email still sent', async () => {
   const r = await runWebhook(INDEX, 'orders/create', loadSample('system', 'solix-single-color-front'));
   assert.equal(r.status, 200);
-  assert.deepEqual(r.restEmails[0].attachments.map((a) => a.content_id), ['front-all-spokes', 'rear-drive-only', 'rear-rotor-only', 'rear-all-spokes']);
+  assert.deepEqual(r.restEmails[0].attachments.map((a) => a.content_id), ['front-all-spokes', 'rear-all-spokes', 'rear-drive-only', 'rear-rotor-only']);
   assert.ok(r.restEmails[0].html.includes('Front wheel: all Black'));
   assert.equal(r.restEmails[0].html.includes('one color, no image'), false);
 });

@@ -30,9 +30,9 @@ function countsText(list, times = TIMES) { return list.map((c) => `${c.color} ${
 /* ------------------------------------------------------------------ images */
 
 // The three images of a multi-color wheel, all spokes at full color and opacity. High-tension side: front = rotor, rear = drive.
-//   a) high-tension side spokes only   b) low-tension side spokes only   c) all spokes, viewed from the high-tension side
-// Order in the email: a, b, c; front wheel first, then rear.
-// A wheel that is ONE solid color gets only c): a single all-spokes image (same view, same caption style), no side-only images.
+//   a) all spokes, viewed from the high-tension side   b) high-tension side spokes only   c) low-tension side spokes only
+// Order in the email: a, b, c; front wheel first, then rear. (All spokes comes first so the first picture a customer sees is the complete wheel.)
+// A wheel that is ONE solid color gets only a): a single all-spokes image (same view, same caption style), no side-only images.
 export function highSideOf(position) { return position === 'front' ? 'rotor' : 'drive'; }
 export function lowSideOf(position) { return position === 'front' ? 'drive' : 'rotor'; }
 // labels (optional, Standard wheels): { drive: 'Right side', rotor: 'Left side' }; the captions then say "right side" / "left side" instead of "drive side" / "rotor side".
@@ -42,9 +42,9 @@ export function imageSpecsFor(position, solid = false, labels = null) {
   const all = { cid: `${position}-all-spokes`, caption: `${P} wheel, all spokes (${word(high)} view)`, sides: ['drive', 'rotor'], pov: high };
   if (solid) return [all];
   return [
+    all,
     { cid: `${position}-${high}-only`, caption: `${P} wheel, ${word(high)} spokes only`, sides: [high], pov: high },
-    { cid: `${position}-${low}-only`, caption: `${P} wheel, ${word(low)} spokes only`, sides: [low], pov: low },
-    all
+    { cid: `${position}-${low}-only`, caption: `${P} wheel, ${word(low)} spokes only`, sides: [low], pov: low }
   ];
 }
 
@@ -131,7 +131,7 @@ function wheelHtml(w, images, imageErrors, opts) {
                 <tr><td>Rim</td><td>${esc(w.rimTitle)}</td></tr>
                 <tr><td>Hub</td><td>${esc(w.hubTitle)}${w.hubVariantTitle ? ` (${esc(w.hubVariantTitle)})` : ''}</td></tr>
                 <tr><td>Hub color</td><td><span class="swatch" style="background:${w.hubColorHex}"></span>${esc(w.hubColor)}</td></tr>
-                ${w.position === 'rear' ? `<tr><td>Freehub</td><td>${esc(w.freehub || 'n/a')}</td></tr>` : ''}
+                ${w.position === 'rear' ? `<tr><td>Freehub</td><td>${esc(w.freehub || 'n/a')}</td></tr>` : ''}${!internal && w.standard && w.spokeProduct ? `<tr><td>Spokes</td><td>${esc(w.spokeProduct)}</td></tr>` : ''}
                 <tr><td>Spoke count</td><td>${esc(w.spokeCountLabel)}</td></tr>
                 ${feeRow}
             </table>

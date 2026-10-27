@@ -135,11 +135,11 @@ test('images: one all-spokes image per solid wheel, three per custom wheel, fron
   assert.deepEqual(solid.images.map((i) => i.cid), ['front-all-spokes', 'rear-all-spokes']);
   assert.deepEqual(solid.images.map((i) => i.caption), ['Front wheel, all spokes (left side view)', 'Rear wheel, all spokes (drive side view)']);
   const custom = await buildStandardAdditions({ recipe: recipeOf(REAR), orderData: loadSample('standard', REAR), renderPng: png });
-  assert.deepEqual(custom.images.map((i) => i.cid), ['rear-drive-only', 'rear-rotor-only', 'rear-all-spokes']);
-  assert.deepEqual(custom.images.map((i) => i.caption), ['Rear wheel, drive side spokes only', 'Rear wheel, non-drive side spokes only', 'Rear wheel, all spokes (drive side view)']);
-  // a custom FRONT wheel: left (high-tension rotor side) first, then right, then all spokes from the left
-  assert.deepEqual(imageSpecsFor('front', false, { drive: 'Right side', rotor: 'Left side' }).map((s) => s.caption), ['Front wheel, left side spokes only', 'Front wheel, right side spokes only', 'Front wheel, all spokes (left side view)']);
-  assert.deepEqual(imageSpecsFor('front').map((s) => s.caption), ['Front wheel, rotor side spokes only', 'Front wheel, drive side spokes only', 'Front wheel, all spokes (rotor side view)'], 'System captions are unchanged');
+  assert.deepEqual(custom.images.map((i) => i.cid), ['rear-all-spokes', 'rear-drive-only', 'rear-rotor-only']);
+  assert.deepEqual(custom.images.map((i) => i.caption), ['Rear wheel, all spokes (drive side view)', 'Rear wheel, drive side spokes only', 'Rear wheel, non-drive side spokes only']);
+  // a custom FRONT wheel: all spokes (from the left) first, then left (high-tension rotor side), then right
+  assert.deepEqual(imageSpecsFor('front', false, { drive: 'Right side', rotor: 'Left side' }).map((s) => s.caption), ['Front wheel, all spokes (left side view)', 'Front wheel, left side spokes only', 'Front wheel, right side spokes only']);
+  assert.deepEqual(imageSpecsFor('front').map((s) => s.caption), ['Front wheel, all spokes (rotor side view)', 'Front wheel, rotor side spokes only', 'Front wheel, drive side spokes only'], 'System captions are unchanged');
   const radial = await buildStandardAdditions({ recipe: recipeOf(RADIAL), orderData: loadSample('standard', RADIAL), renderPng: png });
   assert.deepEqual(radial.images.map((i) => i.cid), ['front-all-spokes']);
   assert.equal(radial.imageErrors.length, 0);
@@ -242,7 +242,7 @@ test('webhook, custom Berd rear: today\'s report and inventory are kept, the add
   assert.ok(r.note.includes('Rear total (24 spokes): pull White ×18, Black ×6 -> paint Martin Purple ×10, Oriole Orange ×8'));
   assert.equal(/Left: \d+ x \d+mm \(Adjusted\)/g.exec(r.note.slice(r.note.indexOf('SPOKE COLORS:'))), null, 'the additions never look like inventory lines (the cancel handler parses those)');
   const internal = r.emails.find(isInternal), customer = r.emails.find(isCustomer);
-  assert.deepEqual(cids(internal), ['rear-drive-only', 'rear-rotor-only', 'rear-all-spokes']);
+  assert.deepEqual(cids(internal), ['rear-all-spokes', 'rear-drive-only', 'rear-rotor-only']);
   assert.equal(internal.subject, 'Spoke Calculation Complete for Order #91002', 'the Standard subject is unchanged');
   const rawInternal = r.restEmails.find(isInternal);
   assert.equal(rawInternal.from, 'Spoke Calculator <calculator@loamlabsusa.com>');
@@ -418,4 +418,72 @@ test('buildCustomerEmail works for Standard wheels exactly as for System ones (n
   const a = await buildStandardAdditions({ recipe: recipeOf(STEEL), orderData: loadSample('standard', STEEL), renderPng: png });
   assert.ok(buildCustomerEmail({ wheels: a.wheels, images: a.images, orderData: loadSample('standard', STEEL) }));
   assert.equal(buildCustomerEmail({ wheels: [], images: [], orderData: {} }), null);
+});
+
+/* ------------------------------------------------------------------ round 2: image order, "Spokes" row, erd */
+
+test('round 2: a custom wheel shows ALL SPOKES first, then the higher-tension side, then the lower (internal block and customer email, front before rear)', async () => {
+  const a = await buildStandardAdditions({ recipe: recipeOf(REAR), orderData: loadSample('standard', REAR), renderPng: png });
+  assert.deepEqual(a.images.map((i) => i.cid), ['rear-all-spokes', 'rear-drive-only', 'rear-rotor-only']);
+  const pos = (html) => ['rear-all-spokes', 'rear-drive-only', 'rear-rotor-only'].map((c) => html.indexOf(`cid:${c}`));
+  const c = buildCustomerEmail({ wheels: a.wheels, images: a.images, orderData: loadSample('standard', REAR) });
+  const [p0, p1, p2] = pos(c.html); assert.ok(p0 > 0 && p0 < p1 && p1 < p2, 'customer email order');
+  const [q0, q1, q2] = pos(a.html); assert.ok(q0 > 0 && q0 < q1 && q1 < q2, 'internal block order');
+  assert.deepEqual(c.images.map((i) => i.caption), ['Rear wheel, all spokes (drive side view)', 'Rear wheel, drive side spokes only', 'Rear wheel, non-drive side spokes only'], 'captions are unchanged, only the order moved');
+  const solid = await buildStandardAdditions({ recipe: recipeOf(STEEL), orderData: loadSample('standard', STEEL), renderPng: png });
+  assert.deepEqual(solid.images.map((i) => i.cid), ['front-all-spokes', 'rear-all-spokes'], 'solid wheels keep their one image each, front first');
+});
+
+test('round 2: the customer email of a Standard order has a "Spokes" row (the spoke product), after the Hub rows and before "Spoke count"; internal blocks and System emails do not get it', async () => {
+  for (const s of [STEEL, REAR, RADIAL]) {
+    const order = loadSample('standard', s), recipe = recipeOf(s);
+    const a = await buildStandardAdditions({ recipe, orderData: order, renderPng: png });
+    const c = buildCustomerEmail({ wheels: a.wheels, images: a.images, orderData: order });
+    for (const w of a.wheels) {
+      const name = recipe.components[w.position + 'Spokes'].title;
+      assert.ok(c.html.includes(`<tr><td>Spokes</td><td>${name}</td></tr>`), `${s} ${w.position}: Spokes row`);
+    }
+    assert.ok(c.fallbackHtml.includes('<tr><td>Spokes</td>'), 'also in the text-only version');
+    const rows = text(c.html);
+    assert.ok(rows.indexOf('Hub color') < rows.indexOf('Spokes') && rows.indexOf('Spokes') < rows.indexOf('Spoke count'), 'between the hub rows and the spoke count');
+    assert.equal(a.html.includes('<tr><td>Spokes</td>'), false, 'internal block unchanged');
+  }
+  const rear = await buildStandardAdditions({ recipe: recipeOf(REAR), orderData: loadSample('standard', REAR), renderPng: png });
+  const order = loadSample('standard', REAR);
+  const freehub = text(buildCustomerEmail({ wheels: rear.wheels, images: rear.images, orderData: order }).html);
+  assert.ok(freehub.indexOf('Freehub') < freehub.indexOf('Spokes'), 'after the Freehub row of a rear wheel');
+  const sys = loadSample('system', 'solix-24h-wheelset-multicolor');
+  const sr = await (await import('../_lib/system-report.js')).buildSystemReport({ recipe: findSystemBuildRecipe(sys).recipe, orderData: sys, renderPng: png });
+  assert.equal(buildCustomerEmail({ wheels: sr.wheels, images: sr.images, orderData: sys }).html.includes('<td>Spokes</td>'), false, 'System rows unchanged');
+});
+
+test('round 2: standardStudio.wheels.<pos>.erd (mm) is used for the hub scaling; absent or unusable = the rim metafield / recipe / default fallback as before', () => {
+  const o = loadSample('standard', REAR), recipe = findStandardStudioRecipe(o).recipe;
+  assert.equal(recipe.standardStudio.wheels.rear.erd, 600, 'the sample carries an erd');
+  const fromContract = standardWheelConfig({ ...recipe, standardStudio: { ...recipe.standardStudio, wheels: { rear: { ...recipe.standardStudio.wheels.rear, erd: 575.5 } } } }, 'rear', null);
+  assert.equal(fromContract.cfg.erd, 575.5); assert.equal(fromContract.cfg.source.erd, 'contract');
+  // a metafield disagrees with the contract: the contract wins ("exactly what the customer saw")
+  const cd = new Map([[recipe.components.rearRim.variantId, { rim_erd: '590' }]]);
+  assert.equal(standardWheelConfig(recipe, 'rear', cd).cfg.erd, 600);
+  // no erd in the contract: today's fallback chain
+  const noErd = JSON.parse(JSON.stringify(recipe)); delete noErd.standardStudio.wheels.rear.erd;
+  assert.equal(standardWheelConfig(noErd, 'rear', cd).cfg.erd, 590); assert.equal(standardWheelConfig(noErd, 'rear', cd).cfg.source.erd, 'metafield');
+  assert.equal(standardWheelConfig(noErd, 'rear', null).cfg.source.erd, 'default'); assert.equal(standardWheelConfig(noErd, 'rear', null).cfg.erd, 568);
+  // unusable values (out of 200 to 800, text, zero, negative, hostile) fall back instead of reaching the drawing
+  for (const bad of [0, -5, 'abc', 5, 5000, null, {}, [], '1e9']) {
+    const r = JSON.parse(JSON.stringify(recipe)); r.standardStudio.wheels.rear.erd = bad;
+    const cfg = standardWheelConfig(r, 'rear', cd).cfg;
+    assert.equal(cfg.erd, 590, `erd ${JSON.stringify(bad)} ignored`); assert.notEqual(cfg.source.erd, 'contract');
+  }
+});
+
+test('round 2: the contract erd changes the drawn hub size (and nothing else); without erd the picture is today\'s', async () => {
+  const withErd = recipeOf(REAR), without = JSON.parse(JSON.stringify(withErd)); delete without.standardStudio.wheels.rear.erd;
+  const big = JSON.parse(JSON.stringify(withErd)); big.standardStudio.wheels.rear.erd = 700;
+  const order = loadSample('standard', REAR);
+  const [a, b, c] = await Promise.all([withErd, without, big].map((r) => buildStandardAdditions({ recipe: r, orderData: order, renderPng: png })));
+  assert.equal(a.imageErrors.length, 0);
+  assert.notEqual(a.images[0].svg, c.images[0].svg, 'a different erd draws a different hub size');
+  assert.deepEqual(a.images.map((i) => i.cid), b.images.map((i) => i.cid));
+  assert.equal(a.noteText, b.noteText, 'text is unaffected by erd');
 });

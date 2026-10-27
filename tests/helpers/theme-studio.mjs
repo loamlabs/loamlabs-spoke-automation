@@ -3,8 +3,9 @@
 // The theme folder is a working checkout that other agents switch branches in, so by default the Studio is read from a git REF of that repo, not
 // from whatever happens to be checked out:
 //   LOAM_THEME_DIR   the theme-dev folder (default: ../loamlabs-system-builder/theme-dev next to this repo)
-//   LOAM_THEME_REF   the git ref to read assets/spoke-studio.js and the golden file from. Default: agent-a-standard-studio (commit 63330f2, the
-//                    Standard Studio engine). 'worktree' reads the working-tree files instead. If the ref does not exist (for example the branch was
+//   LOAM_THEME_REF   the git ref to read assets/spoke-studio.js and the golden file from. Default: commit 63330f2 (the Standard Studio engine this repo's
+//                    vendored geometry is synced to). Use LOAM_THEME_REF=agent-a-standard-studio to see how far the theme has moved on (the drift test
+//                    then fails until the geometry is re-synced). 'worktree' reads the working-tree files instead. If the ref does not exist (for example the branch was
 //                    merged and deleted) it falls back to the working tree and says so in `origin`.
 //   LOAM_THEME_DIR=skip  -> everything here returns null (the tests that need the theme skip).
 import fs from 'node:fs';
@@ -14,7 +15,7 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-export const DEFAULT_THEME_REF = 'agent-a-standard-studio';
+export const DEFAULT_THEME_REF = '63330f2';
 
 export function themeDir() {
   if (process.env.LOAM_THEME_DIR === 'skip') return null;

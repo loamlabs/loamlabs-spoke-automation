@@ -100,13 +100,15 @@ export function standardWheelConfig(recipe, pos, componentData) {
     side[s] = { n, pcd: pcd || 58, cross };
   }
   const rimMeta = metaFor(componentData, recipe.components?.[pos + 'Rim']);
+  // the contract's own ERD ("exactly what the customer saw") first, then the rim metafield, the recipe's copy, the Studio default
+  const erdSpec = metaNumber(spec, 'erd', ERD_RANGE_MM);
   const erdMeta = metaNumber(rimMeta, 'rim_erd', ERD_RANGE_MM), erdComp = metaNumber(recipe.components?.[pos + 'Rim'], 'rim_erd', ERD_RANGE_MM);
-  const erd = erdMeta || erdComp || DEFAULT_ERD_MM;
+  const erd = erdSpec || erdMeta || erdComp || DEFAULT_ERD_MM;
   const total = side.drive.n + side.rotor.n;
   const spec_ = spokeCountOf(recipe, pos);
   if (spec_ && spec_ !== total) warnings.push(`${cap(pos)} wheel: the Studio wheel has ${total} spokes but the build says ${spec_}h; drawn as the Studio wheel.`);
   return {
-    cfg: { erd, rimHoles: total, drive: side.drive, rotor: side.rotor, source: { erd: erdMeta ? 'metafield' : (erdComp ? 'recipe' : 'default') } },
+    cfg: { erd, rimHoles: total, drive: side.drive, rotor: side.rotor, source: { erd: erdSpec ? 'contract' : erdMeta ? 'metafield' : (erdComp ? 'recipe' : 'default') } },
     sideLabels: labels, warnings
   };
 }

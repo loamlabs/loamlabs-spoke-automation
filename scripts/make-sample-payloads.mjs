@@ -314,7 +314,7 @@ function stdKeyedOrder(name, { orderNumber, buildType, brake, wheels, note, pain
     components[pos + 'Hub'] = { variantId: gid('ProductVariant', w.hub.v), title: w.hub.title, variantTitle: w.total + 'h / ' + w.hub.color + ' / ' + specs[pos + 'HubSpacing'], vendor: w.hub.vendor, price: 300, spec_freehub: pos === 'rear' ? 'XD' : null, selectedOptions: [{ name: 'Color', value: w.hub.color }] };
     components[pos + 'Spokes'] = { variantId: gid('ProductVariant', w.spokes.v), title: w.spokes.title, variantTitle: base + ' / 290mm', vendor: w.spokes.vendor, price: 2, selectedOptions: [{ name: 'Color', value: base }, { name: 'Length', value: '290mm' }], selectedColor: base };
     components[pos + 'Nipples'] = { variantId: gid('ProductVariant', 1101), title: 'Sapim Polyax Brass Nipples', variantTitle: 'Black', vendor: 'Sapim', price: 0.3 };
-    wheelCfg[pos] = { drive: { n, pcd: w.pcd, cross: w.cross }, rotor: { n, pcd: w.pcd, cross: w.cross }, sideLabels: STD_LABELS[pos] };
+    wheelCfg[pos] = { erd: Number(w.rim.fields.rim_erd), drive: { n, pcd: w.pcd, cross: w.cross }, rotor: { n, pcd: w.pcd, cross: w.cross }, sideLabels: STD_LABELS[pos] }; // erd (mm): the contract carries the ERD the Studio drew
     colorsUsed[w.hub.color] = STD_HEX[w.hub.color] || '#8a9099';
     Object.keys(all).forEach((c) => { colorsUsed[c] = STD_HEX[c]; });
     if (custom) {

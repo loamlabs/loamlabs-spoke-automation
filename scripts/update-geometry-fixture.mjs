@@ -1,7 +1,7 @@
 // I9-SYSTEM: regenerates the geometry fixtures from the THEME's LoamStudio.geometry (never from the backend copy):
 //   tests/fixtures/studio-geometry.json            the System sandbox wheels
 //   tests/fixtures/studio-geometry-standard.json   the 38 Standard wheels (compact)
-// Usage: node scripts/update-geometry-fixture.mjs                       (reads the theme branch agent-a-standard-studio of ../loamlabs-system-builder/theme-dev)
+// Usage: node scripts/update-geometry-fixture.mjs                       (reads the theme commit 63330f2 of ../loamlabs-system-builder/theme-dev; set LOAM_THEME_REF to sync a newer one)
 //        LOAM_THEME_DIR=<theme-dev folder> LOAM_THEME_REF=<git ref | worktree> node scripts/update-geometry-fixture.mjs
 import fs from 'node:fs';
 import path from 'node:path';

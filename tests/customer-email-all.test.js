@@ -15,8 +15,8 @@ const cids = (e) => (e.attachments || []).map((a) => a.content_id);
 
 const CASES = [
   { name: 'both wheels solid (Black x24 + Black x24)', sample: 'solix-24h-wheelset-both-solid-black', order: 90010, images: ['front-all-spokes', 'rear-all-spokes'] },
-  { name: 'one solid, one custom', sample: 'solix-24h-wheelset-front-custom-rear-solid', order: 90009, images: ['front-rotor-only', 'front-drive-only', 'front-all-spokes', 'rear-all-spokes'] },
-  { name: 'both custom', sample: 'solix-24h-wheelset-multicolor', order: 90001, images: ['front-rotor-only', 'front-drive-only', 'front-all-spokes', 'rear-drive-only', 'rear-rotor-only', 'rear-all-spokes'] }
+  { name: 'one solid, one custom', sample: 'solix-24h-wheelset-front-custom-rear-solid', order: 90009, images: ['front-all-spokes', 'front-rotor-only', 'front-drive-only', 'rear-all-spokes'] },
+  { name: 'both custom', sample: 'solix-24h-wheelset-multicolor', order: 90001, images: ['front-all-spokes', 'front-rotor-only', 'front-drive-only', 'rear-all-spokes', 'rear-drive-only', 'rear-rotor-only'] }
 ];
 
 for (const c of CASES) {
