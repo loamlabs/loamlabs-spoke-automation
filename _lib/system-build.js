@@ -232,13 +232,40 @@ export function rimTitleOf(comp) {
   return clip(size ? `${comp.title} - ${size}` : String(comp.title || 'n/a'), MAX_TITLE_CHARS);
 }
 
-// Spoke lines in the ORDER (one per color per wheel), to cross-check the Studio counts: { color: qty }.
-export function cartSpokeCounts(orderData, pos) {
+// Since round 8 of the theme (2026-10) a wheel's System spokes are ONE bundle line per wheel (quantity 1, the variant is the wheel's most-used color, the line
+// property _spoke_bundle = "1", and "Spoke Colors" lists the wheel's counts: "Red ×22, Orange ×6", or just "Black" for a solid wheel). Orders placed before that
+// have one line per color with quantity = number of spokes and neither property. A bundle line's quantity says nothing about spokes, so its counts come from the
+// "Spoke Colors" line property; a solid wheel's single color stands for the wheel's whole spoke count (wheelTotal).
+export function isSpokeBundleLineItem(li) {
+  return isSystemSpokeLineItem(li) && String(propValue(li, '_spoke_bundle') ?? '').trim() === '1';
+}
+// "Red ×22, Orange ×6" -> { Red: 22, Orange: 6 }; "Black" -> { Black: wheelTotal }; null when there is no usable text.
+export function parseSpokeColorsProperty(text, wheelTotal) {
+  if (typeof text !== 'string' || !text.trim()) return null;
+  const out = Object.create(null);
+  for (const part of text.split(',')) {
+    const t = part.trim();
+    if (!t) continue;
+    const m = /^(.*\S)\s+[\u00d7x]\s*(\d+)$/i.exec(t);
+    const color = clip(m ? m[1].trim() : t, MAX_NAME_CHARS);
+    out[color] = (out[color] || 0) + (m ? Number(m[2]) : (Number(wheelTotal) || 0));
+  }
+  return Object.keys(out).length ? out : null;
+}
+
+// Spoke lines in the ORDER, to cross-check the Studio counts: { color: spokes }. One bundle line per wheel (new format, counts from its "Spoke Colors" property;
+// wheelTotal = the wheel's spoke count, used for a solid wheel's one color) or one line per color (old format, quantity = spokes); both can be in the same order.
+export function cartSpokeCounts(orderData, pos, wheelTotal) {
   const out = Object.create(null); // REVIEW: keyed by color names from the order; a prototype-less object keeps "constructor" / "__proto__" honest
   const items = Array.isArray(orderData?.line_items) ? orderData.line_items : [];
   items.filter(isSystemSpokeLineItem).forEach((li) => {
     const wheel = String(propValue(li, 'Wheel') || '').toLowerCase();
     if (wheel && wheel !== pos) return;
+    if (isSpokeBundleLineItem(li)) {
+      const parsed = parseSpokeColorsProperty(propValue(li, 'Spoke Colors'), wheelTotal);
+      if (parsed) for (const c of Object.keys(parsed)) out[c] = (out[c] || 0) + parsed[c];
+      return; // no "Spoke Colors" text: nothing to compare for this line (its quantity is 1 whatever the wheel)
+    }
     const color = clip(String(li.variant_title || '').split('/')[0].trim() || 'unknown', MAX_NAME_CHARS);
     out[color] = (out[color] || 0) + (Number(li.quantity) || 0);
   });
@@ -275,7 +302,7 @@ export function systemWheels(recipe, componentData, orderData) {
     if (boughtHubColor && studioHubColor && boughtHubColor !== studioHubColor) warnings.push(`${cap(pos)} hub: ordered ${boughtHubColor} but the Studio value says ${studioHubColor}; drawn ${boughtHubColor}.`);
     if (!model) warnings.push(`${cap(pos)} hub: could not tell Solix from Hydra2 (specs.systemHub / hub title); Hydra2 geometry assumed.`);
     const counts = { drive: countColors(colors.drive), rotor: countColors(colors.rotor), all: countColors([...colors.drive, ...colors.rotor]) };
-    const cartCounts = cartSpokeCounts(orderData, pos);
+    const cartCounts = cartSpokeCounts(orderData, pos, cfg.rimHoles);
     if (Object.keys(cartCounts).length) {
       const mismatch = counts.all.filter((c) => (cartCounts[c.color] || 0) !== c.n).map((c) => `${c.color} (Studio ${c.n}, cart ${cartCounts[c.color] || 0})`);
       const extra = Object.keys(cartCounts).filter((c) => !counts.all.some((x) => x.color === c)).map((c) => `${c} (cart ${cartCounts[c]}, Studio 0)`);

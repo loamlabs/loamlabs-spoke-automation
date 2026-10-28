@@ -14,8 +14,9 @@ const recipeOf = (name) => { const o = loadSample('system', name); return { orde
 const SYSTEM_SAMPLE_NAMES = ['solix-24h-wheelset-multicolor', 'hydra2-wheelset-28f-32r', 'hydra2-wheelset-32f-32r', 'hydra2-front-28h-only', 'hydra2-front-32h-only', 'hydra2-rear-32h-only', 'solix-single-color-front', 'hydra2-rear-32h-all-different', 'solix-24h-wheelset-front-custom-rear-solid', 'solix-24h-wheelset-both-solid-black'];
 
 test('System builds are recognized, Standard builds are not; the sample list is the real-wheel list (no Hydra2 28h rear)', () => {
-  assert.deepEqual(Object.keys(SYSTEM_SAMPLES).sort(), [...SYSTEM_SAMPLE_NAMES].sort());
-  for (const n of SYSTEM_SAMPLE_NAMES) assert.ok(findSystemBuildRecipe(loadSample('system', n)), n);
+  const BUNDLE_SAMPLE_NAMES = ['hydra2-bundle-front-custom-rear-solid', 'solix-bundle-24h-both-solid-black']; // round 6: the spokes as one bundle line per wheel (tests/system-spoke-bundle.test.js)
+  assert.deepEqual(Object.keys(SYSTEM_SAMPLES).sort(), [...SYSTEM_SAMPLE_NAMES, ...BUNDLE_SAMPLE_NAMES].sort());
+  for (const n of [...SYSTEM_SAMPLE_NAMES, ...BUNDLE_SAMPLE_NAMES]) assert.ok(findSystemBuildRecipe(loadSample('system', n)), n);
   for (const n of ['steel-jbend-wheelset', 'berd-straightpull-front', 'rimbrake-front-own-rear-hub']) {
     assert.equal(findSystemBuildRecipe(loadSample('standard', n)), null, n);
   }

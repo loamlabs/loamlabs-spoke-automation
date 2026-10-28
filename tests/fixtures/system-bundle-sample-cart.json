@@ -1,0 +1,243 @@
+{
+  "_about": "Round 8 (System spokes sold as one bundle per wheel, $299). Two real carts captured from the Standard Studio Preview theme (cart.js 'items', fields trimmed to the useful ones) after the 12 Industry Nine SYSTEM Spokes variants were repriced to $299. In a real cart the property '_build' is a JSON STRING (JSON.stringify of the object shown here); it is shown as an object only for reading. line_price is after Shopify's 10% automatic discount (the spoke product is in the discount collection, the 'Custom Spoke Color Configuration' fee product is not). What changed for the backend: each wheel has exactly ONE 'Industry Nine SYSTEM Spokes' line, quantity 1, price 29900, the variant is the wheel's most-used color (ties: the base color, then by name), property '_spoke_bundle' = '1' marks the new format (older orders have one line per color with quantity = spoke count and no such property), property 'Spoke Colors' lists the wheel's per-color counts. The per-color counts and the per-spoke map are in the placeholder line ('LoamLabs Custom Wheel Build'): 'Front Spoke Colors' / 'Rear Spoke Colors' / '<Wheel> Drive Side' / '<Wheel> Rotor Side' and _build.system.studio. Two wheels in the same color are still two lines (not merged to quantity 2). Items are in the order cart.js returned them.",
+  "samples": {
+    "custom_front_solid_rear_hydra2_set": {
+      "_description": "Hydra2 wheel set, front 28h custom (Red x22 + Orange x6 -> Red line, color fee line), rear 32h solid Gold. Estimated total $2,208.40.",
+      "currency": "USD",
+      "total_price": 220840,
+      "item_count": 13,
+      "items": [
+        {
+          "id": 51752447443251, "variant_id": 51752447443251, "product_id": 9799031128371, "sku": null, "vendor": "Industry Nine",
+          "product_title": "Industry Nine Hydra2 Freehub", "variant_title": "XD", "title": "Industry Nine Hydra2 Freehub - XD",
+          "quantity": 1, "price": 0, "line_price": 0, "final_line_price": 0,
+          "properties": { "_BuildID": "762107", "_bundle_id": "762107", "Wheel": "Rear", "Component": "Freehub" }
+        },
+        {
+          "id": 67792147743027, "variant_id": 67792147743027, "product_id": 15442698666291, "sku": null, "vendor": "Industry Nine",
+          "product_title": "Industry Nine SYSTEM Spokes", "variant_title": "Gold / -", "title": "Industry Nine SYSTEM Spokes - Gold / -",
+          "quantity": 1, "price": 29900, "line_price": 26910, "final_line_price": 26910,
+          "properties": { "_BuildID": "762107", "_bundle_id": "762107", "Wheel": "Rear", "Spoke Colors": "Gold", "_spoke_bundle": "1" }
+        },
+        {
+          "id": 53547341775155, "variant_id": 53547341775155, "product_id": 10262112010547, "sku": null, "vendor": "Industry Nine",
+          "product_title": "Industry Nine Hydra2 SYSTEM Rear Hub - 6-Bolt", "variant_title": "32h / Black / 12x148mm", "title": "Industry Nine Hydra2 SYSTEM Rear Hub - 6-Bolt - 32h / Black / 12x148mm",
+          "quantity": 1, "price": 51000, "line_price": 45900, "final_line_price": 45900,
+          "properties": { "_BuildID": "762107", "_bundle_id": "762107", "Wheel": "Rear", "_Freehub_Type": "XD" }
+        },
+        {
+          "id": 51797702967603, "variant_id": 51797702967603, "product_id": 8764682830131, "sku": null, "vendor": "We Are One",
+          "product_title": "We Are One FUSE Carbon Rim (Enduro)", "variant_title": "29\" / 32h / Black", "title": "We Are One FUSE Carbon Rim (Enduro) - 29&quot; / 32h / Black",
+          "quantity": 1, "price": 49900, "line_price": 44910, "final_line_price": 44910,
+          "properties": { "_BuildID": "762107", "_bundle_id": "762107", "Wheel": "Rear" }
+        },
+        {
+          "id": 67791816196403, "variant_id": 67791816196403, "product_id": 15442584404275, "sku": null, "vendor": "LoamLabs",
+          "product_title": "Custom Spoke Color Configuration", "variant_title": "Mixed colors", "title": "Custom Spoke Color Configuration - Mixed colors",
+          "quantity": 1, "price": 2500, "line_price": 2500, "final_line_price": 2500,
+          "properties": { "_BuildID": "762107", "_bundle_id": "762107", "Wheel": "Front" }
+        },
+        {
+          "id": 51561220669747, "variant_id": 51561220669747, "product_id": 9751873782067, "sku": "", "vendor": "LoamLabs",
+          "product_title": "Tubeless Tape (Installed)", "variant_title": null, "title": "Tubeless Tape (Installed)",
+          "quantity": 2, "price": 0, "line_price": 0, "final_line_price": 0,
+          "properties": { "_BuildID": "762107", "_bundle_id": "762107", "Wheel": "Front/Rear" }
+        },
+        {
+          "id": 51504906535219, "variant_id": 51504906535219, "product_id": 9742784004403, "sku": "", "vendor": "LoamLabs",
+          "product_title": "Assembly Service", "variant_title": "40.00", "title": "Assembly Service - 40.00",
+          "quantity": 2, "price": 4000, "line_price": 7200, "final_line_price": 7200,
+          "properties": { "_BuildID": "762107", "_bundle_id": "762107", "Wheel": "Front/Rear" }
+        },
+        {
+          "id": 67792151675187, "variant_id": 67792151675187, "product_id": 15442698666291, "sku": null, "vendor": "Industry Nine",
+          "product_title": "Industry Nine SYSTEM Spokes", "variant_title": "Red / -", "title": "Industry Nine SYSTEM Spokes - Red / -",
+          "quantity": 1, "price": 29900, "line_price": 26910, "final_line_price": 26910,
+          "properties": { "_BuildID": "762107", "_bundle_id": "762107", "Wheel": "Front", "Spoke Colors": "Red ×22, Orange ×6", "_spoke_bundle": "1" }
+        },
+        {
+          "id": 53547315200307, "variant_id": 53547315200307, "product_id": 10262087991603, "sku": null, "vendor": "Industry Nine",
+          "product_title": "Industry Nine Hydra2 SYSTEM Front Hub - 6-Bolt", "variant_title": "28h / Orange / 15x110mm", "title": "Industry Nine Hydra2 SYSTEM Front Hub - 6-Bolt - 28h / Orange / 15x110mm",
+          "quantity": 1, "price": 24000, "line_price": 21600, "final_line_price": 21600,
+          "properties": { "_BuildID": "762107", "_bundle_id": "762107", "Wheel": "Front" }
+        },
+        {
+          "id": 51797702934835, "variant_id": 51797702934835, "product_id": 8764682830131, "sku": null, "vendor": "We Are One",
+          "product_title": "We Are One FUSE Carbon Rim (Enduro)", "variant_title": "29\" / 28h / Black", "title": "We Are One FUSE Carbon Rim (Enduro) - 29&quot; / 28h / Black",
+          "quantity": 1, "price": 49900, "line_price": 44910, "final_line_price": 44910,
+          "properties": { "_BuildID": "762107", "_bundle_id": "762107", "Wheel": "Front" }
+        },
+        {
+          "id": 51500432228659, "variant_id": 51500432228659, "product_id": 9742207582515, "sku": "", "vendor": "LoamLabs",
+          "product_title": "LoamLabs Custom Wheel Build", "variant_title": null, "title": "LoamLabs Custom Wheel Build",
+          "quantity": 1, "price": 0, "line_price": 0, "final_line_price": 0,
+          "properties": {
+            "_BuildID": "762107", "_bundle_id": "762107", "_is_custom_wheel_build": "true", "_EstLeadTime": "Approx. 3-4 Weeks",
+            "_build": {
+              "step": 3, "buildType": "Wheel Set", "ridingStyle": "hybrid", "ridingStyleDisplay": "Hybrid: Gr/Rd/Mtb", "spokeInterface": "system",
+              "system": {
+                "v": 1, "studioOpened": true,
+                "studio": {
+                  "v": 1,
+                  "hubColor": { "front": "Orange", "rear": "Black" },
+                  "base": { "front": { "drive": "Red", "rotor": "Red" }, "rear": { "drive": "Gold", "rotor": "Gold" } },
+                  "spokes": {
+                    "front": {
+                      "drive": ["Red", "Red", "Red", "Red", "Red", "Orange", "Red", "Red", "Red", "Orange", "Red", "Red", "Red", "Orange"],
+                      "rotor": ["Red", "Red", "Red", "Red", "Red", "Orange", "Red", "Red", "Red", "Orange", "Red", "Red", "Red", "Orange"]
+                    },
+                    "rear": {
+                      "drive": ["Gold", "Gold", "Gold", "Gold", "Gold", "Gold", "Gold", "Gold", "Gold", "Gold", "Gold", "Gold", "Gold", "Gold", "Gold", "Gold"],
+                      "rotor": ["Gold", "Gold", "Gold", "Gold", "Gold", "Gold", "Gold", "Gold", "Gold", "Gold", "Gold", "Gold", "Gold", "Gold", "Gold", "Gold"]
+                    }
+                  },
+                  "accent": "Orange"
+                },
+                "wheels": {
+                  "front": { "hubName": "Hydra2", "hubColor": "Orange", "erd": 604, "rimHoles": 28, "drive": { "n": 14, "pcd": 46, "cross": 2 }, "rotor": { "n": 14, "pcd": 46, "cross": 2 } },
+                  "rear": { "hubName": "Hydra2", "hubColor": "Black", "erd": 604, "rimHoles": 32, "drive": { "n": 16, "pcd": 54, "cross": 3 }, "rotor": { "n": 16, "pcd": 54, "cross": 3 } }
+                },
+                "colors": { "Orange": "#f07a1a", "Red": "#d0262b", "Black": "#1d1f23", "Gold": "#dcae2a" }
+              },
+              "customerSupplied": { "front": { "rim": false, "hub": false }, "rear": { "rim": false, "hub": false } },
+              "specs": { "frontWheelSize": "29\"", "rearWheelSize": "29\"", "frontSpokeCount": "28h", "rearSpokeCount": "32h", "brakeStyle": "6-Bolt", "frontHubSpacing": "15x110mm", "rearHubSpacing": "12x148mm (Boost)", "freehubType": "XD", "systemHub": "Hydra2" },
+              "components": {
+                "frontRim": { "variantId": "gid://shopify/ProductVariant/51797702934835", "title": "We Are One FUSE Carbon Rim (Enduro)", "variantTitle": "29\" / 28h / Black", "price": 49900, "vendor": "Industry Nine", "spokeCount": "28h", "wheelSize": "29\"", "rim_erd": "604.0" },
+                "rearRim": { "variantId": "gid://shopify/ProductVariant/51797702967603", "title": "We Are One FUSE Carbon Rim (Enduro)", "variantTitle": "29\" / 32h / Black", "price": 49900, "vendor": "Industry Nine", "spokeCount": "32h", "wheelSize": "29\"", "rim_erd": "604.0" },
+                "frontHub": { "variantId": "gid://shopify/ProductVariant/53547315200307", "title": "Industry Nine Hydra2 SYSTEM Front Hub - 6-Bolt", "variantTitle": "28h / Orange / 15x110mm", "price": 24000, "vendor": "Industry Nine", "spec_spoke_count": "28h", "spec_hub_spacing": "15x110mm", "wheelModel": "Industry Nine Hydra2 SYSTEM" },
+                "rearHub": { "variantId": "gid://shopify/ProductVariant/53547341775155", "title": "Industry Nine Hydra2 SYSTEM Rear Hub - 6-Bolt", "variantTitle": "32h / Black / 12x148mm", "price": 51000, "vendor": "Industry Nine", "spec_spoke_count": "32h", "spec_hub_spacing": "12x148mm (Boost)", "spec_freehub": "XD", "wheelModel": "Industry Nine Hydra2 SYSTEM" },
+                "frontSpokes": { "variantId": "gid://shopify/ProductVariant/67792151675187", "title": "Industry Nine SYSTEM Spokes", "variantTitle": "Red / -", "price": 29900, "vendor": "Industry Nine", "selectedOptions": [{ "name": "Color", "value": "Red" }, { "name": "Length", "value": "-" }], "selectedColor": "Red", "weight_g": 5.95, "i9": true },
+                "rearSpokes": { "variantId": "gid://shopify/ProductVariant/67792147743027", "title": "Industry Nine SYSTEM Spokes", "variantTitle": "Gold / -", "price": 29900, "vendor": "Industry Nine", "selectedOptions": [{ "name": "Color", "value": "Gold" }, { "name": "Length", "value": "-" }], "selectedColor": "Gold", "weight_g": 5.95, "i9": true },
+                "rearComponentFreehub": { "variantId": "gid://shopify/ProductVariant/51752447443251", "title": "Industry Nine Hydra2 Freehub", "variantTitle": "XD", "price": 0, "name": "Industry Nine Hydra2 Freehub - XD" },
+                "frontRequiredAddons": [{ "name": "Custom Spoke Color Configuration", "price": 25, "variantGid": "gid://shopify/ProductVariant/67791816196403", "costInCents": 2500, "i9Fee": true }],
+                "rearRequiredAddons": [],
+                "frontAssemblyService": { "variantGid": "gid://shopify/ProductVariant/51504906535219", "name": "Assembly Service", "price": 40, "costInCents": 4000 },
+                "rearAssemblyService": { "variantGid": "gid://shopify/ProductVariant/51504906535219", "name": "Assembly Service", "price": 40, "costInCents": 4000 }
+              },
+              "buildId": "762107",
+              "_note_trimmed": "components above are trimmed to the fields the order code reads (the real _build also carries selectedOptions, weights, quantityAvailable, lead times, tape lines and _ui for every component)"
+            },
+            "Front Spoke Colors": "Red ×22, Orange ×6",
+            "Front Drive Side": "1 Red, 2 Red, 3 Red, 4 Red, 5 Red, 6 Orange, 7 Red, 8 Red, 9 Red, 10 Orange, 11 Red, 12 Red, 13 Red, 14 Orange",
+            "Front Rotor Side": "1 Red, 2 Red, 3 Red, 4 Red, 5 Red, 6 Orange, 7 Red, 8 Red, 9 Red, 10 Orange, 11 Red, 12 Red, 13 Red, 14 Orange",
+            "Rear Spoke Colors": "Gold ×32",
+            "System Hub": "Hydra2",
+            "Freehub": "XD"
+          }
+        }
+      ]
+    },
+    "solid_solix_24h_set_same_color_both_wheels": {
+      "_description": "Solix 24h wheel set, both wheels solid Black (Studio never opened). Same variant on both wheels, still two spoke lines (one per wheel, quantity 1). The rim line is merged to quantity 2 as for every other shared component. Estimated total $2,183.40.",
+      "currency": "USD",
+      "total_price": 218340,
+      "item_count": 12,
+      "items": [
+        {
+          "id": 51752449474867, "variant_id": 51752449474867, "product_id": 9799032209715, "sku": null, "vendor": "Industry Nine",
+          "product_title": "Industry Nine Solix Freehub", "variant_title": "XD", "title": "Industry Nine Solix Freehub - XD",
+          "quantity": 1, "price": 0, "line_price": 0, "final_line_price": 0,
+          "properties": { "_BuildID": "275930", "_bundle_id": "275930", "Wheel": "Rear", "Component": "Freehub" }
+        },
+        {
+          "id": 67792145776947, "variant_id": 67792145776947, "product_id": 15442698666291, "sku": null, "vendor": "Industry Nine",
+          "product_title": "Industry Nine SYSTEM Spokes", "variant_title": "Black / -", "title": "Industry Nine SYSTEM Spokes - Black / -",
+          "quantity": 1, "price": 29900, "line_price": 26910, "final_line_price": 26910,
+          "properties": { "_BuildID": "275930", "_bundle_id": "275930", "Wheel": "Rear", "Spoke Colors": "Black", "_spoke_bundle": "1" }
+        },
+        {
+          "id": 53547101978931, "variant_id": 53547101978931, "product_id": 10261918318899, "sku": null, "vendor": "Industry Nine",
+          "product_title": "Industry Nine Solix SYSTEM Rear Hub - Centerlock", "variant_title": "24h / Black / 12x148mm", "title": "Industry Nine Solix SYSTEM Rear Hub - Centerlock - 24h / Black / 12x148mm",
+          "quantity": 1, "price": 51000, "line_price": 45900, "final_line_price": 45900,
+          "properties": { "_BuildID": "275930", "_bundle_id": "275930", "Wheel": "Rear", "_Freehub_Type": "XD" }
+        },
+        {
+          "id": 51561220669747, "variant_id": 51561220669747, "product_id": 9751873782067, "sku": "", "vendor": "LoamLabs",
+          "product_title": "Tubeless Tape (Installed)", "variant_title": null, "title": "Tubeless Tape (Installed)",
+          "quantity": 2, "price": 0, "line_price": 0, "final_line_price": 0,
+          "properties": { "_BuildID": "275930", "_bundle_id": "275930", "Wheel": "Front/Rear" }
+        },
+        {
+          "id": 51504906535219, "variant_id": 51504906535219, "product_id": 9742784004403, "sku": "", "vendor": "LoamLabs",
+          "product_title": "Assembly Service", "variant_title": "40.00", "title": "Assembly Service - 40.00",
+          "quantity": 2, "price": 4000, "line_price": 7200, "final_line_price": 7200,
+          "properties": { "_BuildID": "275930", "_bundle_id": "275930", "Wheel": "Front/Rear" }
+        },
+        {
+          "id": 67792145776947, "variant_id": 67792145776947, "product_id": 15442698666291, "sku": null, "vendor": "Industry Nine",
+          "product_title": "Industry Nine SYSTEM Spokes", "variant_title": "Black / -", "title": "Industry Nine SYSTEM Spokes - Black / -",
+          "quantity": 1, "price": 29900, "line_price": 26910, "final_line_price": 26910,
+          "properties": { "_BuildID": "275930", "_bundle_id": "275930", "Wheel": "Front", "Spoke Colors": "Black", "_spoke_bundle": "1" }
+        },
+        {
+          "id": 53546647814451, "variant_id": 53546647814451, "product_id": 10261675311411, "sku": null, "vendor": "Industry Nine",
+          "product_title": "Industry Nine Solix SYSTEM Front Hub - Centerlock", "variant_title": "24h / Black / 15x110 RS TC", "title": "Industry Nine Solix SYSTEM Front Hub - Centerlock - 24h / Black / 15x110 RS TC",
+          "quantity": 1, "price": 24000, "line_price": 21600, "final_line_price": 21600,
+          "properties": { "_BuildID": "275930", "_bundle_id": "275930", "Wheel": "Front" }
+        },
+        {
+          "id": 67796530037043, "variant_id": 67796530037043, "product_id": 9832892530995, "sku": null, "vendor": "We Are One",
+          "product_title": "We Are One WHISP Carbon Rim (XC)", "variant_title": "29\" / 24h 2:1 / Black", "title": "We Are One WHISP Carbon Rim (XC) - 29&quot; / 24h 2:1 / Black",
+          "quantity": 2, "price": 49900, "line_price": 89820, "final_line_price": 89820,
+          "properties": { "_BuildID": "275930", "_bundle_id": "275930", "Wheel": "Front/Rear" }
+        },
+        {
+          "id": 51500432228659, "variant_id": 51500432228659, "product_id": 9742207582515, "sku": "", "vendor": "LoamLabs",
+          "product_title": "LoamLabs Custom Wheel Build", "variant_title": null, "title": "LoamLabs Custom Wheel Build",
+          "quantity": 1, "price": 0, "line_price": 0, "final_line_price": 0,
+          "properties": {
+            "_BuildID": "275930", "_bundle_id": "275930", "_is_custom_wheel_build": "true", "_EstLeadTime": "Approx. 3-4 Weeks",
+            "_build": {
+              "step": 3, "buildType": "Wheel Set", "ridingStyle": "hybrid", "ridingStyleDisplay": "Hybrid: Gr/Rd/Mtb", "spokeInterface": "system",
+              "system": {
+                "v": 1, "studioOpened": false,
+                "studio": {
+                  "v": 1,
+                  "hubColor": { "front": "Black", "rear": "Black" },
+                  "base": { "front": { "drive": "Black", "rotor": "Black" }, "rear": { "drive": "Black", "rotor": "Black" } },
+                  "spokes": {
+                    "front": {
+                      "drive": ["Black", "Black", "Black", "Black", "Black", "Black", "Black", "Black"],
+                      "rotor": ["Black", "Black", "Black", "Black", "Black", "Black", "Black", "Black", "Black", "Black", "Black", "Black", "Black", "Black", "Black", "Black"]
+                    },
+                    "rear": {
+                      "drive": ["Black", "Black", "Black", "Black", "Black", "Black", "Black", "Black", "Black", "Black", "Black", "Black", "Black", "Black", "Black", "Black"],
+                      "rotor": ["Black", "Black", "Black", "Black", "Black", "Black", "Black", "Black"]
+                    }
+                  },
+                  "accent": "Orange"
+                },
+                "wheels": {
+                  "front": { "hubName": "Solix", "hubColor": "Black", "erd": 600, "rimHoles": 24, "drive": { "n": 8, "pcd": 40, "cross": 1.4 }, "rotor": { "n": 16, "pcd": 43, "cross": 3.5 } },
+                  "rear": { "hubName": "Solix", "hubColor": "Black", "erd": 600, "rimHoles": 24, "drive": { "n": 16, "pcd": 52, "cross": 3.5 }, "rotor": { "n": 8, "pcd": 40, "cross": 1.4 } }
+                },
+                "colors": { "Black": "#1d1f23" }
+              },
+              "customerSupplied": { "front": { "rim": false, "hub": false }, "rear": { "rim": false, "hub": false } },
+              "specs": { "frontWheelSize": "29\"", "rearWheelSize": "29\"", "frontSpokeCount": "24h", "rearSpokeCount": "24h", "brakeStyle": "Centerlock", "frontHubSpacing": "15x110mm", "rearHubSpacing": "12x148mm (Boost)", "freehubType": "XD", "systemHub": "Solix" },
+              "components": {
+                "frontRim": { "variantId": "gid://shopify/ProductVariant/67796530037043", "title": "We Are One WHISP Carbon Rim (XC)", "variantTitle": "29\" / 24h 2:1 / Black", "price": 49900, "vendor": "Industry Nine", "spokeCount": "24h", "wheelSize": "29\"", "rim_erd": "600.0" },
+                "rearRim": { "variantId": "gid://shopify/ProductVariant/67796530037043", "title": "We Are One WHISP Carbon Rim (XC)", "variantTitle": "29\" / 24h 2:1 / Black", "price": 49900, "vendor": "Industry Nine", "spokeCount": "24h", "wheelSize": "29\"", "rim_erd": "600.0" },
+                "frontHub": { "variantId": "gid://shopify/ProductVariant/53546647814451", "title": "Industry Nine Solix SYSTEM Front Hub - Centerlock", "variantTitle": "24h / Black / 15x110 RS TC", "price": 24000, "vendor": "Industry Nine", "spec_spoke_count": "24h", "spec_hub_spacing": "15x110mm", "wheelModel": "Industry Nine Solix SYSTEM" },
+                "rearHub": { "variantId": "gid://shopify/ProductVariant/53547101978931", "title": "Industry Nine Solix SYSTEM Rear Hub - Centerlock", "variantTitle": "24h / Black / 12x148mm", "price": 51000, "vendor": "Industry Nine", "spec_spoke_count": "24h", "spec_hub_spacing": "12x148mm (Boost)", "spec_freehub": "XD", "wheelModel": "Industry Nine Solix SYSTEM" },
+                "frontSpokes": { "variantId": "gid://shopify/ProductVariant/67792145776947", "title": "Industry Nine SYSTEM Spokes", "variantTitle": "Black / -", "price": 29900, "vendor": "Industry Nine", "selectedOptions": [{ "name": "Color", "value": "Black" }, { "name": "Length", "value": "-" }], "selectedColor": "Black", "weight_g": 5.95, "i9": true },
+                "rearSpokes": { "variantId": "gid://shopify/ProductVariant/67792145776947", "title": "Industry Nine SYSTEM Spokes", "variantTitle": "Black / -", "price": 29900, "vendor": "Industry Nine", "selectedOptions": [{ "name": "Color", "value": "Black" }, { "name": "Length", "value": "-" }], "selectedColor": "Black", "weight_g": 5.95, "i9": true },
+                "rearComponentFreehub": { "variantId": "gid://shopify/ProductVariant/51752449474867", "title": "Industry Nine Solix Freehub", "variantTitle": "XD", "price": 0, "name": "Industry Nine Solix Freehub - XD" },
+                "frontRequiredAddons": [],
+                "rearRequiredAddons": [],
+                "frontAssemblyService": { "variantGid": "gid://shopify/ProductVariant/51504906535219", "name": "Assembly Service", "price": 40, "costInCents": 4000 },
+                "rearAssemblyService": { "variantGid": "gid://shopify/ProductVariant/51504906535219", "name": "Assembly Service", "price": 40, "costInCents": 4000 }
+              },
+              "buildId": "275930",
+              "_note_trimmed": "components above are trimmed to the fields the order code reads (the real _build also carries selectedOptions, weights, quantityAvailable, lead times, tape lines and _ui for every component)"
+            },
+            "Front Spoke Colors": "Black ×24",
+            "Rear Spoke Colors": "Black ×24",
+            "System Hub": "Solix",
+            "Freehub": "XD"
+          }
+        }
+      ]
+    }
+  }
+}
