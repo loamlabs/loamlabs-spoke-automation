@@ -11,6 +11,7 @@
 import { systemWheels, hexFor, SYSTEM_FEE } from './system-build.js';
 import { geometry } from './studio-geometry.js';
 import { wheelSvg } from './wheel-svg.js';
+import { loadRing } from './rim-rings.js';
 import { svgToPng } from './wheel-png.js';
 import { calculateSystemSpokeLengths, SYSTEM_LENGTHS_PENDING_TEXT } from './system-lengths.js';
 import { SYSTEM_REPORT_MARKER } from './system-dedupe.js';
@@ -65,10 +66,21 @@ export async function renderWheelImages(wheel, renderPng, width) {
   }
   const hexOf = wheel.hexOf || hexFor;
   const colorsHex = { drive: wheel.colors.drive.map((c) => hexOf(c)), rotor: wheel.colors.rotor.map((c) => hexOf(c)) };
+  // round 12: the rim is drawn from the photo ring of its brand (wheel.rimRing 'wao' | 'i9', set from the rim component; null = the plain stroked circle). If the ring
+  // cannot be loaded or drawn, the picture is drawn with the plain circle instead, so a ring problem never costs a picture.
+  let ring = null;
+  if (wheel.rimRing !== null) {
+    try { ring = await loadRing(wheel.rimRing || 'wao', wheel.position); } catch (e) { console.log(`I9-SYSTEM: ${wheel.label} wheel: rim ring not loaded, plain rim drawn: ${e && e.message}`); }
+  }
   for (const spec of imageSpecsFor(wheel.position, !wheel.isMultiColor, wheel.sideLabels || null)) {
     try {
-      const svg = wheelSvg({ config: wheel.config, geom, colorsHex, hubHex: wheel.hubColorHex, pov: spec.pov, sides: spec.sides, size: width });
-      const png = await renderPng(svg, { width });
+      const draw = (r) => wheelSvg({ config: wheel.config, geom, colorsHex, hubHex: wheel.hubColorHex, pov: spec.pov, sides: spec.sides, size: width, ring: r });
+      let svg = draw(ring), png;
+      try { png = await renderPng(svg, { width }); } catch (e) {
+        if (!ring) throw e;
+        console.log(`I9-SYSTEM: ${spec.caption}: ring picture failed (${e && e.message}), plain rim drawn`);
+        svg = draw(null); png = await renderPng(svg, { width });
+      }
       if (!png || !png.length) throw new Error('renderer returned no bytes');
       images.push({ cid: spec.cid, filename: `${spec.cid}.png`, caption: spec.caption, png, svg, position: wheel.position, pov: spec.pov, sides: spec.sides });
     } catch (e) {
@@ -186,6 +198,7 @@ export async function buildSystemReport(o) {
   const lengthCalculator = o.lengthCalculator || calculateSystemSpokeLengths; // I9-SYSTEM: LENGTH-CALC HOOK
   const renderPng = o.renderPng || svgToPng, width = o.imageWidth || IMAGE_WIDTH_PX;
   const wheels = systemWheels(recipe, o.componentData || null, orderData);
+  if (o.rimRings === false) wheels.forEach((w) => { w.rimRing = null; }); // plain stroked rim (tests of the lacing geometry); real reports draw the photo ring
   const images = [], imageErrors = [], lengthsByPos = {};
   for (const w of wheels) {
     lengthsByPos[w.position] = lengthsFor(w, lengthCalculator);

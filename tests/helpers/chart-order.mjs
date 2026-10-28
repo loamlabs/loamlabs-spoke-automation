@@ -16,7 +16,7 @@ export function chartOrder(o) {
     const w = o[p], model = w.hub || (w.holes === 24 ? 'Solix' : 'Hydra2');
     hubModel = hubModel || model;
     specs[p + 'SpokeCount'] = `${w.holes}h`;
-    components[p + 'Rim'] = { variantId: gid(w.rim), title: w.rimTitle || 'Test rim', variantTitle: `29" / ${w.holes}h`, selectedOptions: [] };
+    components[p + 'Rim'] = { variantId: gid(w.rim), title: w.rimTitle || 'Test rim', vendor: 'Industry Nine', variantTitle: `29" / ${w.holes}h`, selectedOptions: [] };
     components[p + 'Hub'] = { variantId: gid(9000 + (p === 'front' ? 1 : 2)), title: `Industry Nine ${model} SYSTEM ${p === 'front' ? 'Front' : 'Rear'} Hub`, variantTitle: `${w.holes}h / Black`, selectedOptions: [{ name: 'Color', value: 'Black' }] };
     components[p + 'Spokes'] = { title: 'Industry Nine SYSTEM Spokes', variantTitle: 'Black / -', selectedOptions: [{ name: 'Color', value: 'Black' }, { name: 'Length', value: '-' }], i9: true };
   }

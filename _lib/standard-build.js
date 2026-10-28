@@ -22,6 +22,8 @@ import {
   findWheelBuildLineItem, parseBuildRecipe, isSystemBuildRecipe, SYSTEM_FEE
 } from './system-build.js';
 
+import { ringKeyForRim } from './rim-rings.js'; // round 12: which photo rim ring a wheel's pictures get
+
 export const STANDARD_FEE_NAME = SYSTEM_FEE.name;                // the existing fee product, "Custom Spoke Color Configuration"
 export const STANDARD_FEE_VARIANTS = { mixed: 'Mixed colors', painted: 'Berd painted color', multi: 'Berd multi-color' };
 export const DEFAULT_BLANK = 'White Berd';
@@ -241,7 +243,7 @@ export function standardWheels(recipe, componentData, orderData) {
       hubTitle: clip(hub?.title || 'n/a', MAX_TITLE_CHARS), hubVariantTitle: hub?.variantTitle ? clip(hub.variantTitle, MAX_TITLE_CHARS) : null,
       hubColor, hubColorHex: hexOfStandard(recipe, hubColor), hexOf: (name) => hexOfStandard(recipe, name),
       freehub: pos === 'rear' ? ((hub?.spec_freehub || recipe?.specs?.freehubType) ? clip(hub?.spec_freehub || recipe?.specs?.freehubType, MAX_NAME_CHARS) : null) : null,
-      rimTitle: rimTitleOf(rim),
+      rimTitle: rimTitleOf(rim), rimRing: ringKeyForRim(rim), // round 12: which photo ring the pictures get
       spokeProduct: clip(spokes?.title || 'n/a', MAX_TITLE_CHARS), vendor: clip(spokes?.vendor || '', MAX_NAME_CHARS),
       spokeCountLabel: `${total}h`,
       total, config: wc.cfg ? cfg : null, drawConfig: cfg, sideLabels: wc.sideLabels,

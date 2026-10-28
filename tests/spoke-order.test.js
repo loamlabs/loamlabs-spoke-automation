@@ -30,7 +30,7 @@ async function allImages() {
   for (const [kind, names] of [['system', SYSTEM_SAMPLES], ['standard', STD_SAMPLES]]) {
     for (const name of names) {
       for (const w of wheelsOf(kind, name)) {
-        const r = await renderWheelImages(w, png, 600);
+        const r = await renderWheelImages({ ...w, rimRing: null }, png, 600);
         assert.equal(r.errors.length, 0, `${name} ${w.position}: ${r.errors}`);
         out.push({ kind, name, w, geom: geomOf(w), images: r.images });
       }
@@ -139,7 +139,7 @@ test('no opacity / alpha anywhere, one arrow per image, captions, ids and the im
     }
   }
   const order = loadSample('system', 'solix-24h-wheelset-multicolor');
-  const rep = await buildSystemReport({ recipe: findSystemBuildRecipe(order).recipe, orderData: order, renderPng: png });
+  const rep = await buildSystemReport({ recipe: findSystemBuildRecipe(order).recipe, orderData: order, renderPng: png, rimRings: false });
   assert.deepEqual(rep.images.map((i) => i.cid), ['front-all-spokes', 'front-rotor-only', 'front-drive-only', 'rear-all-spokes', 'rear-drive-only', 'rear-rotor-only']);
   assert.deepEqual(rep.images.map((i) => i.caption), ['Front wheel, all spokes (rotor side view)', 'Front wheel, rotor side spokes only', 'Front wheel, drive side spokes only', 'Rear wheel, all spokes (drive side view)', 'Rear wheel, drive side spokes only', 'Rear wheel, rotor side spokes only']);
   const cust = buildCustomerEmail({ wheels: rep.wheels, images: rep.images, orderData: order });

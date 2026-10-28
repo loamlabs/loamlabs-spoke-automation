@@ -15,6 +15,8 @@
 //     sides     which sides' spokes are drawn: ['drive'] | ['rotor'] | ['drive','rotor'] (default both). The viewed side is drawn on top.
 //     size      box width/height in px (default 600)
 //     arrow     false leaves out the rolling-forward arrow (default: drawn)
+//     ring      optional photo rim ring { key, href (data URI), ...geometry } (_lib/rim-rings.js loadRing): drawn instead of the stroked circle, spoke ends on its inner
+//               ellipse, order spokes / ring / valve stem / hub. Without it the output is exactly what it was before round 12.
 //
 // Spoke paint order inside ONE side (the Studio's FINAL_CROSS_TOP, assets/spoke-studio.js ART.spokeLayer): the spokes of one group are drawn first and the
 // other group on top, so at the outermost crossing of a side every spoke of the top group crosses over every spoke of the other, whatever the colors.
@@ -26,6 +28,8 @@
 // which way the wheel turns when the bike rolls forward as seen from the side facing the viewer: clockwise looking at the drive side,
 // counter-clockwise looking at the rotor side (the Studio: ccw = pov === 'rotor'). Solid colour only (the Studio's fading tail is a plain arc here);
 // it sits just outside the rim, inside the box, and is drawn as <g data-roll="cw|ccw"> so tests can find it.
+
+import { ringLayout } from './rim-rings.js';
 
 export const RIM_COLOR = '#3b4148';   // .lls-preview .lls-rim (light) and --rim of the light theme
 export const ARROW_COLOR = '#2a6fd0';  // medium blue, solid (the Studio's --rollarrow #0b57c4 / #6db2ff, without the fade)
@@ -71,7 +75,10 @@ export function wheelSvg(o) {
   // draw order: the viewed side last so its spokes sit on top (as the Studio does)
   const sides = ['drive', 'rotor'].filter((s) => wanted.includes(s)).sort((a, b) => (a === pov ? 1 : 0) - (b === pov ? 1 : 0));
   // same proportions as the Studio's wheelHtml
-  const c = box / 2, ro = box * 0.464, bw = box * 0.028, inner = ro - bw, rimR = inner - 1, scale = rimR / (wh.erd / 2);
+  const c = box / 2, ro = box * 0.464, bw = box * 0.028, inner = ro - bw, rimR = inner - 1;
+  // with a photo ring the rim's inner edge is the ring's inner ellipse (_lib/rim-rings.js); without one everything below is as it always was
+  const L = o.ring ? ringLayout(box, ro, o.ring) : null;
+  const scale = (L ? L.meanInner : rimR) / (wh.erd / 2);
   // the Studio draws th = 3 (edge 1 px each side) in its 522 px stage; scale that to the box
   const th = Math.max(2, 3 * box / 522), e = th > 2.5 ? 1 : 0.5, halo = th + 2 * e;
   let spokes = '';
@@ -84,7 +91,8 @@ export function wheelSvg(o) {
     ordered.forEach(({ p, k }) => {
       const a1 = (pov === 'drive' ? p.hub : (360 - p.hub) % 360) * Math.PI / 180;
       const a2 = (pov === 'drive' ? p.rim : (360 - p.rim) % 360) * Math.PI / 180;
-      const x1 = c + rh * Math.sin(a1), y1 = c - rh * Math.cos(a1), x2 = c + rimR * Math.sin(a2), y2 = c - rimR * Math.cos(a2);
+      const x1 = c + rh * Math.sin(a1), y1 = c - rh * Math.cos(a1);
+      const [x2, y2] = L ? L.end(a2 * 180 / Math.PI) : [c + rimR * Math.sin(a2), c - rimR * Math.cos(a2)];
       const hex = (o.colorsHex && o.colorsHex[side] && o.colorsHex[side][k]) || '#8a9099';
       const pos = ` x1="${f(x1)}" y1="${f(y1)}" x2="${f(x2)}" y2="${f(y2)}"`;
       lines += `<line${pos} stroke="${EDGE_COLOR}" stroke-width="${f(halo)}"/>` +
@@ -93,7 +101,10 @@ export function wheelSvg(o) {
     spokes += `<g data-side="${side}">${lines}</g>`;
   });
   // valve stem (CSS: 3px top radius, 1px dark border, horizontal gray gradient)
-  const sw = Math.max(2, box * 0.018), stemH = box * 0.05 + 1, stemX = c - sw / 2, stemY = c + inner - box * 0.05;
+  const sw = Math.max(2, box * 0.018), stemH = box * 0.05 + 1, stemX = c - sw / 2, stemY = (L ? L.end(180, 0)[1] : c + inner) - box * 0.05;
+  const stem = `<rect x="${f(stemX)}" y="${f(stemY)}" width="${f(sw)}" height="${f(stemH)}" rx="${f(Math.min(3, sw / 2))}" fill="url(#stem)" stroke="#6b7076" stroke-width="1"/>`;
+  // the photo ring, drawn over the spokes (their ends are tucked under it) and never mirrored, also in the rotor side view; the stem and the hub come after it
+  const ringImg = L ? `<image data-ring="${esc(o.ring.key || '')}" href="${esc(o.ring.href)}" x="${f(L.image.x)}" y="${f(L.image.y)}" width="${f(L.image.size)}" height="${f(L.image.size)}" transform="rotate(${f(L.rot)} ${f(c)} ${f(c)})"/>` : '';
   // hub disc (drawn over the spokes, like the Studio) and its cap; the Studio's white shine is a lighter opaque center here
   const hr = Math.max(wh.drive.pcd, wh.rotor.pcd) / 2 * scale + box * 0.012, hubBorder = Math.max(1.5, box * 0.008), cr = hr * 0.4;
   const hubHex = o.hubHex || '#8a9099';
@@ -103,9 +114,8 @@ export function wheelSvg(o) {
     `<radialGradient id="hubshine" cx="0.35" cy="0.30" r="0.75"><stop offset="0" stop-color="${mixHex(hubHex, '#ffffff', 0.55)}"/><stop offset="0.7" stop-color="${hubHex}"/><stop offset="1" stop-color="${hubHex}"/></radialGradient>` +
     `</defs>` +
     `<rect width="${box}" height="${box}" fill="#ffffff"/>` +
-    `<circle cx="${f(c)}" cy="${f(c)}" r="${f(ro - bw / 2)}" fill="none" stroke="${RIM_COLOR}" stroke-width="${f(bw)}"/>` +
-    `<rect x="${f(stemX)}" y="${f(stemY)}" width="${f(sw)}" height="${f(stemH)}" rx="${f(Math.min(3, sw / 2))}" fill="url(#stem)" stroke="#6b7076" stroke-width="1"/>` +
-    spokes +
+    (L ? spokes + ringImg + stem
+      : `<circle cx="${f(c)}" cy="${f(c)}" r="${f(ro - bw / 2)}" fill="none" stroke="${RIM_COLOR}" stroke-width="${f(bw)}"/>` + stem + spokes) +
     `<circle cx="${f(c)}" cy="${f(c)}" r="${f(hr - hubBorder / 2)}" fill="url(#hubshine)" stroke="#4a4d52" stroke-width="${f(hubBorder)}"/>` +
     `<circle cx="${f(c)}" cy="${f(c)}" r="${f(cr - 0.5)}" fill="#1d2127" stroke="#6b6f73" stroke-width="1"/>` +
     (o.arrow === false ? '' : rollArrow(box, ro, pov === 'rotor')) +

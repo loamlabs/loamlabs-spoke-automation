@@ -67,7 +67,7 @@ async function imagesFor(result, mutate) {
   recipe.system.studio.spokes[pos] = v.spokes[pos];
   recipe.system.studio.base[pos] = v.base[pos];
   recipe.system.studio.hubColor[pos] = v.hubColor[pos];
-  const report = await buildSystemReport({ recipe, orderData: { order_number: 1 }, renderPng: png });
+  const report = await buildSystemReport({ recipe, orderData: { order_number: 1 }, renderPng: png, rimRings: false });
   const byCid = Object.fromEntries(report.images.map((i) => [i.cid, i.svg]));
   return { byCid, report };
 }

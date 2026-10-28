@@ -56,7 +56,7 @@ test('every drawn Standard image (solid, custom, front, rear) uses autoValvePhas
   let checked = 0;
   for (const name of STD_SAMPLES) {
     for (const w of wheelsOfSample(name)) {
-      const { images, errors } = await renderWheelImages(w, png, 600);
+      const { images, errors } = await renderWheelImages({ ...w, rimRing: null }, png, 600);
       assert.equal(errors.length, 0, `${name} ${w.position}: ${errors}`);
       const cfgW = { erd: w.config.erd, rimHoles: w.config.rimHoles, drive: w.config.drive, rotor: w.config.rotor };
       const { min } = bestValve(w.position, cfgW);
@@ -73,7 +73,7 @@ test('every drawn Standard image (solid, custom, front, rear) uses autoValvePhas
 
 test('a Standard wheel is drawn with the flag, a System wheel never: the lacing of the SVGs equals geometry() with exactly that setting', async () => {
   const [rear] = wheelsOfSample('std-berd-rear-24h-2cross-custom');
-  const all = (await renderWheelImages(rear, png, 600)).images[0];
+  const all = (await renderWheelImages({ ...rear, rimRing: null }, png, 600)).images[0];
   const draw = (cfg) => wheelSvg({ config: rear.config, geom: geometry(cfg)[rear.position], colorsHex: { drive: rear.colors.drive.map((c) => rear.hexOf(c)), rotor: rear.colors.rotor.map((c) => rear.hexOf(c)) }, hubHex: rear.hubColorHex, pov: all.pov, sides: all.sides, size: 600 });
   assert.equal(all.svg, draw({ autoValvePhase: true, wheels: { rear: rear.config } }), 'Standard image = flag on');
   assert.notEqual(all.svg, draw({ wheels: { rear: rear.config } }), 'and it differs from the old drawing');
@@ -82,7 +82,7 @@ test('a Standard wheel is drawn with the flag, a System wheel never: the lacing 
     const order = loadSample('system', sample), recipe = findSystemBuildRecipe(order).recipe;
     for (const w of systemWheels(recipe, null, order)) {
       const plainG = geometry({ wheels: { [w.position]: w.config } })[w.position];
-      for (const img of (await renderWheelImages(w, png, 600)).images) {
+      for (const img of (await renderWheelImages({ ...w, rimRing: null }, png, 600)).images) {
         const want = wheelSvg({ config: w.config, geom: plainG, colorsHex: { drive: [], rotor: [] }, hubHex: w.hubColorHex, pov: img.pov, sides: img.sides, size: 600 });
         assert.equal(lacing(img.svg), lacing(want), `${sample} ${w.position} ${img.cid}: System lacing is the flag-less one`);
         n++;

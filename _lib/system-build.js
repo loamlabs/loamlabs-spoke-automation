@@ -18,6 +18,8 @@
 //   System spokes: { title: 'Industry Nine SYSTEM Spokes', selectedOptions: [{ name: 'Color', value }, { name: 'Length', value: '-' }], selectedColor, i9: true, unitPrice }.
 //   Spoke index k in value.spokes[wheel][side] is the index as drawn in the Studio's drive-side view (see _lib/studio-geometry.js).
 
+import { ringKeyForRim } from './rim-rings.js'; // round 12: which photo rim ring a wheel's pictures get
+
 /* ------------------------------------------------------------------ constants vendored from the dev theme (assets/i9-system.js CFG) */
 
 // ONE name-to-hex list for spoke and hub colors (theme CFG.colorHex). Unknown names draw neutral gray, like the Studio.
@@ -320,7 +322,7 @@ export function systemWheels(recipe, componentData, orderData) {
       hubTitle: clip(hub?.title || 'n/a', MAX_TITLE_CHARS), hubVariantTitle: hub?.variantTitle ? clip(hub.variantTitle, MAX_TITLE_CHARS) : null,
       hubColor, hubColorHex: hexFor(hubColor),
       freehub: pos === 'rear' ? ((hub?.spec_freehub || recipe?.specs?.freehubType) ? clip(hub?.spec_freehub || recipe?.specs?.freehubType, MAX_NAME_CHARS) : null) : null,
-      rimTitle: rimTitleOf(rim),
+      rimTitle: rimTitleOf(rim), rimRing: ringKeyForRim(rim), // round 12: which photo ring the pictures get
       spokeCountLabel: `${cfg.rimHoles}h${ratioLabel} (${cfg.drive.n} drive / ${cfg.rotor.n} rotor)`,
       total: cfg.rimHoles,
       config: cfg, colors, counts, isMultiColor, warnings, feeLines, cartCounts,

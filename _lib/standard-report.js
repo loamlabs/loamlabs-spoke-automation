@@ -164,6 +164,7 @@ function noteTextFor(wheels, plans, imageErrors) {
 export async function buildStandardAdditions(o) {
   const orderData = o.orderData || {}, renderPng = o.renderPng || svgToPng, width = o.imageWidth || IMAGE_WIDTH_PX;
   const wheels = standardWheels(o.recipe, o.componentData || null, orderData);
+  if (o.rimRings === false) wheels.forEach((w) => { w.rimRing = null; }); // plain stroked rim (tests of the lacing geometry); real reports draw the photo ring
   const images = [], imageErrors = [], plans = [];
   for (const w of wheels) {
     try {
