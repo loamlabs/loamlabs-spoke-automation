@@ -327,6 +327,8 @@ export function systemWheels(recipe, componentData, orderData) {
       // I9-SYSTEM: LENGTH-CALC HOOK input (left = rotor side, right = drive side, as in _lib/calculator.js). Nulls where Shopify has no value yet.
       geometryInput: {
         position: pos, hubModel: model ? model.label : null,
+        rimVariantId: rim && rim.variantId != null ? String(rim.variantId).replace(/^.*\//, '') : null, // round 10: the key into the I9 chart map
+        holes: cfg.rimHoles, orderNumber: orderData && orderData.order_number != null ? orderData.order_number : null, // round 10: hole count check and the log line
         erd: metaNumber(metaFor(componentData, rim), 'rim_erd'),
         spokeHoleDiameter: metaNumber(hubMeta, 'hub_spoke_hole_diameter'),
         flangeDiameter: { left: metaNumber(hubMeta, 'hub_flange_diameter_left'), right: metaNumber(hubMeta, 'hub_flange_diameter_right') },

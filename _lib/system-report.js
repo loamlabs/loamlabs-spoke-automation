@@ -82,7 +82,8 @@ function lengthsFor(wheel, lengthCalculator) {
   try {
     const r = lengthCalculator(wheel.geometryInput);
     if (r && typeof r === 'object' && isFinite(r.left) && isFinite(r.right)) {
-      return { pending: false, text: `Spoke lengths (System): Left/Rotor ${r.left} mm, Right/Drive ${r.right} mm${r.note ? ` (${r.note})` : ''}` };
+      // round 10: a result from I9's chart also says where it came from (r.sourceText), in the internal email and the order note only
+      return { pending: false, text: `Spoke lengths (System): Left/Rotor ${r.left} mm, Right/Drive ${r.right} mm${r.note ? ` (${r.note})` : ''}`, sourceText: typeof r.sourceText === 'string' ? r.sourceText : null };
     }
     return { pending: true, text: SYSTEM_LENGTHS_PENDING_TEXT };
   } catch (e) {
@@ -146,7 +147,7 @@ function wheelHtml(w, images, imageErrors, opts) {
                 ${colorRow(`Whole wheel (${w.total})`, w.counts.all, w.hexOf)}
             </table>
             ${visual}
-            ${internal ? `<p><em>${esc(lengths.text)}</em></p>` : ''}
+            ${internal ? `<p><em>${esc(lengths.text)}</em>${lengths.sourceText ? `<br><span class="caption">${esc(lengths.sourceText)}</span>` : ''}</p>` : ''}
             ${warnings}
         </div>`;
 }
@@ -167,6 +168,7 @@ function noteText(wheels, lengthsByPos, imageErrors) {
     note += `  Rotor side (${w.config.rotor.n}): ${countsText(w.counts.rotor)}\n`;
     note += `  Whole wheel (${w.total}): ${countsText(w.counts.all)}${w.isMultiColor ? '' : ' (one color)'}\n`;
     note += `  ${l.text}\n`;
+    if (l.sourceText) note += `  ${l.sourceText}\n`;
     w.warnings.forEach((t) => { note += `  NOTE: ${t}\n`; });
   });
   if (imageErrors.length) note += `\nIMAGES:\n- ${imageErrors.join('\n- ')}\n`;
