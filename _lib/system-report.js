@@ -6,7 +6,7 @@
 //   const report = await buildSystemReport({ recipe, orderData, componentData });   // { subject, html, note, wheels, images, imageErrors, warnings }
 //   await sendSystemEmail({ report, to, apiKey });                                   // inline images via content ids (cid:), falls back to text-only
 //   const customer = buildCustomerEmail({ wheels: report.wheels, images: report.images, orderData });   // built for every System build (null only when the build has no wheels)
-//   await sendCustomerEmailIfEnabled({ customer, orderData, kind });                 // only when env SYSTEM_CUSTOMER_EMAIL === 'on' (kind 'system') or STANDARD_CUSTOMER_EMAIL === 'on' (kind 'standard')
+//   await sendCustomerEmailIfEnabled({ customer, orderData });                       // only when env SYSTEM_CUSTOMER_EMAIL === 'on' (System and keyed Standard orders alike)
 
 import { systemWheels, hexFor, SYSTEM_FEE } from './system-build.js';
 import { geometry } from './studio-geometry.js';
@@ -22,9 +22,7 @@ const TIMES_HTML = '&times;';    // email HTML (entity: safe whatever charset th
 
 export const CUSTOMER_FROM = 'LoamLabs <info@loamlabsusa.com>';
 export const CUSTOMER_REPLY_TO = 'info@loamlabsusa.com';
-// Sending to customers is OFF unless the env var for that kind of build equals exactly "on". Two switches (round 7): System and Standard are separate.
-export const CUSTOMER_EMAIL_FLAGS = { system: 'SYSTEM_CUSTOMER_EMAIL', standard: 'STANDARD_CUSTOMER_EMAIL' };
-export const CUSTOMER_EMAIL_FLAG = CUSTOMER_EMAIL_FLAGS.system; // kept for older imports: the System switch
+export const CUSTOMER_EMAIL_FLAG = 'SYSTEM_CUSTOMER_EMAIL'; // sending to customers is OFF unless this env var equals exactly "on" (one switch for System and keyed Standard orders)
 
 function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
@@ -236,7 +234,8 @@ export async function buildSystemReport(o) {
 
 // Used when buildSystemReport itself throws: no images, no calculation, just what the builder needs to handle the order by hand: the order number,
 // a link to the order, the error text, and the raw line items with their properties (long values such as _build are cut at 1500 characters).
-export function buildFailureEmail({ orderData, error }) {
+export function buildFailureEmail({ orderData, error, kind = 'system' }) {
+  const isStandard = kind === 'standard';
   const o = orderData || {};
   const orderNumber = orderNumberOf(o);
   const adminUrl = o.id ? `https://${process.env.SHOPIFY_STORE_DOMAIN}/admin/orders/${o.id}` : null;
@@ -247,12 +246,12 @@ export function buildFailureEmail({ orderData, error }) {
   }).join('');
   const message = error && error.message ? error.message : String(error);
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>${STYLE}</style></head><body><div class="container">
-    <h2>I9 System Build Report for Order #${esc(orderNumber)}: REPORT FAILED</h2>
-    <p>The automatic System report could not be built for this order, so there are no images, no spoke color tables and no order note. Handle it by hand from the line items below.${adminUrl ? ` <a href="${adminUrl}"><strong>View Order in Shopify &rarr;</strong></a>` : ''}</p>
+    <h2>${isStandard ? 'Spoke Calculation' : 'I9 System Build Report'} for Order #${esc(orderNumber)}: REPORT FAILED</h2>
+    <p>The automatic ${isStandard ? 'spoke' : 'System'} report could not be built or delivered for this order, so the normal email, images and order note may be missing. Handle it by hand from the line items below.${adminUrl ? ` <a href="${adminUrl}"><strong>View Order in Shopify &rarr;</strong></a>` : ''}</p>
     <p class="failed">Error: ${esc(message)}</p>
     <h3>Raw line items</h3><ul>${items || '<li>(no line items)</li>'}</ul>
   </div></body></html>`;
-  return { subject: `I9 System Build Report for Order #${orderNumber}: REPORT FAILED (raw order data)`.replace(/[\r\n]+/g, ' '), html, images: [] };
+  return { subject: `${isStandard ? 'Spoke Calculation' : 'I9 System Build Report'} for Order #${orderNumber}: REPORT FAILED (raw order data)`.replace(/[\r\n]+/g, ' '), html, images: [] };
 }
 
 /* ------------------------------------------------------------------ customer email */
@@ -362,29 +361,26 @@ export async function sendSystemEmail(o) {
 }
 
 /**
- * Sends the customer version to the ORDER's customer, only when the switch for this kind of build is exactly "on" (default off): kind 'system' reads
- * SYSTEM_CUSTOMER_EMAIL, kind 'standard' reads STANDARD_CUSTOMER_EMAIL (an unknown kind never sends). Never throws.
+ * Sends the customer version to the ORDER's customer, only when env SYSTEM_CUSTOMER_EMAIL is exactly "on" (default off). Never throws.
  * Returns { sent: boolean, reason?: string, id?: string, to?: string }. Logs exactly one line when it does not send.
  */
-export async function sendCustomerEmailIfEnabled({ customer, orderData, kind = 'system', env = process.env, send = sendSystemEmail, log = console.log }) {
-  const flag = CUSTOMER_EMAIL_FLAGS[kind];
-  const tag = kind === 'standard' ? 'STANDARD-STUDIO' : 'I9-SYSTEM';
+export async function sendCustomerEmailIfEnabled({ customer, orderData, env = process.env, send = sendSystemEmail, log = console.log }) {
   try {
     if (!customer) return { sent: false, reason: 'the build has no wheels' };
-    if (!flag || env[flag] !== 'on') {
-      log(`${tag}: customer spoke-color email not sent (${flag || 'unknown kind'} is not "on").`);
+    if (env[CUSTOMER_EMAIL_FLAG] !== 'on') {
+      log(`I9-SYSTEM: customer spoke-color email not sent (${CUSTOMER_EMAIL_FLAG} is not "on").`);
       return { sent: false, reason: 'flag off' };
     }
     const to = customerRecipient(orderData);
     if (!to) {
-      log(`${tag}: customer spoke-color email not sent (the order has no customer email address).`);
+      log('I9-SYSTEM: customer spoke-color email not sent (the order has no customer email address).');
       return { sent: false, reason: 'no recipient' };
     }
     const r = await send({ report: customer, to, from: CUSTOMER_FROM, replyTo: CUSTOMER_REPLY_TO });
-    log(`✅ ${tag}: customer spoke-color email sent (${r.inline ? 'inline images' : 'text only'}). Resend ID: ${r.id}`);
+    log(`✅ I9-SYSTEM: customer spoke-color email sent (${r.inline ? 'inline images' : 'text only'}). Resend ID: ${r.id}`);
     return { sent: true, id: r.id, to, inline: r.inline };
   } catch (error) {
-    console.error(`🚨 ${tag}: failed to send the customer spoke-color email:`, error);
+    console.error('🚨 I9-SYSTEM: failed to send the customer spoke-color email:', error);
     return { sent: false, reason: 'error', error: error.message };
   }
 }

@@ -3,7 +3,7 @@
 //   - one all-spokes image per solid wheel, three images (two single-side views, one all-spokes) per custom wheel, front first;
 //   - a color table per side in the internal email and the order note;
 //   - for Berd wheels with colors that must be painted: the painted-spoke list for the builder (what blanks to pull and what to paint, grouped by spoke length);
-//   - the customer email (built by buildCustomerEmail in _lib/system-report.js from the wheels returned here), sent under the same SYSTEM_CUSTOMER_EMAIL flag.
+//   - the customer email (built by buildCustomerEmail in _lib/system-report.js from the wheels returned here), sent under the same SYSTEM_CUSTOMER_EMAIL flag (the one switch for System and keyed Standard).
 // The painted-spoke list and every warning stay out of the customer email. Wording never says "System", "Industry Nine" or "Studio".
 //
 //   const extra = await buildStandardAdditions({ recipe, orderData, componentData, buildReport });

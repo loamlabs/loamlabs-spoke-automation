@@ -6,6 +6,7 @@ export class Resend {
       send: async (opts) => {
         const h = (globalThis.__harness ||= {});
         if (h.sdkDelayMs) { await new Promise((r) => setTimeout(r, h.sdkDelayMs).unref()); }
+        if (h.sdkError) return { data: null, error: { message: h.sdkError } }; // a test can make every SDK send fail with globalThis.__harness.sdkError
         h.sdkEmails ||= [];
         h.sdkEmails.push(opts);
         return { data: { id: 'mock-resend-sdk-id' }, error: null };

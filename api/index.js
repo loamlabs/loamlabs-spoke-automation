@@ -13,6 +13,7 @@ import {
 import { findSystemBuildRecipe } from '../_lib/system-build.js';
 import { buildSystemReport, buildFailureEmail, sendSystemEmail, buildCustomerEmail, sendCustomerEmailIfEnabled } from '../_lib/system-report.js';
 import { shopifyTimeoutMs, resendTimeoutMs, timeoutSignal, withTimeout } from '../_lib/http-timeout.js';
+import { waitUntil } from '@vercel/functions';
 import { claimSystemOrder, releaseSystemOrder, noteShowsProcessed, STANDARD_REPORT_MARKER } from '../_lib/system-dedupe.js';
 // STANDARD-STUDIO: Standard orders that carry the standardStudio key get color images, a painted-spoke list and the customer email as ADDITIONS.
 // Orders without the key take today's path unchanged.
@@ -271,6 +272,42 @@ async function getPrimaryLocationId() {
     }
 }
 
+// ---- Round 8: answer the webhook first, do the heavy work after the answer ----
+// handleOrderCreate() does what must happen before the answer and returns the rest as a function (or null). The handler answers 200, then runs that function
+// through Vercel's waitUntil (the function instance stays alive until it ends, up to maxDuration). When there is no waitUntil (not on Vercel) the work is done
+// before the answer, as before round 8.
+const REQUEST_CONTEXT = Symbol.for('@vercel/request-context'); // where @vercel/functions finds the request's waitUntil
+function canRunAfterReply() {
+    try { const ctx = globalThis[REQUEST_CONTEXT]; const c = ctx && ctx.get ? ctx.get() : null; return !!c && typeof c.waitUntil === 'function'; }
+    catch (e) { return false; }
+}
+
+// The plain internal email for an order whose normal report could not be produced or delivered: order number, error, raw line items. Never throws.
+// state.internalSent (shared with the caller) says whether an internal email already went out, in which case nothing more is sent. true = the builder has been told.
+async function sendPlainFailureEmail(orderData, error, kind, state = {}) {
+    const n = orderData && orderData.order_number;
+    if (state.internalSent) return true;
+    try {
+        const sent = await sendSystemEmail({ report: buildFailureEmail({ orderData, error, kind }) });
+        state.internalSent = true;
+        console.log(`✅ ORDER #${n}: plain failure email sent. Resend ID: ${sent.id}`);
+        return true;
+    } catch (sendError) {
+        console.error(`🚨 ORDER #${n}: the plain failure email failed too: nobody was told about this order; look at the logs for it:`, sendError);
+        return false;
+    }
+}
+
+// The work after the answer. Whatever the work does, nothing leaves this function as an exception.
+async function runAfterReply(orderData, work, kind) {
+    const n = orderData && orderData.order_number;
+    try { await work(); }
+    catch (error) {
+        console.error(`🚨 ORDER #${n}: the work after the webhook answer failed unexpectedly:`, error);
+        await sendPlainFailureEmail(orderData, error, kind);
+    }
+}
+
 // I9-SYSTEM: a System build has one spoke product ("Industry Nine SYSTEM Spokes", Color only, length "-"), so there is no Length
 // Variant to deduct and no spoke length yet. This path never touches inventory (not for the spokes, not for the "Custom Spoke Color
 // Configuration" fee line); it writes the color report to the order note and emails Jerry the report with the wheel images.
@@ -287,79 +324,80 @@ async function getOrderNote(orderGid) {
     }
 }
 
-async function handleSystemOrderCreate(orderData, buildRecipe) {
+// Round 8: returns the work to do AFTER the webhook answer (or null for a duplicate delivery). What happens before the answer: only Layer 1 below.
+function handleSystemOrderCreate(orderData, buildRecipe) {
     // Idempotency: Shopify can deliver orders/create more than once, and a duplicate must not send the internal or the customer email
     // again (see _lib/system-dedupe.js). Layer 1: claim the order in this process, synchronously, before any await.
     const dedupeKey = orderData.admin_graphql_api_id || (orderData.id != null ? String(orderData.id) : null);
     if (!claimSystemOrder(dedupeKey)) {
         console.log(`I9-SYSTEM: order #${orderData.order_number} is already being processed or was just processed (duplicate delivery); nothing sent.`);
-        return;
+        return null;
     }
-    try {
-        // Layer 2: the order's live note in Shopify holds the report marker that THIS path appended (written before any email goes out).
-        // REVIEW: compared against the delivered note, not searched on its own: the delivered note is customer text (see _lib/system-dedupe.js).
-        if (noteShowsProcessed(await getOrderNote(orderData.admin_graphql_api_id), orderData.note)) {
-            console.log(`I9-SYSTEM: order #${orderData.order_number} already has its System report in the order note (duplicate delivery); nothing sent.`);
-            return;
-        }
-        console.log(`I9-SYSTEM: System build detected on order #${orderData.order_number}; skipping Length Variant inventory.`);
-        // metafields for the hub flange / rim ERD (null is fine: sample geometry). REVIEW: a recipe whose components is not an object
-        // (tampered _build) used to throw inside fetchComponentData and drop the whole report; now it is reported with sample geometry.
-        const componentData = buildRecipe.components && typeof buildRecipe.components === 'object' ? await fetchComponentData(buildRecipe) : null;
-        let report;
+    return async () => {
+        const state = { internalSent: false }; // set once an internal email (the report, or the plain failure email) has gone out
         try {
-            report = await buildSystemReport({ recipe: buildRecipe, orderData, componentData });
-        } catch (error) {
-            // The report itself failed (nothing in the data is expected to do that). The internal email still goes out: a plain one with the order number,
-            // the error and the raw line items. No note is written and no customer email is sent; if even this email fails the claim is released
-            // so that Shopify's re-delivery gets another try.
-            console.error("🚨 I9-SYSTEM: could not build the System report; sending the plain internal email with the raw line items:", error);
-            try {
-                const sent = await sendSystemEmail({ report: buildFailureEmail({ orderData, error }) });
-                console.log(`✅ I9-SYSTEM: plain failure email sent. Resend ID: ${sent.id}`);
-            } catch (sendError) {
-                console.error("🚨 I9-SYSTEM: the plain failure email failed too:", sendError);
-                releaseSystemOrder(dedupeKey);
+            // Layer 2: the order's live note in Shopify holds the report marker that THIS path appended (written before any email goes out).
+            // REVIEW: compared against the delivered note, not searched on its own: the delivered note is customer text (see _lib/system-dedupe.js).
+            if (noteShowsProcessed(await getOrderNote(orderData.admin_graphql_api_id), orderData.note)) {
+                console.log(`I9-SYSTEM: order #${orderData.order_number} already has its System report in the order note (duplicate delivery); nothing sent.`);
+                return;
             }
-            return;
-        }
-        report.warnings.forEach(w => console.warn('I9-SYSTEM note:', w));
-        report.imageErrors.forEach(e => console.error('I9-SYSTEM image:', e));
+            console.log(`I9-SYSTEM: System build detected on order #${orderData.order_number}; skipping Length Variant inventory.`);
+            // metafields for the hub flange / rim ERD (null is fine: sample geometry). REVIEW: a recipe whose components is not an object
+            // (tampered _build) used to throw inside fetchComponentData and drop the whole report; now it is reported with sample geometry.
+            const componentData = buildRecipe.components && typeof buildRecipe.components === 'object' ? await fetchComponentData(buildRecipe) : null;
+            let report;
+            try {
+                report = await buildSystemReport({ recipe: buildRecipe, orderData, componentData });
+            } catch (error) {
+                // The report itself failed (nothing in the data is expected to do that). The internal email still goes out: a plain one with the order number,
+                // the error and the raw line items. No note is written and no customer email is sent; if even this email fails the claim is released.
+                console.error(`🚨 I9-SYSTEM: could not build the System report for order #${orderData.order_number}; sending the plain internal email with the raw line items:`, error);
+                if (!(await sendPlainFailureEmail(orderData, error, 'system', state))) releaseSystemOrder(dedupeKey);
+                return;
+            }
+            report.warnings.forEach(w => console.warn('I9-SYSTEM note:', w));
+            report.imageErrors.forEach(e => console.error('I9-SYSTEM image:', e));
 
-        // same note preservation as the Standard path
-        let finalNote = report.note;
-        if (orderData.note) {
-            finalNote = orderData.note + "\n\n--------------------------------------------------\n\n" + finalNote;
-        }
-        await addNoteToOrder(orderData.admin_graphql_api_id, finalNote);
+            // same note preservation as the Standard path
+            let finalNote = report.note;
+            if (orderData.note) {
+                finalNote = orderData.note + "\n\n--------------------------------------------------\n\n" + finalNote;
+            }
+            await addNoteToOrder(orderData.admin_graphql_api_id, finalNote);
 
-        try {
-            const sent = await sendSystemEmail({ report, orderData });
-            console.log(`✅ I9-SYSTEM: report email sent (${sent.inline ? 'inline images' : 'text only'}). Resend ID: ${sent.id}`);
+            try {
+                const sent = await sendSystemEmail({ report, orderData });
+                state.internalSent = true;
+                console.log(`✅ I9-SYSTEM: report email sent (${sent.inline ? 'inline images' : 'text only'}). Resend ID: ${sent.id}`);
+            } catch (error) {
+                console.error(`🚨 I9-SYSTEM: failed to send the report email for order #${orderData.order_number}; trying the plain internal email:`, error);
+                await sendPlainFailureEmail(orderData, error, 'system', state);
+            }
+
+            // Customer version (spoke colors and images only, no lengths or warnings). OFF unless env SYSTEM_CUSTOMER_EMAIL is "on" (the one switch for System and keyed Standard orders).
+            // Own try/catch: whatever happens here cannot affect the internal email above or the webhook answer.
+            try {
+                const customer = buildCustomerEmail({ wheels: report.wheels, images: report.images, orderData });
+                await sendCustomerEmailIfEnabled({ customer, orderData });
+            } catch (error) {
+                console.error("🚨 I9-SYSTEM: customer email step failed:", error);
+            }
         } catch (error) {
-            console.error("🚨 I9-SYSTEM: failed to send the report email:", error);
+            console.error(`🚨 I9-SYSTEM: CRASH inside the System order path for order #${orderData.order_number}:`, error);
+            await sendPlainFailureEmail(orderData, error, 'system', state);
+            releaseSystemOrder(dedupeKey); // nothing durable was written: let a re-delivery try again
         }
-
-        // Customer version (spoke colors and images only, no lengths or warnings). OFF unless env SYSTEM_CUSTOMER_EMAIL is "on" (System only; Standard has STANDARD_CUSTOMER_EMAIL).
-        // Own try/catch: whatever happens here cannot affect the internal email above or the webhook answer.
-        try {
-            const customer = buildCustomerEmail({ wheels: report.wheels, images: report.images, orderData });
-            await sendCustomerEmailIfEnabled({ customer, orderData, kind: 'system' });
-        } catch (error) {
-            console.error("🚨 I9-SYSTEM: customer email step failed:", error);
-        }
-    } catch (error) {
-        console.error("🚨 I9-SYSTEM: CRASH inside the System order path:", error);
-        releaseSystemOrder(dedupeKey); // nothing durable was written: let a re-delivery try again
-    }
+    };
 }
 
+// Round 8: returns the work to do after the webhook answer (a function), or null when there is none. Before the answer: the duplicate checks and, for Standard
+// orders, everything that changes inventory (so that a re-delivery can never deduct twice). After: the images, the order note and the emails.
 async function handleOrderCreate(orderData) {
     // I9-SYSTEM: System builds never reach the Length Variant logic below.
     const systemBuild = findSystemBuildRecipe(orderData);
     if (systemBuild) {
-        await handleSystemOrderCreate(orderData, systemBuild.recipe);
-        return;
+        return handleSystemOrderCreate(orderData, systemBuild.recipe);
     }
 
     // 1. Location ID Check
@@ -375,7 +413,7 @@ async function handleOrderCreate(orderData) {
 
     if (!locationId) {
         console.error("CRITICAL: Could not determine any order location ID. Aborting inventory adjustments.");
-        return;
+        return null;
     }
 
     // 2. Find the Custom Build Item
@@ -383,9 +421,10 @@ async function handleOrderCreate(orderData) {
 
     if (wheelBuildLineItem) {
         let standardDedupeKey = null; // STANDARD-STUDIO: set only for orders that carry the standardStudio key
+        let afterReply = null;        // round 8: the note, the images and the emails, run after the webhook answer
         try {
             const buildProperty = wheelBuildLineItem.properties.find(p => p.name === '_build');
-            if (!buildProperty || !buildProperty.value) return;
+            if (!buildProperty || !buildProperty.value) return null;
 
             const buildRecipe = JSON.parse(buildProperty.value);
 
@@ -397,11 +436,11 @@ async function handleOrderCreate(orderData) {
                 if (!claimSystemOrder(standardDedupeKey)) {
                     console.log(`STANDARD-STUDIO: order #${orderData.order_number} is already being processed or was just processed (duplicate delivery); nothing done.`);
                     standardDedupeKey = null;
-                    return;
+                    return null;
                 }
                 if (noteShowsProcessed(await getOrderNote(orderData.admin_graphql_api_id), orderData.note, STANDARD_REPORT_MARKER)) {
                     console.log(`STANDARD-STUDIO: order #${orderData.order_number} already has its spoke report in the order note (duplicate delivery); nothing done.`);
-                    return;
+                    return null;
                 }
             }
 
@@ -468,6 +507,11 @@ async function handleOrderCreate(orderData) {
                     wheel.inventory = { left: leftResult, right: rightResult };
                 }
                 
+                // Everything above changed inventory and must finish before the answer. The rest (images, note, emails) runs after it.
+                standardDedupeKey = null; // inventory is done: a failure after this point must not release the claim (a manual re-delivery would deduct again)
+                afterReply = async () => {
+                const state = { internalSent: false };
+                try {
                 // STANDARD-STUDIO: the color report additions (images, color tables, painted-spoke list). Never throws; absent for orders without the key.
                 let standardExtra = null;
                 if (standardKeyed) {
@@ -486,25 +530,34 @@ async function handleOrderCreate(orderData) {
                 
                 await addNoteToOrder(orderData.admin_graphql_api_id, finalNote);
                 // -------------------------------
-                await sendEmailReport(buildReport, orderData, buildRecipe, standardExtra);
+                const emailed = await sendEmailReport(buildReport, orderData, buildRecipe, standardExtra);
+                if (emailed) state.internalSent = true;
+                else await sendPlainFailureEmail(orderData, new Error('the spoke calculation email could not be sent'), 'standard', state);
 
-                // STANDARD-STUDIO: the customer version (colors and images only), under its OWN flag (STANDARD_CUSTOMER_EMAIL === 'on', default off; System has SYSTEM_CUSTOMER_EMAIL), same
+                // STANDARD-STUDIO: the customer version (colors and images only), under the same flag as System (SYSTEM_CUSTOMER_EMAIL === 'on'), same
                 // recipient rules, own try/catch: nothing here can affect the internal email, the note or the webhook answer.
                 if (standardExtra && standardExtra.wheels.length) {
                     try {
                         const customer = buildCustomerEmail({ wheels: standardExtra.wheels, images: standardExtra.images, orderData });
-                        await sendCustomerEmailIfEnabled({ customer, orderData, kind: 'standard' });
+                        await sendCustomerEmailIfEnabled({ customer, orderData });
                     } catch (error) {
                         console.error("🚨 STANDARD-STUDIO: customer email step failed:", error);
                     }
                 }
+                } catch (error) {
+                    console.error(`🚨 CRASH after the webhook answer for order #${orderData.order_number}:`, error);
+                    await sendPlainFailureEmail(orderData, error, 'standard', state);
+                }
+                };
             }
         } catch (error) {
-            console.error("🚨 CRASH inside main logic:", error);
+            console.error(`🚨 CRASH inside main logic for order #${orderData.order_number}:`, error);
             if (standardDedupeKey) releaseSystemOrder(standardDedupeKey); // STANDARD-STUDIO: nothing durable was written: let a re-delivery try again
         }
+        return afterReply;
     } else {
         console.log('ℹ️ No custom wheel build found in this order.');
+        return null;
     }
 }
 
@@ -927,7 +980,7 @@ export async function sendEmailReport(report, orderData, buildRecipe, extra) {
 
     if (!recipientEmail) {
         console.error("CRITICAL: BUILDER_EMAIL_ADDRESS environment variable is not set. Cannot send email.");
-        return;
+        return false;
     }
 
     // --- Helper to generate the HTML for one wheel ---
@@ -1075,7 +1128,7 @@ export async function sendEmailReport(report, orderData, buildRecipe, extra) {
                 to: recipientEmail, from: 'Spoke Calculator <calculator@loamlabsusa.com>', replyTo: 'LoamLabs Support <info@loamlabsusa.com>'
             });
             console.log(`✅ Successfully sent email report to ${recipientEmail} (${sent.inline ? 'inline images' : 'text only'}). Resend ID: ${sent.id}`);
-            return;
+            return true;
         } catch (error) {
             console.error("🚨 STANDARD-STUDIO: the email with images failed, sending it without images:", error);
         }
@@ -1091,14 +1144,16 @@ export async function sendEmailReport(report, orderData, buildRecipe, extra) {
         }), resendTimeoutMs(), 'Resend SDK send'); // the SDK takes no signal: the webhook stops waiting after the limit
 
         if (error) {
-            console.error("🚨 Failed to send email report. Resend API returned an error:", error);
-            return;
+            console.error(`🚨 Failed to send email report for order #${orderNumber}. Resend API returned an error:`, error);
+            return false;
         }
 
         console.log(`✅ Successfully sent email report to ${recipientEmail}. Resend ID: ${data.id}`);
+        return true;
 
     } catch (error) {
-        console.error("🚨 A critical error occurred while trying to send the email:", error);
+        console.error(`🚨 A critical error occurred while trying to send the email for order #${orderNumber}:`, error);
+        return false;
     }
 }
 
@@ -1122,11 +1177,12 @@ export default async function handler(req, res) {
     console.log('✅ Verification successful!');
     const orderData = JSON.parse(rawBody.toString());
     const eventTopic = req.headers['x-shopify-topic'];
+    let afterReply = null; // round 8: work for orders/create that runs after the answer
 
     switch (eventTopic) {
         case 'orders/create':
             console.log(`Handling new order: #${orderData.order_number}`);
-            await handleOrderCreate(orderData);
+            afterReply = await handleOrderCreate(orderData);
             break;
         case 'orders/cancelled':
             console.log(`Handling cancelled order: #${orderData.order_number}`);
@@ -1136,6 +1192,17 @@ export default async function handler(req, res) {
             console.log(`Received unhandled event topic: ${eventTopic}`);
     }
     
+    if (afterReply) {
+        if (canRunAfterReply()) {
+            // Answer first (Shopify wants the answer within about 5 seconds), then do the note, the images and the emails. The work starts one event-loop turn
+            // after the answer so that the answer is on its way before the CPU-heavy image rendering begins; waitUntil keeps the function alive until it ends.
+            const kind = findSystemBuildRecipe(orderData) ? 'system' : 'standard';
+            waitUntil(new Promise((resolve) => setImmediate(resolve)).then(() => runAfterReply(orderData, afterReply, kind)));
+            console.log(`Order #${orderData.order_number}: answering the webhook now; the report work continues in the background.`);
+        } else {
+            await runAfterReply(orderData, afterReply, findSystemBuildRecipe(orderData) ? 'system' : 'standard'); // no waitUntil here: work first, answer after (as before round 8)
+        }
+    }
     return res.status(200).json({ message: 'Webhook processed.' });
 
   } catch (error) {

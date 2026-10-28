@@ -1,11 +1,12 @@
 // Round 7: time limits on every outbound call, the function duration setting, a System report that fails still sends a plain internal email,
-// and two separate customer-email switches (SYSTEM_CUSTOMER_EMAIL for System, STANDARD_CUSTOMER_EMAIL for Standard).
+// and (round 8) back to ONE customer-email switch, SYSTEM_CUSTOMER_EMAIL, for System and keyed Standard orders.
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { runWebhook, loadSample, createMock, loadMockShopify } from './helpers/webhook-harness.mjs';
-import { sendCustomerEmailIfEnabled, sendSystemEmail, buildFailureEmail, CUSTOMER_EMAIL_FLAGS } from '../_lib/system-report.js';
+import { sendSystemEmail, buildFailureEmail, CUSTOMER_EMAIL_FLAG } from '../_lib/system-report.js';
 import { withTimeout, shopifyTimeoutMs, resendTimeoutMs } from '../_lib/http-timeout.js';
 
 const INDEX = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'api', 'index.js');
@@ -162,52 +163,45 @@ test('a normal System order is unchanged by the report guard (full report, note,
   assert.ok(!/REPORT FAILED/.test(r.restEmails[0].subject));
 });
 
-/* ------------------------------------------------------------------ 4. two customer-email switches */
+/* ------------------------------------------------------------------ 4. ONE customer-email switch (round 8: back to a single switch for System and keyed Standard) */
 
-test('switches: the two names are fixed', () => {
-  assert.deepEqual(CUSTOMER_EMAIL_FLAGS, { system: 'SYSTEM_CUSTOMER_EMAIL', standard: 'STANDARD_CUSTOMER_EMAIL' });
+test('one switch: SYSTEM_CUSTOMER_EMAIL is the only name; STANDARD_CUSTOMER_EMAIL is gone from the code', () => {
+  assert.equal(CUSTOMER_EMAIL_FLAG, 'SYSTEM_CUSTOMER_EMAIL');
+  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+  for (const f of ['api/index.js', 'api/test-system-email.js', '_lib/system-report.js', '_lib/standard-report.js', 'README.md']) {
+    assert.ok(!fs.readFileSync(path.join(root, f), 'utf8').includes('STANDARD_CUSTOMER_EMAIL'), f);
+  }
 });
 
-test('switches, System order: only SYSTEM_CUSTOMER_EMAIL="on" sends a customer email; STANDARD_CUSTOMER_EMAIL does nothing for System', async () => {
+test('one switch, System order: only SYSTEM_CUSTOMER_EMAIL="on" sends the customer email; STANDARD_CUSTOMER_EMAIL does nothing', async () => {
   const order = () => loadSample('system', SYSTEM);
   let r = await runWebhook(INDEX, 'orders/create', order(), { env: { STANDARD_CUSTOMER_EMAIL: 'on' } });
   assert.equal(r.restEmails.filter(isCustomer).length, 0); assert.equal(r.restEmails.filter(isSystemInternal).length, 1);
-  assert.ok(r.logs.some(([, m]) => m.includes('SYSTEM_CUSTOMER_EMAIL is not "on"')));
   r = await runWebhook(INDEX, 'orders/create', order(), { env: { SYSTEM_CUSTOMER_EMAIL: 'on' } });
   assert.equal(r.restEmails.filter(isCustomer).length, 1); assert.equal(r.restEmails.filter(isSystemInternal).length, 1);
 });
 
-test('switches, keyed Standard order: only STANDARD_CUSTOMER_EMAIL="on" sends a customer email; SYSTEM_CUSTOMER_EMAIL does nothing for Standard; exact "on" only', async () => {
+test('one switch, keyed Standard order: SYSTEM_CUSTOMER_EMAIL="on" (exact) also sends the Standard customer email; anything else sends none; the internal email is always sent', async () => {
   const order = () => loadSample('standard', STANDARD);
-  let r = await runWebhook(INDEX, 'orders/create', order(), { env: { SYSTEM_CUSTOMER_EMAIL: 'on' } });
-  assert.equal(r.emails.filter(isCustomer).length, 0, 'the System switch does not turn on Standard customer emails');
-  assert.equal(r.emails.filter(isStandardInternal).length, 1, 'internal email unaffected');
-  assert.ok(r.logs.some(([, m]) => m.includes('STANDARD-STUDIO') && m.includes('STANDARD_CUSTOMER_EMAIL is not "on"')));
+  let r = await runWebhook(INDEX, 'orders/create', order(), { env: { STANDARD_CUSTOMER_EMAIL: 'on' } });
+  assert.equal(r.emails.filter(isCustomer).length, 0, 'the removed STANDARD switch does nothing');
+  assert.equal(r.emails.filter(isStandardInternal).length, 1);
   for (const v of ['ON', 'true', '1', 'yes', ' on', 'on ', '']) {
-    r = await runWebhook(INDEX, 'orders/create', order(), { env: { STANDARD_CUSTOMER_EMAIL: v } });
+    r = await runWebhook(INDEX, 'orders/create', order(), { env: { SYSTEM_CUSTOMER_EMAIL: v } });
     assert.equal(r.emails.filter(isCustomer).length, 0, `value ${JSON.stringify(v)}`);
     assert.equal(r.emails.filter(isStandardInternal).length, 1);
   }
-  r = await runWebhook(INDEX, 'orders/create', order(), { env: { STANDARD_CUSTOMER_EMAIL: 'on' } });
+  r = await runWebhook(INDEX, 'orders/create', order(), { env: { SYSTEM_CUSTOMER_EMAIL: 'on' } });
   assert.equal(r.emails.filter(isCustomer).length, 1); assert.equal(r.emails.filter(isStandardInternal).length, 1);
   assert.deepEqual(r.emails.find(isCustomer).to, ['customer@example.com']);
 });
 
-test('switches: both on = each kind sends its own one customer email; both off (default) = none', async () => {
-  const both = { SYSTEM_CUSTOMER_EMAIL: 'on', STANDARD_CUSTOMER_EMAIL: 'on' };
-  assert.equal((await runWebhook(INDEX, 'orders/create', loadSample('system', SYSTEM), { env: both })).restEmails.filter(isCustomer).length, 1);
-  assert.equal((await runWebhook(INDEX, 'orders/create', loadSample('standard', STANDARD), { env: both })).emails.filter(isCustomer).length, 1);
+test('one switch: both kinds send exactly one customer email when it is on, none when it is off (default)', async () => {
+  const on = { SYSTEM_CUSTOMER_EMAIL: 'on' };
+  assert.equal((await runWebhook(INDEX, 'orders/create', loadSample('system', SYSTEM), { env: on })).restEmails.filter(isCustomer).length, 1);
+  assert.equal((await runWebhook(INDEX, 'orders/create', loadSample('standard', STANDARD), { env: on })).emails.filter(isCustomer).length, 1);
   assert.equal((await runWebhook(INDEX, 'orders/create', loadSample('system', SYSTEM))).restEmails.filter(isCustomer).length, 0);
   assert.equal((await runWebhook(INDEX, 'orders/create', loadSample('standard', STANDARD))).emails.filter(isCustomer).length, 0);
-});
-
-test('switches: sendCustomerEmailIfEnabled never sends for an unknown kind, and reads the env it is given', async () => {
-  const sent = []; const send = async (o) => { sent.push(o); return { id: 'x', inline: false }; };
-  const customer = { subject: 's', html: 'h', images: [] }, orderData = { email: 'c@d.co' }, quiet = () => {};
-  assert.equal((await sendCustomerEmailIfEnabled({ customer, orderData, kind: 'bogus', env: { SYSTEM_CUSTOMER_EMAIL: 'on', STANDARD_CUSTOMER_EMAIL: 'on' }, send, log: quiet })).sent, false);
-  assert.equal((await sendCustomerEmailIfEnabled({ customer, orderData, env: { STANDARD_CUSTOMER_EMAIL: 'on' }, send, log: quiet })).sent, false, 'default kind is system');
-  assert.equal((await sendCustomerEmailIfEnabled({ customer, orderData, kind: 'standard', env: { STANDARD_CUSTOMER_EMAIL: 'on' }, send, log: quiet })).sent, true);
-  assert.equal(sent.length, 1);
 });
 
 /* ------------------------------------------------------------------ 5. text-only fallback without broken images */

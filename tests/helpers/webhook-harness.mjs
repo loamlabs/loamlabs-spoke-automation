@@ -2,11 +2,13 @@
 // the order note it wrote, the inventory adjustments it made, the variant lookups, and the emails it sent (SDK or REST).
 // Used by tests/webhook-*.test.js and scripts/standard-proof.mjs.
 import { createHmac } from 'node:crypto';
+import { performance } from 'node:perf_hooks';
 import fs from 'node:fs';
 import path from 'node:path';
 import { register } from 'node:module';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
+const REQUEST_CONTEXT = Symbol.for('@vercel/request-context'); // where @vercel/functions looks for waitUntil
 const here = path.dirname(fileURLToPath(import.meta.url));
 if (!globalThis.__harnessLoaderRegistered) { register('./loader.mjs', pathToFileURL(here + path.sep)); globalThis.__harnessLoaderRegistered = true; }
 
@@ -22,7 +24,6 @@ export const TEST_ENV = {
 export function applyTestEnv(extra) {
   Object.assign(process.env, TEST_ENV);
   delete process.env.SYSTEM_CUSTOMER_EMAIL; // the customer-email switches (System and Standard) are OFF unless a test sets them through opts.env
-  delete process.env.STANDARD_CUSTOMER_EMAIL;
   delete process.env.SHOPIFY_FETCH_TIMEOUT_MS; // outbound time limits: the defaults unless a test sets them through opts.env
   delete process.env.RESEND_FETCH_TIMEOUT_MS;
   if (extra) Object.assign(process.env, extra);
@@ -82,13 +83,14 @@ function fakeReq(rawBody, headers) {
   const buf = Buffer.from(rawBody);
   return { method: 'POST', headers, async *[Symbol.asyncIterator]() { yield buf; } };
 }
-function fakeRes() {
+function fakeRes(onSend) {
   const res = { statusCode: 200, body: null, headers: {} };
+  const sent = () => { if (!res.sentAt) { res.sentAt = performance.now(); if (onSend) onSend(); } };
   res.setHeader = (k, v) => { res.headers[k] = v; return res; };
   res.status = (c) => { res.statusCode = c; return res; };
-  res.json = (b) => { res.body = b; return res; };
-  res.send = (b) => { res.body = b; return res; };
-  res.end = (b) => { if (b !== undefined) res.body = b; return res; };
+  res.json = (b) => { res.body = b; sent(); return res; };
+  res.send = (b) => { res.body = b; sent(); return res; };
+  res.end = (b) => { if (b !== undefined) res.body = b; sent(); return res; };
   return res;
 }
 
@@ -97,7 +99,11 @@ function fakeRes() {
  * @param {string} indexPath absolute path of the api/index.js to test
  * @param {'orders/create'|'orders/cancelled'} topic
  * @param {object} orderData the sample order
- * @param {{ mock?: ReturnType<typeof createMock>, quiet?: boolean, env?: object, keepDedupe?: boolean, query?: string, sdkDelayMs?: number }} opts  env = extra process.env values for this run (e.g. SYSTEM_CUSTOMER_EMAIL: 'on'); query = a
+ * Round 8: the handler answers first and does the report work through Vercel's waitUntil. The harness provides a request context (the same global that
+ * @vercel/functions reads) whose waitUntil collects the promises; runWebhook returns after the answer AND all that work finished, and reports when each happened:
+ *   replyMs / doneMs (ms from the start of the call), atReply (what had been done at the moment of the answer), background (true when waitUntil was used).
+ *   opts.background === false: no waitUntil is offered (like a host that is not Vercel), so the handler does the work before it answers.
+ * @param {{ mock?: ReturnType<typeof createMock>, quiet?: boolean, env?: object, keepDedupe?: boolean, query?: string, sdkDelayMs?: number, sdkError?: string, background?: boolean }} opts  env = extra process.env values for this run (e.g. SYSTEM_CUSTOMER_EMAIL: 'on'); query = a
  *   query string added to the api/index.js import URL (e.g. 'breakSystemReport=1' makes buildSystemReport throw, see helpers/loader.mjs)
  */
 export async function runWebhook(indexPath, topic, orderData, opts = {}) {
@@ -110,16 +116,23 @@ export async function runWebhook(indexPath, topic, orderData, opts = {}) {
   const realFetch = globalThis.fetch;
   const logs = [];
   const realLog = { log: console.log, warn: console.warn, error: console.error };
-  globalThis.__harness = { sdkEmails: [], sdkDelayMs: opts.sdkDelayMs || 0 };
+  globalThis.__harness = { sdkEmails: [], sdkDelayMs: opts.sdkDelayMs || 0, sdkError: opts.sdkError || null };
   globalThis.fetch = mock.fetch;
   if (opts.quiet !== false) { console.log = (...a) => logs.push(['log', a.map(String).join(' ')]); console.warn = (...a) => logs.push(['warn', a.map(String).join(' ')]); console.error = (...a) => logs.push(['error', a.map((x) => (x && x.stack) || String(x)).join(' ')]); }
   try {
     const mod = await import(pathToFileURL(indexPath).href + (opts.query ? '?' + opts.query : ''));
-    const res = fakeRes();
+    let atReply = null;
+    const res = fakeRes(() => { atReply = { restEmails: mock.calls.restEmails.length, sdkEmails: globalThis.__harness.sdkEmails.length, notes: mock.calls.notes.length, inventoryAdjustments: mock.calls.inventoryAdjustments.length }; });
+    const pending = [];
+    if (opts.background !== false) globalThis[REQUEST_CONTEXT] = { get: () => ({ waitUntil: (p) => { pending.push(p); } }) };
+    const t0 = performance.now();
     await mod.default(fakeReq(rawBody, { 'x-shopify-hmac-sha256': hmac, 'x-shopify-topic': topic }), res);
+    const replyMs = (res.sentAt || performance.now()) - t0;
+    while (pending.length) await Promise.allSettled(pending.splice(0));
+    const doneMs = performance.now() - t0;
     const sdkEmails = globalThis.__harness.sdkEmails.slice();
     return {
-      status: res.statusCode, body: res.body,
+      status: res.statusCode, body: res.body, replyMs, doneMs, atReply, background: opts.background !== false,
       note: mock.calls.notes.length ? mock.calls.notes[mock.calls.notes.length - 1].note : null,
       notes: mock.calls.notes.map((n) => n.note),
       inventoryAdjustments: mock.calls.inventoryAdjustments,
@@ -131,6 +144,7 @@ export async function runWebhook(indexPath, topic, orderData, opts = {}) {
       logs, calls: mock.calls
     };
   } finally {
+    delete globalThis[REQUEST_CONTEXT];
     globalThis.fetch = realFetch;
     Object.assign(console, realLog);
   }

@@ -10,7 +10,7 @@
 //            from the store (default false: sample geometry only); "imageWidth": 600;
 //            "customer": true renders/sends the CUSTOMER version (greeting, component details, color tables, images; no lengths or
 //            warnings) and sends it ONLY to BUILDER_EMAIL_ADDRESS, never to the order's or a sample's customer address, and it ignores
-//            the SYSTEM_CUSTOMER_EMAIL and STANDARD_CUSTOMER_EMAIL switches (those only guard the real webhook). With customer:true the internal email is not sent.
+//            the SYSTEM_CUSTOMER_EMAIL switch (that switch only guards the real webhook). With customer:true the internal email is not sent.
 //   response: { ok, subject, wheels, images: [{ filename, bytes }], imageErrors, warnings, note, emailId, inline, html? (when send is false) }
 //   Standard samples (samples/standard/std-*.json, orders whose _build carries standardStudio) work the same way: the internal report is today's Standard report
 //   plus the color additions (images, painted-spoke list), calculated from the sample's own metafields (or the store's with "useShopify": true); nothing is adjusted

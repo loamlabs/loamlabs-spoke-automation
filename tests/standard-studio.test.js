@@ -11,7 +11,7 @@ import { buildCustomerEmail, imageSpecsFor } from '../_lib/system-report.js';
 import { findSystemBuildRecipe } from '../_lib/system-build.js';
 
 const INDEX = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'api', 'index.js');
-const ON = { STANDARD_CUSTOMER_EMAIL: 'on' };
+const ON = { SYSTEM_CUSTOMER_EMAIL: 'on' };
 const png = async () => Buffer.from('PNG');
 const isInternal = (e) => /^Spoke Calculation Complete/.test(e.subject);
 const isCustomer = (e) => /^Your custom spoke colors/.test(e.subject);
@@ -287,7 +287,7 @@ test('webhook, customer email: sent for EVERY keyed Standard order (solid or cus
 });
 
 test('webhook, flag: off, "off", "ON", "true", unset -> no customer email at all; the internal email and the note are the same', async () => {
-  for (const env of [{}, { STANDARD_CUSTOMER_EMAIL: 'off' }, { STANDARD_CUSTOMER_EMAIL: 'ON' }, { STANDARD_CUSTOMER_EMAIL: 'true' }, { STANDARD_CUSTOMER_EMAIL: '' }]) {
+  for (const env of [{}, { SYSTEM_CUSTOMER_EMAIL: 'off' }, { SYSTEM_CUSTOMER_EMAIL: 'ON' }, { SYSTEM_CUSTOMER_EMAIL: 'true' }, { SYSTEM_CUSTOMER_EMAIL: '' }]) {
     const r = await runWebhook(INDEX, 'orders/create', loadSample('standard', REAR), { env });
     assert.equal(r.status, 200);
     assert.equal(r.emails.filter(isCustomer).length, 0, JSON.stringify(env));

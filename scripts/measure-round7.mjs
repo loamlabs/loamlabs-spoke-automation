@@ -49,7 +49,7 @@ const med = (a) => [...a].sort((x, y) => x - y)[Math.floor(a.length / 2)];
 const fmt = (a) => `min ${Math.min(...a).toFixed(0)} / median ${med(a).toFixed(0)} / max ${Math.max(...a).toFixed(0)} ms`;
 
 async function measure(label, { order, mockData, kind }) {
-  const env = kind === 'system' ? { SYSTEM_CUSTOMER_EMAIL: 'on' } : { STANDARD_CUSTOMER_EMAIL: 'on' };
+  const env = { SYSTEM_CUSTOMER_EMAIL: 'on' };
   const total = [], render = [], counts = [];
   for (let i = 0; i < RUNS + 1; i++) {                       // the first run warms the code (not counted)
     const mock = createMock(mockData || loadMockShopify());
