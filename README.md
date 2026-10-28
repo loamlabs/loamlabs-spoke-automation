@@ -73,7 +73,13 @@ Required environment variables (configured in Vercel):
 - `INTERNAL_API_SECRET`
 
 Optional:
-- `SYSTEM_CUSTOMER_EMAIL` - **off by default.** Industry Nine System orders (Spoke Color Studio) always send the internal report to `BUILDER_EMAIL_ADDRESS`. A second email with the customer's spoke colors and wheel images goes to the order's customer (`order.email`, else `customer.email`) **only when this variable is exactly `on`**. Any other value, or the variable missing, sends nothing to customers (one log line says so). Never sent on `orders/cancelled`.
+- `SYSTEM_CUSTOMER_EMAIL` - **off by default.** Controls **Industry Nine System orders only** (Spoke Color Studio, which always send the internal report to `BUILDER_EMAIL_ADDRESS`). A second email with the customer's spoke colors and wheel images goes to the order's customer (`order.email`, else `customer.email`) **only when this variable is exactly `on`**. Any other value, or the variable missing, sends nothing to customers (one log line says so). Never sent on `orders/cancelled`.
+- `STANDARD_CUSTOMER_EMAIL` - **off by default, same rules, separate switch.** Controls the customer email for Standard orders that carry the Spoke Color Studio data (`standardStudio` in the `_build` recipe). Exactly `on` sends it; anything else sends nothing. Standard orders without that data never email the customer. The internal emails do not depend on either switch.
+- `SHOPIFY_FETCH_TIMEOUT_MS` (default 8000) and `RESEND_FETCH_TIMEOUT_MS` (default 10000) - time limits for every outbound call in the webhook path (Shopify per attempt, Resend per send). A call that hangs fails like any other network error and the existing fallbacks run (images -> text-only -> SDK send); the internal email still goes out. Leave unset in production; they exist for tests.
+
+## Function duration
+
+`api/index.js` and `api/test-system-email.js` export `config.maxDuration = 30` (Vercel's Node.js `/api` config export, no `vercel.json`). With Fluid compute (on by default for new Vercel projects) the Hobby default and maximum are 300 s, so 30 s is a deliberate lower cap; an older project with Fluid compute off has a shorter Hobby default (about 10 s) and 30 s is still within its limit. Do not change the Vercel dashboard setting for this; the code value wins for these two functions.
 
 ## I9 System builds
 

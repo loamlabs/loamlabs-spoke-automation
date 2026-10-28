@@ -17,7 +17,7 @@ fs.mkdirSync(outDir, { recursive: true });
 const names = fs.readdirSync(samplesDir).filter((f) => /^std-.*\.json$/.test(f)).map((f) => f.replace(/\.json$/, ''));
 let page = '<!doctype html><meta charset="utf-8"><title>Standard sample renders</title><body style="font-family:sans-serif">';
 for (const name of names) {
-  const r = await runWebhook(index, 'orders/create', loadSample('standard', name), { env: { SYSTEM_CUSTOMER_EMAIL: 'on' } });
+  const r = await runWebhook(index, 'orders/create', loadSample('standard', name), { env: { STANDARD_CUSTOMER_EMAIL: 'on' } });
   const dir = path.join(outDir, name); fs.mkdirSync(dir, { recursive: true });
   const internal = r.emails.find((e) => /^Spoke Calculation Complete/.test(e.subject)), customer = r.emails.find((e) => /^Your custom spoke colors/.test(e.subject));
   const save = (file, html, atts) => { let h = html; for (const a of atts || []) { h = h.split(`cid:${a.content_id}`).join(a.filename); fs.writeFileSync(path.join(dir, a.filename), Buffer.from(a.content, 'base64')); } fs.writeFileSync(path.join(dir, file), h); };

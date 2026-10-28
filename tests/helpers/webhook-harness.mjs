@@ -21,7 +21,10 @@ export const TEST_ENV = {
 };
 export function applyTestEnv(extra) {
   Object.assign(process.env, TEST_ENV);
-  delete process.env.SYSTEM_CUSTOMER_EMAIL; // the customer-email flag is OFF unless a test sets it through opts.env
+  delete process.env.SYSTEM_CUSTOMER_EMAIL; // the customer-email switches (System and Standard) are OFF unless a test sets them through opts.env
+  delete process.env.STANDARD_CUSTOMER_EMAIL;
+  delete process.env.SHOPIFY_FETCH_TIMEOUT_MS; // outbound time limits: the defaults unless a test sets them through opts.env
+  delete process.env.RESEND_FETCH_TIMEOUT_MS;
   if (extra) Object.assign(process.env, extra);
 }
 
@@ -94,7 +97,8 @@ function fakeRes() {
  * @param {string} indexPath absolute path of the api/index.js to test
  * @param {'orders/create'|'orders/cancelled'} topic
  * @param {object} orderData the sample order
- * @param {{ mock?: ReturnType<typeof createMock>, quiet?: boolean, env?: object, keepDedupe?: boolean }} opts  env = extra process.env values for this run (e.g. SYSTEM_CUSTOMER_EMAIL: 'on')
+ * @param {{ mock?: ReturnType<typeof createMock>, quiet?: boolean, env?: object, keepDedupe?: boolean, query?: string, sdkDelayMs?: number }} opts  env = extra process.env values for this run (e.g. SYSTEM_CUSTOMER_EMAIL: 'on'); query = a
+ *   query string added to the api/index.js import URL (e.g. 'breakSystemReport=1' makes buildSystemReport throw, see helpers/loader.mjs)
  */
 export async function runWebhook(indexPath, topic, orderData, opts = {}) {
   applyTestEnv(opts.env);
@@ -106,11 +110,11 @@ export async function runWebhook(indexPath, topic, orderData, opts = {}) {
   const realFetch = globalThis.fetch;
   const logs = [];
   const realLog = { log: console.log, warn: console.warn, error: console.error };
-  globalThis.__harness = { sdkEmails: [] };
+  globalThis.__harness = { sdkEmails: [], sdkDelayMs: opts.sdkDelayMs || 0 };
   globalThis.fetch = mock.fetch;
   if (opts.quiet !== false) { console.log = (...a) => logs.push(['log', a.map(String).join(' ')]); console.warn = (...a) => logs.push(['warn', a.map(String).join(' ')]); console.error = (...a) => logs.push(['error', a.map((x) => (x && x.stack) || String(x)).join(' ')]); }
   try {
-    const mod = await import(pathToFileURL(indexPath).href);
+    const mod = await import(pathToFileURL(indexPath).href + (opts.query ? '?' + opts.query : ''));
     const res = fakeRes();
     await mod.default(fakeReq(rawBody, { 'x-shopify-hmac-sha256': hmac, 'x-shopify-topic': topic }), res);
     const sdkEmails = globalThis.__harness.sdkEmails.slice();

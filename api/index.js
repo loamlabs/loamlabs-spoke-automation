@@ -11,7 +11,8 @@ import {
 } from '../_lib/calculator.js';
 // I9-SYSTEM: Industry Nine System builds (Spoke Color Studio) take their own report path; Standard builds are untouched.
 import { findSystemBuildRecipe } from '../_lib/system-build.js';
-import { buildSystemReport, sendSystemEmail, buildCustomerEmail, sendCustomerEmailIfEnabled } from '../_lib/system-report.js';
+import { buildSystemReport, buildFailureEmail, sendSystemEmail, buildCustomerEmail, sendCustomerEmailIfEnabled } from '../_lib/system-report.js';
+import { shopifyTimeoutMs, resendTimeoutMs, timeoutSignal, withTimeout } from '../_lib/http-timeout.js';
 import { claimSystemOrder, releaseSystemOrder, noteShowsProcessed, STANDARD_REPORT_MARKER } from '../_lib/system-dedupe.js';
 // STANDARD-STUDIO: Standard orders that carry the standardStudio key get color images, a painted-spoke list and the customer email as ADDITIONS.
 // Orders without the key take today's path unchanged.
@@ -19,7 +20,8 @@ import { isStandardStudioRecipe } from '../_lib/standard-build.js';
 import { buildStandardAdditions } from '../_lib/standard-report.js';
 
 // --- Vercel Config ---
-export const config = { api: { bodyParser: false } };
+// maxDuration: 30 seconds for this function (the Node.js /api config export). Every outbound call has its own shorter limit (_lib/http-timeout.js).
+export const config = { api: { bodyParser: false }, maxDuration: 30 };
 
 async function getRawBody(req) {
   const chunks = [];
@@ -43,6 +45,7 @@ async function shopifyAdminApiQuery(query, variables, retries = 3, delay = 500) 
                     'X-Shopify-Access-Token': apiToken 
                 },
                 body: JSON.stringify({ query, variables }),
+                signal: timeoutSignal(shopifyTimeoutMs()), // a hung call fails like any other network error (the retry loop below, then the caller's existing fallback)
             });
 
             // 1. Handle HTTP Level Errors (e.g., 429 Rate Limit or 500 Server Error)
@@ -303,7 +306,23 @@ async function handleSystemOrderCreate(orderData, buildRecipe) {
         // metafields for the hub flange / rim ERD (null is fine: sample geometry). REVIEW: a recipe whose components is not an object
         // (tampered _build) used to throw inside fetchComponentData and drop the whole report; now it is reported with sample geometry.
         const componentData = buildRecipe.components && typeof buildRecipe.components === 'object' ? await fetchComponentData(buildRecipe) : null;
-        const report = await buildSystemReport({ recipe: buildRecipe, orderData, componentData });
+        let report;
+        try {
+            report = await buildSystemReport({ recipe: buildRecipe, orderData, componentData });
+        } catch (error) {
+            // The report itself failed (nothing in the data is expected to do that). The internal email still goes out: a plain one with the order number,
+            // the error and the raw line items. No note is written and no customer email is sent; if even this email fails the claim is released
+            // so that Shopify's re-delivery gets another try.
+            console.error("🚨 I9-SYSTEM: could not build the System report; sending the plain internal email with the raw line items:", error);
+            try {
+                const sent = await sendSystemEmail({ report: buildFailureEmail({ orderData, error }) });
+                console.log(`✅ I9-SYSTEM: plain failure email sent. Resend ID: ${sent.id}`);
+            } catch (sendError) {
+                console.error("🚨 I9-SYSTEM: the plain failure email failed too:", sendError);
+                releaseSystemOrder(dedupeKey);
+            }
+            return;
+        }
         report.warnings.forEach(w => console.warn('I9-SYSTEM note:', w));
         report.imageErrors.forEach(e => console.error('I9-SYSTEM image:', e));
 
@@ -321,11 +340,11 @@ async function handleSystemOrderCreate(orderData, buildRecipe) {
             console.error("🚨 I9-SYSTEM: failed to send the report email:", error);
         }
 
-        // Customer version (spoke colors and images only, no lengths or warnings). OFF unless env SYSTEM_CUSTOMER_EMAIL is "on".
+        // Customer version (spoke colors and images only, no lengths or warnings). OFF unless env SYSTEM_CUSTOMER_EMAIL is "on" (System only; Standard has STANDARD_CUSTOMER_EMAIL).
         // Own try/catch: whatever happens here cannot affect the internal email above or the webhook answer.
         try {
             const customer = buildCustomerEmail({ wheels: report.wheels, images: report.images, orderData });
-            await sendCustomerEmailIfEnabled({ customer, orderData });
+            await sendCustomerEmailIfEnabled({ customer, orderData, kind: 'system' });
         } catch (error) {
             console.error("🚨 I9-SYSTEM: customer email step failed:", error);
         }
@@ -469,12 +488,12 @@ async function handleOrderCreate(orderData) {
                 // -------------------------------
                 await sendEmailReport(buildReport, orderData, buildRecipe, standardExtra);
 
-                // STANDARD-STUDIO: the customer version (colors and images only), under the same flag as System (SYSTEM_CUSTOMER_EMAIL === 'on'), same
+                // STANDARD-STUDIO: the customer version (colors and images only), under its OWN flag (STANDARD_CUSTOMER_EMAIL === 'on', default off; System has SYSTEM_CUSTOMER_EMAIL), same
                 // recipient rules, own try/catch: nothing here can affect the internal email, the note or the webhook answer.
                 if (standardExtra && standardExtra.wheels.length) {
                     try {
                         const customer = buildCustomerEmail({ wheels: standardExtra.wheels, images: standardExtra.images, orderData });
-                        await sendCustomerEmailIfEnabled({ customer, orderData });
+                        await sendCustomerEmailIfEnabled({ customer, orderData, kind: 'standard' });
                     } catch (error) {
                         console.error("🚨 STANDARD-STUDIO: customer email step failed:", error);
                     }
@@ -1063,13 +1082,13 @@ export async function sendEmailReport(report, orderData, buildRecipe, extra) {
     }
 
     try {
-        const { data, error } = await resend.emails.send({
+        const { data, error } = await withTimeout(resend.emails.send({
             from: 'Spoke Calculator <calculator@loamlabsusa.com>',
             to: [recipientEmail],
             reply_to: 'LoamLabs Support <info@loamlabsusa.com>',
             subject: `Spoke Calculation Complete for Order #${orderNumber}`,
             html: emailHtml,
-        });
+        }), resendTimeoutMs(), 'Resend SDK send'); // the SDK takes no signal: the webhook stops waiting after the limit
 
         if (error) {
             console.error("🚨 Failed to send email report. Resend API returned an error:", error);

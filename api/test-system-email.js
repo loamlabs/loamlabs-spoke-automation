@@ -10,7 +10,7 @@
 //            from the store (default false: sample geometry only); "imageWidth": 600;
 //            "customer": true renders/sends the CUSTOMER version (greeting, component details, color tables, images; no lengths or
 //            warnings) and sends it ONLY to BUILDER_EMAIL_ADDRESS, never to the order's or a sample's customer address, and it ignores
-//            the SYSTEM_CUSTOMER_EMAIL flag (that flag only guards the real webhook). With customer:true the internal email is not sent.
+//            the SYSTEM_CUSTOMER_EMAIL and STANDARD_CUSTOMER_EMAIL switches (those only guard the real webhook). With customer:true the internal email is not sent.
 //   response: { ok, subject, wheels, images: [{ filename, bytes }], imageErrors, warnings, note, emailId, inline, html? (when send is false) }
 //   Standard samples (samples/standard/std-*.json, orders whose _build carries standardStudio) work the same way: the internal report is today's Standard report
 //   plus the color additions (images, painted-spoke list), calculated from the sample's own metafields (or the store's with "useShopify": true); nothing is adjusted
@@ -24,6 +24,10 @@ import { SYSTEM_SAMPLES, STANDARD_STUDIO_SAMPLES } from '../samples/index.js';
 import { findStandardStudioRecipe, isStandardStudioRecipe } from '../_lib/standard-build.js';
 import { buildStandardAdditions } from '../_lib/standard-report.js';
 import { runCalculationEngine, formatNote, sendEmailReport } from './index.js';
+import { shopifyTimeoutMs, timeoutSignal } from '../_lib/http-timeout.js';
+
+// 30 seconds for this function (Node.js /api config export), like api/index.js.
+export const config = { maxDuration: 30 };
 
 // REVIEW: constant-time secret comparison (fails closed when the env var is missing or the header is absent / not a single string).
 export function secretMatches(provided, expected) {
@@ -55,7 +59,8 @@ async function fetchComponentMetafields(recipe) {
     const query = `query getComponentMetafields($ids: [ID!]!) { nodes(ids: $ids) { ... on ProductVariant { id metafields(first: 50) { nodes { key namespace value } } product { id metafields(first: 50) { nodes { key namespace value } } } } } }`;
     const response = await fetch(`https://${process.env.SHOPIFY_STORE_DOMAIN}/admin/api/2024-07/graphql.json`, {
         method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Shopify-Access-Token': process.env.SHOPIFY_ADMIN_API_TOKEN },
-        body: JSON.stringify({ query, variables: { ids } })
+        body: JSON.stringify({ query, variables: { ids } }),
+        signal: timeoutSignal(shopifyTimeoutMs())
     });
     const result = await response.json();
     if (result.errors) throw new Error(JSON.stringify(result.errors));
