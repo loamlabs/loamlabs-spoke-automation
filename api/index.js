@@ -11,7 +11,7 @@ import {
 } from '../_lib/calculator.js';
 // I9-SYSTEM: Industry Nine System builds (Spoke Color Studio) take their own report path; Standard builds are untouched.
 import { findSystemBuildRecipe } from '../_lib/system-build.js';
-import { buildSystemReport, buildFailureEmail, sendSystemEmail, buildCustomerEmail, sendCustomerEmailIfEnabled } from '../_lib/system-report.js';
+import { buildSystemReport, buildFailureEmail, addNoteFailureNotice, sendSystemEmail, buildCustomerEmail, sendCustomerEmailIfEnabled } from '../_lib/system-report.js';
 import { shopifyTimeoutMs, resendTimeoutMs, timeoutSignal, withTimeout } from '../_lib/http-timeout.js';
 import { waitUntil } from '@vercel/functions';
 import { claimSystemOrder, releaseSystemOrder, noteShowsProcessed, STANDARD_REPORT_MARKER } from '../_lib/system-dedupe.js';
@@ -232,12 +232,27 @@ async function adjustInventory(inventoryItemId, quantityDelta, locationId, order
     }
 }
 
-async function addNoteToOrder(orderGid, note) {
+// Writes the order note. Never throws. Returns { ok: true } or { ok: false, reason }. Round 9: Shopify answers a refused update with HTTP 200 and a non-empty
+// orderUpdate.userErrors (for example an order that does not exist), so that list counts as a failed write, like a thrown error. A caller that sends an
+// internal email puts the reason into it (addNoteFailureNotice).
+async function addNoteToOrder(orderGid, note, orderNumber) {
     const mutation = `mutation orderUpdate($input: OrderInput!) { orderUpdate(input: $input) { order { id } userErrors { field message } } }`;
+    const n = orderNumber != null ? orderNumber : '?';
     try {
-        await shopifyAdminApiQuery(mutation, { input: { id: orderGid, note: note } });
-        console.log("✅ Successfully added note to order.");
-    } catch (error) { console.error("🚨 Failed to add note to order:", error); }
+        const data = await shopifyAdminApiQuery(mutation, { input: { id: orderGid, note: note } });
+        const result = data && data.orderUpdate;
+        const userErrors = result && Array.isArray(result.userErrors) ? result.userErrors : [];
+        if (!result || userErrors.length) {
+            const reason = userErrors.length ? userErrors.map((e) => (e && e.message) || JSON.stringify(e)).join('; ') : 'Shopify returned no orderUpdate result';
+            console.error(`🚨 ORDER #${n}: note write rejected: ${reason}`);
+            return { ok: false, reason };
+        }
+        console.log(`✅ ORDER #${n}: successfully added note to order.`);
+        return { ok: true };
+    } catch (error) {
+        console.error(`🚨 ORDER #${n}: failed to add note to order:`, error);
+        return { ok: false, reason: (error && error.message) || String(error) };
+    }
 }
 
 async function getPrimaryLocationId() {
@@ -364,7 +379,8 @@ function handleSystemOrderCreate(orderData, buildRecipe) {
             if (orderData.note) {
                 finalNote = orderData.note + "\n\n--------------------------------------------------\n\n" + finalNote;
             }
-            await addNoteToOrder(orderData.admin_graphql_api_id, finalNote);
+            const noteResult = await addNoteToOrder(orderData.admin_graphql_api_id, finalNote, orderData.order_number);
+            if (!noteResult.ok) report.html = addNoteFailureNotice(report.html, noteResult.reason); // the internal email says the note is missing, and why
 
             try {
                 const sent = await sendSystemEmail({ report, orderData });
@@ -528,9 +544,9 @@ async function handleOrderCreate(orderData) {
                     finalNote = orderData.note + "\n\n--------------------------------------------------\n\n" + finalNote;
                 }
                 
-                await addNoteToOrder(orderData.admin_graphql_api_id, finalNote);
+                const noteResult = await addNoteToOrder(orderData.admin_graphql_api_id, finalNote, orderData.order_number);
                 // -------------------------------
-                const emailed = await sendEmailReport(buildReport, orderData, buildRecipe, standardExtra);
+                const emailed = await sendEmailReport(buildReport, orderData, buildRecipe, standardExtra, { noteFailure: noteResult.ok ? null : noteResult.reason });
                 if (emailed) state.internalSent = true;
                 else await sendPlainFailureEmail(orderData, new Error('the spoke calculation email could not be sent'), 'standard', state);
 
@@ -588,7 +604,7 @@ async function handleOrderCancelled(orderData) {
 
     if (!locationId) {
         console.error("CRITICAL: Could not determine location ID for restock. Aborting.");
-        await addNoteToOrder(orderData.admin_graphql_api_id, "AUTOMATED RESTOCK FAILED: Could not determine location ID.");
+        await addNoteToOrder(orderData.admin_graphql_api_id, "AUTOMATED RESTOCK FAILED: Could not determine location ID.", orderData.order_number);
         return;
     }
 
@@ -687,7 +703,7 @@ async function handleOrderCancelled(orderData) {
         }
     }
 
-    await addNoteToOrder(orderData.admin_graphql_api_id, restockNote);
+    await addNoteToOrder(orderData.admin_graphql_api_id, restockNote, orderData.order_number); // no internal email on this path: a rejected write is in the log (ORDER #n: note write rejected)
 }
 
 export function runCalculationEngine(buildRecipe, componentData) {
@@ -970,7 +986,8 @@ export function formatNote(report) {
     return note;
 }
 
-export async function sendEmailReport(report, orderData, buildRecipe, extra) {
+export async function sendEmailReport(report, orderData, buildRecipe, extra, options = {}) {
+    // options.noteFailure (round 9): the reason the order note could not be written; the email then starts with a notice about it
     // STANDARD-STUDIO: extra = { html, images } for orders that carry standardStudio (color tables, images, painted-spoke list); undefined otherwise
     const extraHtml = extra && extra.html ? extra.html : '';
     const resend = new Resend(process.env.RESEND_API_KEY);
@@ -1072,7 +1089,7 @@ export async function sendEmailReport(report, orderData, buildRecipe, extra) {
 };
     
     // --- Main HTML Structure ---
-    const emailHtml = `
+    let emailHtml = `
         <!DOCTYPE html>
         <html>
         <head>
@@ -1118,6 +1135,7 @@ export async function sendEmailReport(report, orderData, buildRecipe, extra) {
         </body>
         </html>
     `;
+    if (options && options.noteFailure) emailHtml = addNoteFailureNotice(emailHtml, options.noteFailure);
 
     // STANDARD-STUDIO: with images the email goes through the Resend REST API so the wheel images can be inline attachments (content ids), like System;
     // the sender, reply-to and subject are exactly today's. If that fails the normal SDK send below still runs (without images).

@@ -230,6 +230,15 @@ export async function buildSystemReport(o) {
   };
 }
 
+/* ------------------------------------------------------------------ order note could not be written */
+
+// Round 9: puts a notice at the top of an internal report email when the order note could not be written (Shopify refused it or the call failed), with the reason.
+// Inline styles so it looks the same in any report layout. The first <div class="container"> gets it; html without one is returned unchanged.
+export function addNoteFailureNotice(html, reason) {
+  const notice = `<p style="color:#D8000C;background-color:#FFD2D2;padding:10px;border-radius:3px"><strong>The order note could not be written:</strong> ${esc(reason)}. The report below is complete; copy what you need into the order by hand.</p>`;
+  return String(html).replace('<div class="container">', () => '<div class="container">' + notice);
+}
+
 /* ------------------------------------------------------------------ plain failure email */
 
 // Used when buildSystemReport itself throws: no images, no calculation, just what the builder needs to handle the order by hand: the order number,
