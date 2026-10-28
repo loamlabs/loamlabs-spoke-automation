@@ -1,5 +1,5 @@
 // I9-SYSTEM: a wheel that is ONE solid color shows exactly one image in the email, the all-spokes view (same view and caption style as the
-// third image of a custom wheel); it does not get the drive-side-only and rotor-side-only images. A wheel with two or more colors keeps its
+// first image of a custom wheel); it does not get the drive-side-only and rotor-side-only images. A wheel with two or more colors keeps its
 // three images. Both the internal report and the customer version are checked. When emails are sent is unchanged (covered by the other suites).
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -26,9 +26,9 @@ async function reportFor(sample, { solid = {} } = {}) {
   return { report, order, recipe, customer: buildCustomerEmail({ wheels: report.wheels, images: report.images, orderData: order }) };
 }
 
-test('the solid-wheel image is the SAME spec as the third (all spokes) image of a custom wheel: same view, same caption style', () => {
+test('the solid-wheel image is the SAME spec as the first (all spokes) image of a custom wheel: same view, same caption style', () => {
   for (const pos of ['front', 'rear']) {
-    assert.deepEqual(imageSpecsFor(pos, true), [imageSpecsFor(pos)[2]]);
+    assert.deepEqual(imageSpecsFor(pos, true), [imageSpecsFor(pos)[0]]);
     assert.equal(imageSpecsFor(pos).length, 3, 'a custom wheel still has three');
   }
   assert.equal(imageSpecsFor('rear', true)[0].caption, 'Rear wheel, all spokes (drive side view)');
@@ -41,8 +41,8 @@ test('solid REAR wheel, custom front wheel (the Solix 24h sample): 1 + 3 images,
   assert.equal(front.isMultiColor, true); assert.equal(rear.isMultiColor, false);
   assert.deepEqual(front.counts.all, [{ color: 'Orange', n: 16 }, { color: 'Purple', n: 8 }]);
   assert.deepEqual(rear.counts.all, [{ color: 'Black', n: 24 }]);
-  assert.deepEqual(cidsOf(report), ['front-rotor-only', 'front-drive-only', 'front-all-spokes', 'rear-all-spokes'], 'front: three, rear: one');
-  assert.deepEqual(report.images.map((i) => i.caption), ['Front wheel, rotor side spokes only', 'Front wheel, drive side spokes only', 'Front wheel, all spokes (rotor side view)', 'Rear wheel, all spokes (drive side view)']);
+  assert.deepEqual(cidsOf(report), ['front-all-spokes', 'front-rotor-only', 'front-drive-only', 'rear-all-spokes'], 'front: three, rear: one');
+  assert.deepEqual(report.images.map((i) => i.caption), ['Front wheel, all spokes (rotor side view)', 'Front wheel, rotor side spokes only', 'Front wheel, drive side spokes only', 'Rear wheel, all spokes (drive side view)']);
   assert.deepEqual(report.imageErrors, []);
   for (const [label, html] of [['internal', report.html], ['customer', customer.html]]) {
     assert.equal(imgTags(html), 4, `${label}: four images in total`);
@@ -70,7 +70,7 @@ test('the solid wheel image really is the full wheel in one color: both sides dr
 
 test('custom FRONT wheel only (front-only build): three images, unchanged', async () => {
   const { report, customer } = await reportFor('hydra2-front-28h-only');
-  assert.deepEqual(cidsOf(report), ['front-rotor-only', 'front-drive-only', 'front-all-spokes']);
+  assert.deepEqual(cidsOf(report), ['front-all-spokes', 'front-rotor-only', 'front-drive-only']);
   assert.equal(imgTags(report.html), 3);
   assert.equal(imgTags(customer.html), 3);
 });
@@ -90,7 +90,7 @@ test('BOTH wheels solid: two images in total, one per wheel; the customer email 
 
 test('BOTH wheels custom: six images, unchanged', async () => {
   const { report, customer } = await reportFor('solix-24h-wheelset-multicolor');
-  assert.deepEqual(cidsOf(report), ['front-rotor-only', 'front-drive-only', 'front-all-spokes', 'rear-drive-only', 'rear-rotor-only', 'rear-all-spokes']);
+  assert.deepEqual(cidsOf(report), ['front-all-spokes', 'front-rotor-only', 'front-drive-only', 'rear-all-spokes', 'rear-drive-only', 'rear-rotor-only']);
   assert.equal(imgTags(report.html), 6);
   assert.equal(imgTags(customer.html), 6);
 });
@@ -107,7 +107,7 @@ test('a failing renderer for a solid wheel is reported as one "image failed" lin
   const order = loadSample('system', 'solix-24h-wheelset-front-custom-rear-solid'), recipe = findSystemBuildRecipe(order).recipe;
   let n = 0;
   const report = await buildSystemReport({ recipe, orderData: order, renderPng: async () => { if (++n > 3) throw new Error('boom'); return Buffer.from('x'); } }); // front renders, the rear image fails
-  assert.deepEqual(cidsOf(report), ['front-rotor-only', 'front-drive-only', 'front-all-spokes']);
+  assert.deepEqual(cidsOf(report), ['front-all-spokes', 'front-rotor-only', 'front-drive-only']);
   assert.deepEqual(report.imageErrors, ['Rear wheel, all spokes (drive side view): image failed: boom']);
   assert.ok(report.html.includes('image failed: boom') && report.html.includes('Rear wheel: all Black'));
 });
@@ -116,11 +116,11 @@ test('through the webhook: same sends as before (internal always; customer only 
   const off = await runWebhook(INDEX, 'orders/create', loadSample('system', 'solix-24h-wheelset-front-custom-rear-solid'));
   assert.equal(off.status, 200);
   assert.equal(off.restEmails.length, 1, 'flag off: only the internal email');
-  assert.deepEqual(off.restEmails[0].attachments.map((a) => a.content_id), ['front-rotor-only', 'front-drive-only', 'front-all-spokes', 'rear-all-spokes']);
+  assert.deepEqual(off.restEmails[0].attachments.map((a) => a.content_id), ['front-all-spokes', 'front-rotor-only', 'front-drive-only', 'rear-all-spokes']);
   const on = await runWebhook(INDEX, 'orders/create', loadSample('system', 'solix-24h-wheelset-front-custom-rear-solid'), { env: { SYSTEM_CUSTOMER_EMAIL: 'on' } });
   assert.equal(on.restEmails.length, 2);
   assert.deepEqual(on.restEmails[1].to, ['customer@example.com']);
-  assert.deepEqual(on.restEmails[1].attachments.map((a) => a.content_id), ['front-rotor-only', 'front-drive-only', 'front-all-spokes', 'rear-all-spokes']);
+  assert.deepEqual(on.restEmails[1].attachments.map((a) => a.content_id), ['front-all-spokes', 'front-rotor-only', 'front-drive-only', 'rear-all-spokes']);
   assert.ok(on.restEmails[1].subject.startsWith('Your custom spoke colors'));
   assert.ok(on.note.includes('Whole wheel (24): Black ×24 (one color)'), 'the order note is unchanged');
 });

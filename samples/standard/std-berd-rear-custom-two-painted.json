@@ -1,0 +1,233 @@
+{
+  "id": 6000091002,
+  "admin_graphql_api_id": "gid://shopify/Order/6000091002",
+  "order_number": 91002,
+  "name": "#91002",
+  "email": "customer@example.com",
+  "customer": {
+    "first_name": "Alex",
+    "last_name": "Sample",
+    "email": "customer@example.com"
+  },
+  "note": null,
+  "location_id": null,
+  "financial_status": "paid",
+  "line_items": [
+    {
+      "id": 15131,
+      "title": "Custom Wheel Build",
+      "name": "Custom Wheel Build",
+      "variant_title": null,
+      "quantity": 1,
+      "price": "0.00",
+      "product_id": 1,
+      "variant_id": 1,
+      "properties": [
+        {
+          "name": "_BuildID",
+          "value": "LL-91002-STD"
+        },
+        {
+          "name": "_bundle_id",
+          "value": "LL-91002-STD"
+        },
+        {
+          "name": "_is_custom_wheel_build",
+          "value": "true"
+        },
+        {
+          "name": "_EstLeadTime",
+          "value": "2-3 weeks"
+        },
+        {
+          "name": "_build",
+          "value": "{\"step\":3,\"buildType\":\"Rear\",\"ridingStyle\":\"trail\",\"ridingStyleDisplay\":\"Trail\",\"spokeInterface\":\"standard\",\"system\":null,\"customerSupplied\":{\"front\":{},\"rear\":{}},\"specs\":{\"brakeStyle\":\"Centerlock\",\"frontWheelSize\":\"29\\\"\",\"rearWheelSize\":\"29\\\"\",\"rearSpokeCount\":\"24h\",\"rearHubSpacing\":\"12x148mm\",\"freehubType\":\"XD\"},\"components\":{\"rearRim\":{\"variantId\":\"gid://shopify/ProductVariant/6004\",\"title\":\"Reserve 30|SL\",\"variantTitle\":\"29\\\" / 24h\",\"vendor\":\"Reserve\",\"price\":520,\"selectedOptions\":[{\"name\":\"Size\",\"value\":\"29\\\"\"},{\"name\":\"Spoke Count\",\"value\":\"24h\"}]},\"rearHub\":{\"variantId\":\"gid://shopify/ProductVariant/6005\",\"title\":\"DT Swiss 240 Straight Pull Rear Hub\",\"variantTitle\":\"24h / Black / 12x148mm\",\"vendor\":\"DT Swiss\",\"price\":300,\"spec_freehub\":\"XD\",\"selectedOptions\":[{\"name\":\"Color\",\"value\":\"Black\"}]},\"rearSpokes\":{\"variantId\":\"gid://shopify/ProductVariant/6006\",\"title\":\"Berd PolyLight\",\"variantTitle\":\"Black Berd / 290mm\",\"vendor\":\"Berd\",\"price\":2,\"selectedOptions\":[{\"name\":\"Color\",\"value\":\"Black Berd\"},{\"name\":\"Length\",\"value\":\"290mm\"}],\"selectedColor\":\"Black Berd\"},\"rearNipples\":{\"variantId\":\"gid://shopify/ProductVariant/1101\",\"title\":\"Sapim Polyax Brass Nipples\",\"variantTitle\":\"Black\",\"vendor\":\"Sapim\",\"price\":0.3}},\"selectedOptionalAddons\":{},\"buildId\":\"LL-91002-STD\",\"_ui\":{\"activeVendor\":{},\"valveStemExplicitlyRemoved\":false,\"step2AutoSelected\":{}},\"standardStudio\":{\"v\":1,\"studioOpened\":true,\"studio\":{\"v\":1,\"hubColor\":{\"rear\":\"Black\"},\"base\":{\"rear\":{\"drive\":\"Black Berd\",\"rotor\":\"Black Berd\"}},\"spokes\":{\"rear\":{\"drive\":[\"Martin Purple\",\"Oriole Orange\",\"Martin Purple\",\"Oriole Orange\",\"Martin Purple\",\"Black Berd\",\"Martin Purple\",\"Oriole Orange\",\"Martin Purple\",\"Black Berd\",\"Martin Purple\",\"Oriole Orange\"],\"rotor\":[\"Black Berd\",\"Martin Purple\",\"Oriole Orange\",\"Black Berd\",\"Martin Purple\",\"Oriole Orange\",\"Black Berd\",\"Martin Purple\",\"Oriole Orange\",\"Black Berd\",\"Martin Purple\",\"Oriole Orange\"]}},\"accent\":\"Black\"},\"wheels\":{\"rear\":{\"erd\":600,\"drive\":{\"n\":12,\"pcd\":50,\"cross\":2},\"rotor\":{\"n\":12,\"pcd\":50,\"cross\":2},\"sideLabels\":{\"drive\":\"Drive side\",\"rotor\":\"Non-drive side\"}}},\"colors\":{\"Black\":\"#1d1f23\",\"Oriole Orange\":\"#f07a1a\",\"Martin Purple\":\"#7b3fb9\",\"Black Berd\":\"#1d1f23\"},\"paint\":{\"blank\":\"White Berd\",\"wheels\":{\"rear\":{\"paintColors\":[\"Blue Berd\",\"Flamingo Pink\",\"Mallard Green\",\"Martin Purple\",\"Oriole Orange\",\"Robin Red\"]}}}}}"
+        },
+        {
+          "name": "Rear Spoke Colors",
+          "value": "Martin Purple ×10, Oriole Orange ×8, Black Berd ×6"
+        },
+        {
+          "name": "Rear Drive Side",
+          "value": "1 Martin Purple, 2 Oriole Orange, 3 Martin Purple, 4 Oriole Orange, 5 Martin Purple, 6 Black Berd, 7 Martin Purple, 8 Oriole Orange, 9 Martin Purple, 10 Black Berd, 11 Martin Purple, 12 Oriole Orange"
+        },
+        {
+          "name": "Rear Rotor Side",
+          "value": "1 Black Berd, 2 Martin Purple, 3 Oriole Orange, 4 Black Berd, 5 Martin Purple, 6 Oriole Orange, 7 Black Berd, 8 Martin Purple, 9 Oriole Orange, 10 Black Berd, 11 Martin Purple, 12 Oriole Orange"
+        }
+      ]
+    },
+    {
+      "id": 15125,
+      "title": "Reserve 30|SL",
+      "name": "Reserve 30|SL",
+      "variant_title": "29\" / 24h",
+      "quantity": 1,
+      "price": "0.00",
+      "product_id": 90126,
+      "variant_id": 91126,
+      "properties": [
+        {
+          "name": "_BuildID",
+          "value": "LL-91002-STD"
+        },
+        {
+          "name": "_bundle_id",
+          "value": "LL-91002-STD"
+        },
+        {
+          "name": "Wheel",
+          "value": "Rear"
+        }
+      ]
+    },
+    {
+      "id": 15126,
+      "title": "DT Swiss 240 Straight Pull Rear Hub",
+      "name": "DT Swiss 240 Straight Pull Rear Hub",
+      "variant_title": "24h / Black / 12x148mm",
+      "quantity": 1,
+      "price": "0.00",
+      "product_id": 90127,
+      "variant_id": 91127,
+      "properties": [
+        {
+          "name": "_BuildID",
+          "value": "LL-91002-STD"
+        },
+        {
+          "name": "_bundle_id",
+          "value": "LL-91002-STD"
+        },
+        {
+          "name": "Wheel",
+          "value": "Rear"
+        }
+      ]
+    },
+    {
+      "id": 15127,
+      "title": "Berd PolyLight",
+      "name": "Berd PolyLight",
+      "variant_title": "Martin Purple / 290mm",
+      "quantity": 10,
+      "price": "0.00",
+      "product_id": 90128,
+      "variant_id": 91128,
+      "properties": [
+        {
+          "name": "_BuildID",
+          "value": "LL-91002-STD"
+        },
+        {
+          "name": "_bundle_id",
+          "value": "LL-91002-STD"
+        },
+        {
+          "name": "Wheel",
+          "value": "Rear"
+        }
+      ]
+    },
+    {
+      "id": 15128,
+      "title": "Berd PolyLight",
+      "name": "Berd PolyLight",
+      "variant_title": "Oriole Orange / 290mm",
+      "quantity": 8,
+      "price": "0.00",
+      "product_id": 90129,
+      "variant_id": 91129,
+      "properties": [
+        {
+          "name": "_BuildID",
+          "value": "LL-91002-STD"
+        },
+        {
+          "name": "_bundle_id",
+          "value": "LL-91002-STD"
+        },
+        {
+          "name": "Wheel",
+          "value": "Rear"
+        }
+      ]
+    },
+    {
+      "id": 15129,
+      "title": "Berd PolyLight",
+      "name": "Berd PolyLight",
+      "variant_title": "Black Berd / 290mm",
+      "quantity": 6,
+      "price": "0.00",
+      "product_id": 90130,
+      "variant_id": 91130,
+      "properties": [
+        {
+          "name": "_BuildID",
+          "value": "LL-91002-STD"
+        },
+        {
+          "name": "_bundle_id",
+          "value": "LL-91002-STD"
+        },
+        {
+          "name": "Wheel",
+          "value": "Rear"
+        }
+      ]
+    },
+    {
+      "id": 15130,
+      "title": "Custom Spoke Color Configuration",
+      "name": "Custom Spoke Color Configuration",
+      "variant_title": "Berd multi-color",
+      "quantity": 1,
+      "price": "0.00",
+      "product_id": 90131,
+      "variant_id": 67791816196405,
+      "properties": [
+        {
+          "name": "_BuildID",
+          "value": "LL-91002-STD"
+        },
+        {
+          "name": "_bundle_id",
+          "value": "LL-91002-STD"
+        },
+        {
+          "name": "Wheel",
+          "value": "Rear"
+        }
+      ]
+    }
+  ],
+  "_sample": {
+    "name": "std-berd-rear-custom-two-painted",
+    "description": "Custom Berd rear 24h: Oriole Orange x8 + Martin Purple x10 (painted) + Black Berd x6 (fee: Berd multi-color)",
+    "metafields": {
+      "gid://shopify/ProductVariant/6004": {
+        "rim_erd": "600",
+        "rim_washer_policy": "Not Compatible",
+        "nipple_washer_thickness": "0",
+        "rim_target_tension_kgf": "110",
+        "rim_spoke_hole_offset": "0",
+        "_parent_product_id": "gid://shopify/Product/601"
+      },
+      "gid://shopify/ProductVariant/6005": {
+        "hub_type": "Straight Pull",
+        "hub_flange_diameter_left": "50",
+        "hub_flange_diameter_right": "50",
+        "hub_flange_offset_left": "34",
+        "hub_flange_offset_right": "20",
+        "hub_sp_offset_spoke_hole_left": "3.2",
+        "hub_sp_offset_spoke_hole_right": "3.2",
+        "_parent_product_id": "gid://shopify/Product/602"
+      },
+      "gid://shopify/ProductVariant/6006": {
+        "spoke_model_group": "PolyLight",
+        "_parent_product_id": "gid://shopify/Product/603"
+      }
+    }
+  }
+}

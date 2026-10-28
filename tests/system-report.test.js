@@ -14,8 +14,9 @@ const recipeOf = (name) => { const o = loadSample('system', name); return { orde
 const SYSTEM_SAMPLE_NAMES = ['solix-24h-wheelset-multicolor', 'hydra2-wheelset-28f-32r', 'hydra2-wheelset-32f-32r', 'hydra2-front-28h-only', 'hydra2-front-32h-only', 'hydra2-rear-32h-only', 'solix-single-color-front', 'hydra2-rear-32h-all-different', 'solix-24h-wheelset-front-custom-rear-solid', 'solix-24h-wheelset-both-solid-black'];
 
 test('System builds are recognized, Standard builds are not; the sample list is the real-wheel list (no Hydra2 28h rear)', () => {
-  assert.deepEqual(Object.keys(SYSTEM_SAMPLES).sort(), [...SYSTEM_SAMPLE_NAMES].sort());
-  for (const n of SYSTEM_SAMPLE_NAMES) assert.ok(findSystemBuildRecipe(loadSample('system', n)), n);
+  const BUNDLE_SAMPLE_NAMES = ['hydra2-bundle-front-custom-rear-solid', 'solix-bundle-24h-both-solid-black']; // round 6: the spokes as one bundle line per wheel (tests/system-spoke-bundle.test.js)
+  assert.deepEqual(Object.keys(SYSTEM_SAMPLES).sort(), [...SYSTEM_SAMPLE_NAMES, ...BUNDLE_SAMPLE_NAMES].sort());
+  for (const n of [...SYSTEM_SAMPLE_NAMES, ...BUNDLE_SAMPLE_NAMES]) assert.ok(findSystemBuildRecipe(loadSample('system', n)), n);
   for (const n of ['steel-jbend-wheelset', 'berd-straightpull-front', 'rimbrake-front-own-rear-hub']) {
     assert.equal(findSystemBuildRecipe(loadSample('standard', n)), null, n);
   }
@@ -77,26 +78,26 @@ test('fee line detection by variant id or title; spoke-line mismatches are repor
 
 /* ------------------------------------------------------------------ the 3-image set */
 
-test('image specs: a) high-tension side only, b) low-tension side only, c) all spokes from the high side; captions and ids per wheel', () => {
+test('image specs: a) all spokes from the high side, b) high-tension side only, c) low-tension side only; captions and ids per wheel', () => {
   assert.deepEqual(imageSpecsFor('front').map((s) => [s.cid, s.caption, s.sides, s.pov]), [
+    ['front-all-spokes', 'Front wheel, all spokes (rotor side view)', ['drive', 'rotor'], 'rotor'],
     ['front-rotor-only', 'Front wheel, rotor side spokes only', ['rotor'], 'rotor'],
-    ['front-drive-only', 'Front wheel, drive side spokes only', ['drive'], 'drive'],
-    ['front-all-spokes', 'Front wheel, all spokes (rotor side view)', ['drive', 'rotor'], 'rotor']
+    ['front-drive-only', 'Front wheel, drive side spokes only', ['drive'], 'drive']
   ]);
   assert.deepEqual(imageSpecsFor('rear').map((s) => [s.cid, s.caption, s.sides, s.pov]), [
+    ['rear-all-spokes', 'Rear wheel, all spokes (drive side view)', ['drive', 'rotor'], 'drive'],
     ['rear-drive-only', 'Rear wheel, drive side spokes only', ['drive'], 'drive'],
-    ['rear-rotor-only', 'Rear wheel, rotor side spokes only', ['rotor'], 'rotor'],
-    ['rear-all-spokes', 'Rear wheel, all spokes (drive side view)', ['drive', 'rotor'], 'drive']
+    ['rear-rotor-only', 'Rear wheel, rotor side spokes only', ['rotor'], 'rotor']
   ]);
 });
 
-test('report: 3 images per multi-color wheel in order a, b, c, front wheel first; none for a single-color wheel; pending length line', async () => {
+test('report: 3 images per multi-color wheel in order a, b, c (all spokes first), front wheel first; none for a single-color wheel; pending length line', async () => {
   const { order, recipe } = recipeOf('solix-24h-wheelset-multicolor');
   const report = await buildSystemReport({ recipe, orderData: order, renderPng: fakePng });
-  assert.deepEqual(report.images.map((i) => i.cid), ['front-rotor-only', 'front-drive-only', 'front-all-spokes', 'rear-drive-only', 'rear-rotor-only', 'rear-all-spokes']);
+  assert.deepEqual(report.images.map((i) => i.cid), ['front-all-spokes', 'front-rotor-only', 'front-drive-only', 'rear-all-spokes', 'rear-drive-only', 'rear-rotor-only']);
   assert.deepEqual(report.images.map((i) => i.caption), [
-    'Front wheel, rotor side spokes only', 'Front wheel, drive side spokes only', 'Front wheel, all spokes (rotor side view)',
-    'Rear wheel, drive side spokes only', 'Rear wheel, rotor side spokes only', 'Rear wheel, all spokes (drive side view)'
+    'Front wheel, all spokes (rotor side view)', 'Front wheel, rotor side spokes only', 'Front wheel, drive side spokes only',
+    'Rear wheel, all spokes (drive side view)', 'Rear wheel, drive side spokes only', 'Rear wheel, rotor side spokes only'
   ]);
   const pos = report.images.map((i) => report.html.indexOf(`cid:${i.cid}`));
   assert.ok(pos.every((p, i) => p > 0 && (i === 0 || p > pos[i - 1])), 'images appear in this order in the HTML');
@@ -107,7 +108,7 @@ test('report: 3 images per multi-color wheel in order a, b, c, front wheel first
 
   const single = recipeOf('solix-single-color-front');
   const r2 = await buildSystemReport({ recipe: single.recipe, orderData: single.order, renderPng: fakePng });
-  assert.deepEqual(r2.images.map((i) => i.cid), ['front-all-spokes', 'rear-drive-only', 'rear-rotor-only', 'rear-all-spokes'], 'the solid front wheel gets ONE all-spokes image, the custom rear wheel three');
+  assert.deepEqual(r2.images.map((i) => i.cid), ['front-all-spokes', 'rear-all-spokes', 'rear-drive-only', 'rear-rotor-only'], 'the solid front wheel gets ONE all-spokes image, the custom rear wheel three');
   assert.ok(r2.html.includes('Front wheel: all Black'));
 });
 
@@ -163,7 +164,7 @@ test('a failing renderer never fails the report: text stays, an "image failed" l
   const report = await buildSystemReport({ recipe, orderData: order, renderPng: async () => { throw new Error('native binary missing'); } });
   assert.equal(report.images.length, 0);
   assert.equal(report.imageErrors.length, 3);
-  assert.ok(report.imageErrors[0].startsWith('Front wheel, rotor side spokes only: image failed: native binary missing'));
+  assert.ok(report.imageErrors[0].startsWith('Front wheel, all spokes (rotor side view): image failed: native binary missing'));
   assert.ok(report.html.includes('image failed: native binary missing'));
   assert.ok(report.html.includes('Green'));
   assert.ok(report.note.includes('IMAGES:'));

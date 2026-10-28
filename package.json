@@ -6,6 +6,7 @@
   "main": "api/index.js",
   "dependencies": {
     "@resvg/resvg-js": "^2.6.2",
+    "@vercel/functions": "^3.10.4",
     "dotenv": "^16.4.5",
     "resend": "^3.2.0"
   },

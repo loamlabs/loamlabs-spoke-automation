@@ -6,7 +6,7 @@
 //   const report = await buildSystemReport({ recipe, orderData, componentData });   // { subject, html, note, wheels, images, imageErrors, warnings }
 //   await sendSystemEmail({ report, to, apiKey });                                   // inline images via content ids (cid:), falls back to text-only
 //   const customer = buildCustomerEmail({ wheels: report.wheels, images: report.images, orderData });   // built for every System build (null only when the build has no wheels)
-//   await sendCustomerEmailIfEnabled({ customer, orderData });                       // only when env SYSTEM_CUSTOMER_EMAIL === 'on'
+//   await sendCustomerEmailIfEnabled({ customer, orderData });                       // only when env SYSTEM_CUSTOMER_EMAIL === 'on' (System and keyed Standard orders alike)
 
 import { systemWheels, hexFor, SYSTEM_FEE } from './system-build.js';
 import { geometry } from './studio-geometry.js';
@@ -14,6 +14,7 @@ import { wheelSvg } from './wheel-svg.js';
 import { svgToPng } from './wheel-png.js';
 import { calculateSystemSpokeLengths, SYSTEM_LENGTHS_PENDING_TEXT } from './system-lengths.js';
 import { SYSTEM_REPORT_MARKER } from './system-dedupe.js';
+import { resendTimeoutMs } from './http-timeout.js';
 
 export const IMAGE_WIDTH_PX = 600;
 const TIMES = '×';          // plain text (order note)
@@ -21,7 +22,7 @@ const TIMES_HTML = '&times;';    // email HTML (entity: safe whatever charset th
 
 export const CUSTOMER_FROM = 'LoamLabs <info@loamlabsusa.com>';
 export const CUSTOMER_REPLY_TO = 'info@loamlabsusa.com';
-export const CUSTOMER_EMAIL_FLAG = 'SYSTEM_CUSTOMER_EMAIL'; // sending to customers is OFF unless this env var equals exactly "on"
+export const CUSTOMER_EMAIL_FLAG = 'SYSTEM_CUSTOMER_EMAIL'; // sending to customers is OFF unless this env var equals exactly "on" (one switch for System and keyed Standard orders)
 
 function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
@@ -30,34 +31,41 @@ function countsText(list, times = TIMES) { return list.map((c) => `${c.color} ${
 /* ------------------------------------------------------------------ images */
 
 // The three images of a multi-color wheel, all spokes at full color and opacity. High-tension side: front = rotor, rear = drive.
-//   a) high-tension side spokes only   b) low-tension side spokes only   c) all spokes, viewed from the high-tension side
-// Order in the email: a, b, c; front wheel first, then rear.
-// A wheel that is ONE solid color gets only c): a single all-spokes image (same view, same caption style), no side-only images.
+//   a) all spokes, viewed from the high-tension side   b) high-tension side spokes only   c) low-tension side spokes only
+// Order in the email: a, b, c; front wheel first, then rear. (All spokes comes first so the first picture a customer sees is the complete wheel.)
+// A wheel that is ONE solid color gets only a): a single all-spokes image (same view, same caption style), no side-only images.
 export function highSideOf(position) { return position === 'front' ? 'rotor' : 'drive'; }
 export function lowSideOf(position) { return position === 'front' ? 'drive' : 'rotor'; }
-export function imageSpecsFor(position, solid = false) {
+// labels (optional, Standard wheels): { drive: 'Right side', rotor: 'Left side' }; the captions then say "right side" / "left side" instead of "drive side" / "rotor side".
+export function imageSpecsFor(position, solid = false, labels = null) {
   const P = cap(position), high = highSideOf(position), low = lowSideOf(position);
-  const all = { cid: `${position}-all-spokes`, caption: `${P} wheel, all spokes (${high} side view)`, sides: ['drive', 'rotor'], pov: high };
+  const word = (s) => (labels && labels[s] ? String(labels[s]).toLowerCase() : `${s} side`);
+  const all = { cid: `${position}-all-spokes`, caption: `${P} wheel, all spokes (${word(high)} view)`, sides: ['drive', 'rotor'], pov: high };
   if (solid) return [all];
   return [
-    { cid: `${position}-${high}-only`, caption: `${P} wheel, ${high} side spokes only`, sides: [high], pov: high },
-    { cid: `${position}-${low}-only`, caption: `${P} wheel, ${low} side spokes only`, sides: [low], pov: low },
-    all
+    all,
+    { cid: `${position}-${high}-only`, caption: `${P} wheel, ${word(high)} spokes only`, sides: [high], pov: high },
+    { cid: `${position}-${low}-only`, caption: `${P} wheel, ${word(low)} spokes only`, sides: [low], pov: low }
   ];
 }
 
 // Renders the images of a wheel: three for a multi-color wheel, one (all spokes) for a solid-color wheel. Each failure becomes an imageErrors line; nothing throws.
-async function renderWheelImages(wheel, renderPng, width) {
+export async function renderWheelImages(wheel, renderPng, width) {
   const images = [], errors = [];
+  if (!wheel.config) { errors.push(`${wheel.label} wheel: image failed: no wheel geometry in the build data`); return { images, errors }; }
   let geom;
   try {
-    geom = geometry({ wheels: { [wheel.position]: wheel.config } })[wheel.position];
+    // Standard wheels are ALWAYS drawn with the Studio's autoValvePhase (valve between the two most parallel spokes), exactly as the Standard builder opens the Studio;
+    // System wheels never (they keep the hand-measured phases). The flag is the strict boolean the Studio expects.
+    const cfg = wheel.standard === true ? { autoValvePhase: true, wheels: { [wheel.position]: wheel.config } } : { wheels: { [wheel.position]: wheel.config } };
+    geom = geometry(cfg)[wheel.position];
   } catch (e) {
     errors.push(`${wheel.label} wheel: image failed: geometry error: ${e.message}`);
     return { images, errors };
   }
-  const colorsHex = { drive: wheel.colors.drive.map(hexFor), rotor: wheel.colors.rotor.map(hexFor) };
-  for (const spec of imageSpecsFor(wheel.position, !wheel.isMultiColor)) {
+  const hexOf = wheel.hexOf || hexFor;
+  const colorsHex = { drive: wheel.colors.drive.map((c) => hexOf(c)), rotor: wheel.colors.rotor.map((c) => hexOf(c)) };
+  for (const spec of imageSpecsFor(wheel.position, !wheel.isMultiColor, wheel.sideLabels || null)) {
     try {
       const svg = wheelSvg({ config: wheel.config, geom, colorsHex, hubHex: wheel.hubColorHex, pov: spec.pov, sides: spec.sides, size: width });
       const png = await renderPng(svg, { width });
@@ -104,8 +112,8 @@ const STYLE = `
                 .swatch { display: inline-block; width: 11px; height: 11px; border-radius: 50%; border: 1px solid rgba(0,0,0,.4); vertical-align: -1px; margin-right: 4px; }
 `;
 
-function colorRow(label, list) {
-  const cells = list.map((c) => `<span class="swatch" style="background:${hexFor(c.color)}"></span>${esc(c.color)} ${TIMES_HTML}${c.n}`).join(', ');
+export function colorRow(label, list, hexOf = hexFor) {
+  const cells = list.map((c) => `<span class="swatch" style="background:${hexOf(c.color)}"></span>${esc(c.color)} ${TIMES_HTML}${c.n}`).join(', ');
   return `<tr><td>${esc(label)}</td><td>${cells}</td></tr>`;
 }
 
@@ -127,15 +135,15 @@ function wheelHtml(w, images, imageErrors, opts) {
                 <tr><td>Rim</td><td>${esc(w.rimTitle)}</td></tr>
                 <tr><td>Hub</td><td>${esc(w.hubTitle)}${w.hubVariantTitle ? ` (${esc(w.hubVariantTitle)})` : ''}</td></tr>
                 <tr><td>Hub color</td><td><span class="swatch" style="background:${w.hubColorHex}"></span>${esc(w.hubColor)}</td></tr>
-                ${w.position === 'rear' ? `<tr><td>Freehub</td><td>${esc(w.freehub || 'n/a')}</td></tr>` : ''}
+                ${w.position === 'rear' ? `<tr><td>Freehub</td><td>${esc(w.freehub || 'n/a')}</td></tr>` : ''}${!internal && w.standard && w.spokeProduct ? `<tr><td>Spokes</td><td>${esc(w.spokeProduct)}</td></tr>` : ''}
                 <tr><td>Spoke count</td><td>${esc(w.spokeCountLabel)}</td></tr>
                 ${feeRow}
             </table>
             <h4>Spoke Colors</h4>
             <table class="data-table">
-                ${colorRow(`Drive side (${w.config.drive.n})`, w.counts.drive)}
-                ${colorRow(`Rotor side (${w.config.rotor.n})`, w.counts.rotor)}
-                ${colorRow(`Whole wheel (${w.total})`, w.counts.all)}
+                ${colorRow(`${(w.sideLabels && w.sideLabels.drive) || 'Drive side'} (${w.colors.drive.length})`, w.counts.drive, w.hexOf)}
+                ${colorRow(`${(w.sideLabels && w.sideLabels.rotor) || 'Rotor side'} (${w.colors.rotor.length})`, w.counts.rotor, w.hexOf)}
+                ${colorRow(`Whole wheel (${w.total})`, w.counts.all, w.hexOf)}
             </table>
             ${visual}
             ${internal ? `<p><em>${esc(lengths.text)}</em></p>` : ''}
@@ -222,6 +230,39 @@ export async function buildSystemReport(o) {
   };
 }
 
+/* ------------------------------------------------------------------ order note could not be written */
+
+// Round 9: puts a notice at the top of an internal report email when the order note could not be written (Shopify refused it or the call failed), with the reason.
+// Inline styles so it looks the same in any report layout. The first <div class="container"> gets it; html without one is returned unchanged.
+export function addNoteFailureNotice(html, reason) {
+  const notice = `<p style="color:#D8000C;background-color:#FFD2D2;padding:10px;border-radius:3px"><strong>The order note could not be written:</strong> ${esc(reason)}. The report below is complete; copy what you need into the order by hand.</p>`;
+  return String(html).replace('<div class="container">', () => '<div class="container">' + notice);
+}
+
+/* ------------------------------------------------------------------ plain failure email */
+
+// Used when buildSystemReport itself throws: no images, no calculation, just what the builder needs to handle the order by hand: the order number,
+// a link to the order, the error text, and the raw line items with their properties (long values such as _build are cut at 1500 characters).
+export function buildFailureEmail({ orderData, error, kind = 'system' }) {
+  const isStandard = kind === 'standard';
+  const o = orderData || {};
+  const orderNumber = orderNumberOf(o);
+  const adminUrl = o.id ? `https://${process.env.SHOPIFY_STORE_DOMAIN}/admin/orders/${o.id}` : null;
+  const clip = (v) => { const t = typeof v === 'string' ? v : JSON.stringify(v); return t && t.length > 1500 ? `${t.slice(0, 1500)} ... [cut, ${t.length} characters]` : t; };
+  const items = (Array.isArray(o.line_items) ? o.line_items : []).map((li) => {
+    const props = (Array.isArray(li && li.properties) ? li.properties : []).map((p) => `<li><code>${esc(p && p.name)}</code>: ${esc(clip(p && p.value))}</li>`).join('');
+    return `<li><strong>${esc(li && li.title)}</strong>${li && li.variant_title ? ` (${esc(li.variant_title)})` : ''} &times; ${esc(li && li.quantity)}${li && li.price != null ? ` at $${esc(li.price)}` : ''}${li && li.sku ? `, SKU ${esc(li.sku)}` : ''}${props ? `<ul>${props}</ul>` : ''}</li>`;
+  }).join('');
+  const message = error && error.message ? error.message : String(error);
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>${STYLE}</style></head><body><div class="container">
+    <h2>${isStandard ? 'Spoke Calculation' : 'I9 System Build Report'} for Order #${esc(orderNumber)}: REPORT FAILED</h2>
+    <p>The automatic ${isStandard ? 'spoke' : 'System'} report could not be built or delivered for this order, so the normal email, images and order note may be missing. Handle it by hand from the line items below.${adminUrl ? ` <a href="${adminUrl}"><strong>View Order in Shopify &rarr;</strong></a>` : ''}</p>
+    <p class="failed">Error: ${esc(message)}</p>
+    <h3>Raw line items</h3><ul>${items || '<li>(no line items)</li>'}</ul>
+  </div></body></html>`;
+  return { subject: `${isStandard ? 'Spoke Calculation' : 'I9 System Build Report'} for Order #${orderNumber}: REPORT FAILED (raw order data)`.replace(/[\r\n]+/g, ' '), html, images: [] };
+}
+
 /* ------------------------------------------------------------------ customer email */
 
 // Where the customer email goes: the order's email, else the customer's. null when there is no usable address.
@@ -293,7 +334,8 @@ export async function sendSystemEmail(o) {
     const res = await fetchImpl('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(o.timeoutMs || resendTimeoutMs()) // a hung send fails like any other error: images -> text-only -> the caller's fallback
     });
     let json = null;
     try { json = await res.json(); } catch (e) { /* no body */ }
@@ -317,7 +359,7 @@ export async function sendSystemEmail(o) {
       else {
         const lines = report.images.map((i) => `${i.caption}: image failed: email attachment rejected (${e.message})`);
         const failedHtml = `<div class="container"><p class="failed">${lines.map(esc).join('<br>')}</p></div>`;
-        html = report.html.replace(/<img class="wheel-img"[^>]*>/g, '').replace(/<\/body>/i, `${failedHtml}</body>`);
+        html = report.html.replace(/<img[^>]*src="cid:[^"]*"[^>]*>/g, '').replace(/<\/body>/i, `${failedHtml}</body>`);
       }
       const data = await post({ ...base, html });
       return { id: data && data.id, inline: false, error: e.message };

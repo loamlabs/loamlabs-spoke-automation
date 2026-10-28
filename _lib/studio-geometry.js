@@ -7,7 +7,7 @@
 // the two cannot silently drift. If you change the lacing in the theme, port the change here (and vice versa) and run the tests.
 //
 // Everything below the "ported" line is the theme code with the minimum of edits (ESM export, no DOM, no palettes).
-// Last synced with the theme commit e7f7c70 (agent-b-integration): LACING_PHASE_HOLES = { 'front:32': -2, 'rear:28': 2 } plus the explicit LACING_2TO1_24H table for the Solix 24h wheels.
+// Last synced with the theme commit dd908ad (branch agent-a-round6; the geometry is unchanged since 4308879, rounds 4 to 6 only changed the drawing, e.g. the over/under order of the spokes); before that 4308879 (branch agent-a-standard-studio; adds config.autoValvePhase: the valve between the two most parallel spokes, used for every STANDARD wheel and never for System); before that 63330f2 (adds radial crossing 0 for Standard wheels); earlier: e7f7c70 (agent-b-integration): LACING_PHASE_HOLES = { 'front:32': -2, 'rear:28': 2 } plus the explicit LACING_2TO1_24H table for the Solix 24h wheels.
 //
 //   geometry(config) -> { front?: { drive: [spoke], rotor: [spoke] }, rear?: {...} }
 //   spoke = { hub, rim, rimIndex, rank, vrank, sweep }
@@ -19,13 +19,15 @@
 //     sweep    +1 / -1: the spoke leans forward / back
 //   Spoke index k in each side array is the index the Studio value uses (value.spokes[wheel][side][k]).
 //
-// config = { rimHolePhase?: 0|1, wheels: { front?: { erd, rimHoles, rimHolePhase?, drive: { n, pcd, cross }, rotor: { n, pcd, cross } }, rear?: {...} } }
+// config = { rimHolePhase?: 0|1, autoValvePhase?: true (strict true only), wheels: { front?: { erd, rimHoles, rimHolePhase?, drive: { n, pcd, cross }, rotor: { n, pcd, cross } }, rear?: {...} } }
 
 const SIDES = ['drive', 'rotor'];
 const WHEEL_ORDER = ['front', 'rear'];
 
 function num(v, d) { v = Number(v); return isFinite(v) && v > 0 ? v : d; }
 function diff(a, b) { return Math.abs(((a - b + 540) % 360) - 180); }
+// Crossing as given: a number from 0 (radial) up; a missing / invalid value keeps the old default of 3. (Theme commit 63330f2.)
+function crossOf(v) { return (v === 0 || v === '0') ? 0 : num(v, 3); }
 function warn(msg) { if (typeof console !== 'undefined' && console.warn) console.warn('[studio-geometry] ' + msg); }
 
 // The wheel part of the Studio's normalizeConfig (palettes, titles and hub colors are not needed for the lacing).
@@ -41,10 +43,10 @@ export function normalizeWheels(cfg) {
     if (w.rimHoles && Number(w.rimHoles) !== total) warn('wheel "' + key + '": rimHoles (' + w.rimHoles + ') does not match drive.n + rotor.n (' + total + '); using ' + total);
     W[key] = {
       key: key,
-      erd: num(w.erd, 568), rimHoles: total, ratio: nd === nr ? '1:1' : '2:1',
+      erd: num(w.erd, 568), rimHoles: total, ratio: nd === nr ? '1:1' : '2:1', autoValve: cfg.autoValvePhase === true,
       rimHolePhase: Number(w.rimHolePhase != null ? w.rimHolePhase : (cfg.rimHolePhase != null ? cfg.rimHolePhase : 1)) === 0 ? 0 : 1,
-      drive: { n: nd, pcd: num(w.drive.pcd, 50), cross: num(w.drive.cross, 3) },
-      rotor: { n: nr, pcd: num(w.rotor.pcd, 50), cross: num(w.rotor.cross, 3) }
+      drive: { n: nd, pcd: num(w.drive.pcd, 50), cross: crossOf(w.drive.cross) },
+      rotor: { n: nr, pcd: num(w.rotor.pcd, 50), cross: crossOf(w.rotor.cross) }
     };
     keys.push(key);
   });
@@ -74,6 +76,10 @@ function rimHoles(w) {
 // Each hub hole goes to the rim hole nearest its laced target (crossing sets the sweep angle).
 // phase = angular offset of the hub holes (illustrative, not engineering-accurate).
 function assign(n, cross, holes, phase) {
+  if (cross === 0) { // radial: every spoke runs straight out, so each hub hole sits at the angle of its own rim hole
+    var rad = holes.slice().sort(function (a, b) { return a - b; });
+    return rad.map(function (a, i) { return { hub: a, rim: a, s: i % 2 === 0 ? 1 : -1 }; });
+  }
   var delta = 360 * cross / n, tg = [], k, i, r;
   for (k = 0; k < n; k++) {
     var h = k * 360 / n + phase, s = k % 2 === 0 ? 1 : -1;
@@ -175,6 +181,41 @@ function lacingFromTable(spec, n) {
   return out;
 }
 
+// autoValvePhase: angle (degrees) between the two spokes in the rim holes either side of the valve, as drawn (hub hole point to rim hole point;
+// hub radius = pcd / 2, rim radius = erd / 2, the same ratio the wheel is drawn with). 0 = parallel. Radial spokes: always 360 / holes.
+export function valveAngle(w, lacing) {
+  var step = 180 / w.rimHoles, want = [180 - step, 180 + step], best = [null, null];
+  SIDES.forEach(function (side) {
+    lacing[side].forEach(function (p) {
+      want.forEach(function (a, i) {
+        var d = diff(p.rim, a);
+        if (!best[i] || d < best[i].d) best[i] = { d: d, p: p, side: side };
+      });
+    });
+  });
+  var v = best.map(function (b) {
+    var rh = w[b.side].pcd / 2, rr = w.erd / 2, a1 = b.p.hub * Math.PI / 180, a2 = b.p.rim * Math.PI / 180;
+    return [rr * Math.sin(a2) - rh * Math.sin(a1), rr * Math.cos(a2) - rh * Math.cos(a1)];
+  });
+  return Math.atan2(Math.abs(v[0][0] * v[1][1] - v[0][1] * v[1][0]), v[0][0] * v[1][0] + v[0][1] * v[1][1]) * 180 / Math.PI;
+}
+// The whole-hole rotation (positive = clockwise, drive-side view) with the smallest valve angle. Equal angles (the pattern repeats, radial) go to the
+// rotation nearest 0 (the default phase), then to the clockwise one, so the answer is deterministic.
+function autoValveHoles(w, lacing) {
+  var N = w.rimHoles, tries = [], q, lo = -Math.floor((N - 1) / 2), hi = Math.floor(N / 2);
+  for (q = lo; q <= hi; q++) {
+    var t = {};
+    SIDES.forEach(function (side) { t[side] = rotateLacing(lacing[side], q * 360 / N); });
+    tries.push({ q: q, a: valveAngle(w, t) });
+  }
+  var min = Math.min.apply(null, tries.map(function (x) { return x.a; })), pick = null;
+  tries.forEach(function (x) {
+    if (x.a > min + 1e-7) return;
+    if (!pick || Math.abs(x.q) < Math.abs(pick.q) || (Math.abs(x.q) === Math.abs(pick.q) && x.q > pick.q)) pick = x;
+  });
+  return pick.q;
+}
+
 function buildGeom(W) {
   var G = {};
   Object.keys(W).forEach(function (key) {
@@ -192,7 +233,10 @@ function buildGeom(W) {
       if (sym) G[key][big] = sym;
     }
     var table = LACING_2TO1_24H[key], phaseHoles = LACING_PHASE_HOLES[key + ':' + w.rimHoles];
-    if (table && w.rimHoles === 24 && w[big].n === 16 && w[small].n === 8) {
+    if (w.autoValve) {
+      var autoQ = autoValveHoles(w, G[key]);
+      if (autoQ) SIDES.forEach(function (side) { G[key][side] = rotateLacing(G[key][side], autoQ * 360 / w.rimHoles); });
+    } else if (table && w.rimHoles === 24 && w[big].n === 16 && w[small].n === 8) {
       G[key][big] = lacingFromTable(table.major, 16);
       G[key][small] = lacingFromTable(table.minor, 8);
     } else if (phaseHoles) SIDES.forEach(function (side) { G[key][side] = rotateLacing(G[key][side], phaseHoles * 360 / w.rimHoles); });

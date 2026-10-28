@@ -1,61 +1,71 @@
-// I9-SYSTEM: the backend's vendored lacing geometry (_lib/studio-geometry.js) must equal the theme's LoamStudio.geometry.
-// Run with: node --test tests/
+// I9-SYSTEM: the backend's vendored lacing geometry (_lib/studio-geometry.js) must equal the theme's LoamStudio.geometry, for the System wheels AND the
+// Standard wheels. Run with: npm test
 //
-// The theme file is read from LOAM_THEME_DIR (default: the sibling checkout ../loamlabs-system-builder/theme-dev). When it is not
-// there the test FAILS on purpose (set LOAM_THEME_DIR=skip to run only the fixture comparison), so a drift can never pass unnoticed.
-// tests/fixtures/studio-geometry.json is a snapshot of the theme's output for the same wheels; regenerate it with
+// The theme's Studio is read from a git REF of the theme repo (default: commit dd908ad, pinned by id; LOAM_THEME_REF=<branch> shows newer theme work that is not synced yet); see
+// tests/helpers/theme-studio.mjs for LOAM_THEME_DIR / LOAM_THEME_REF. When the theme is not there the live tests FAIL on purpose (set LOAM_THEME_DIR=skip
+// to run only the fixture comparisons), so a drift can never pass unnoticed.
+// tests/fixtures/studio-geometry.json and studio-geometry-standard.json are snapshots of the theme's output; regenerate them with
 //   node scripts/update-geometry-fixture.mjs
 // after an intentional lacing change in the theme (and port the change into _lib/studio-geometry.js).
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
 import { geometry } from '../_lib/studio-geometry.js';
-import { SANDBOX_WHEELS, GOLDEN_WHEELS } from './fixtures/sandbox-wheels.js';
+import { SANDBOX_WHEELS, GOLDEN_WHEELS, STANDARD_WHEELS, STANDARD_AUTO_WHEELS } from './fixtures/sandbox-wheels.js';
+import { themeSource, loadStudio, loadGolden } from './helpers/theme-studio.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const fixturePath = path.join(here, 'fixtures', 'studio-geometry.json');
-const themeDir = process.env.LOAM_THEME_DIR || path.resolve(here, '..', '..', 'loamlabs-system-builder', 'theme-dev');
-const themeFile = path.join(themeDir, 'assets', 'spoke-studio.js');
-
-function loadThemeStudio() {
-  const window = {};
-  vm.runInNewContext(fs.readFileSync(themeFile, 'utf8'), { window, console });
-  return window.LoamStudio;
-}
+const readFixture = (name) => JSON.parse(fs.readFileSync(path.join(here, 'fixtures', name), 'utf8'));
 const plain = (o) => JSON.parse(JSON.stringify(o));
+const skipLive = process.env.LOAM_THEME_DIR === 'skip';
 
-test('vendored geometry equals the committed snapshot of the theme geometry (all sandbox wheels)', () => {
-  const fixture = JSON.parse(fs.readFileSync(fixturePath, 'utf8'));
+test('vendored geometry equals the committed snapshot of the theme geometry (System sandbox wheels)', () => {
+  const fixture = readFixture('studio-geometry.json');
   for (const [name, cfg] of Object.entries(SANDBOX_WHEELS)) {
     assert.ok(fixture[name], `fixture is missing wheel "${name}"; run node scripts/update-geometry-fixture.mjs`);
     assert.deepEqual(plain(geometry(cfg)), fixture[name], `geometry drifted from the fixture for ${name}`);
   }
 });
 
-test('vendored geometry equals the LIVE theme LoamStudio.geometry (reads the dev theme checkout)', (t) => {
-  if (process.env.LOAM_THEME_DIR === 'skip') { t.skip('LOAM_THEME_DIR=skip'); return; }
-  assert.ok(fs.existsSync(themeFile), `theme file not found at ${themeFile}. Set LOAM_THEME_DIR to the theme-dev folder (or LOAM_THEME_DIR=skip to run only the fixture test).`);
-  const Studio = loadThemeStudio();
-  for (const [name, cfg] of Object.entries(SANDBOX_WHEELS)) {
-    const theirs = plain(Studio.geometry(cfg)), ours = plain(geometry(cfg));
-    assert.deepEqual(ours, theirs, `geometry drifted from the theme for ${name}`);
+test('vendored geometry equals the committed snapshot of the theme geometry (all 38 Standard wheels, without and with autoValvePhase)', () => {
+  const fixture = readFixture('studio-geometry-standard.json');
+  assert.equal(Object.keys(STANDARD_WHEELS).length, 38);
+  assert.equal(Object.keys(STANDARD_AUTO_WHEELS).length, 38);
+  for (const [name, cfg] of Object.entries({ ...STANDARD_WHEELS, ...STANDARD_AUTO_WHEELS })) {
+    assert.ok(fixture[name], `fixture is missing wheel "${name}"; run node scripts/update-geometry-fixture.mjs`);
+    assert.deepEqual(plain(geometry(cfg)), fixture[name], `geometry drifted from the fixture for ${name}`);
   }
 });
 
-test('vendored geometry equals the theme golden file for every wheel except the Solix 24h 2:1 pair (those did not change)', (t) => {
-  if (process.env.LOAM_THEME_DIR === 'skip') { t.skip('LOAM_THEME_DIR=skip'); return; }
-  const goldenFile = path.join(themeDir, 'tests', 'fixtures', 'spoke-studio-geometry-non-24h-2to1.json');
-  assert.ok(fs.existsSync(goldenFile), `theme golden file not found at ${goldenFile}`);
-  const golden = JSON.parse(fs.readFileSync(goldenFile, 'utf8'));
-  for (const [name, cfg] of Object.entries(GOLDEN_WHEELS)) assert.deepEqual(plain(geometry(cfg)), golden[name], `${name}: geometry differs from the theme golden file`);
-  assert.deepEqual(Object.keys(GOLDEN_WHEELS).sort(), Object.keys(golden).sort(), 'the golden file and GOLDEN_WHEELS list the same wheels');
+test('vendored geometry equals the LIVE theme LoamStudio.geometry (System sandbox wheels)', (t) => {
+  if (skipLive) { t.skip('LOAM_THEME_DIR=skip'); return; }
+  const src = themeSource(), Studio = loadStudio(src);
+  for (const [name, cfg] of Object.entries(SANDBOX_WHEELS)) assert.deepEqual(plain(geometry(cfg)), plain(Studio.geometry(cfg)), `geometry drifted from the theme (${src.origin}) for ${name}`);
 });
 
-test('geometry sanity: one spoke per rim hole, spoke arrays sized like the Studio value', () => {
-  for (const cfg of Object.values(SANDBOX_WHEELS)) {
+test('vendored geometry equals the LIVE theme LoamStudio.geometry for every Standard wheel: front and rear, 20/24/28/32/36 holes, crossing 0 to 4, with autoValvePhase on and off', (t) => {
+  if (skipLive) { t.skip('LOAM_THEME_DIR=skip'); return; }
+  const src = themeSource(), Studio = loadStudio(src);
+  for (const [name, cfg] of Object.entries({ ...STANDARD_WHEELS, ...STANDARD_AUTO_WHEELS })) assert.deepEqual(plain(geometry(cfg)), plain(Studio.geometry(cfg)), `geometry drifted from the theme (${src.origin}) for ${name}`);
+});
+
+test('vendored geometry equals the theme golden file for every wheel except the Solix 24h 2:1 pair, and for the 38 Standard wheels', (t) => {
+  if (skipLive) { t.skip('LOAM_THEME_DIR=skip'); return; }
+  const src = themeSource(), golden = loadGolden(src);
+  assert.ok(golden, `theme golden file not found at ${src.origin}`);
+  for (const [name, cfg] of Object.entries(GOLDEN_WHEELS)) assert.deepEqual(plain(geometry(cfg)), golden[name], `${name}: geometry differs from the theme golden file (${src.origin})`);
+  assert.deepEqual(Object.keys(GOLDEN_WHEELS).sort(), Object.keys(golden).filter((k) => !k.startsWith('std-')).sort(), 'the golden file and GOLDEN_WHEELS list the same non-Standard wheels');
+  const stdInGolden = Object.keys(golden).filter((k) => k.startsWith('std-'));
+  if (stdInGolden.length) { // the golden file of the Standard branch pins the same 38 wheels, plus the 38 std-auto-* (autoValvePhase) ones
+    assert.deepEqual(stdInGolden.sort(), [...Object.keys(STANDARD_WHEELS), ...Object.keys(STANDARD_AUTO_WHEELS)].sort(), 'the golden file and STANDARD_WHEELS / STANDARD_AUTO_WHEELS list the same Standard wheels');
+    for (const [name, cfg] of Object.entries({ ...STANDARD_WHEELS, ...STANDARD_AUTO_WHEELS })) assert.deepEqual(plain(geometry(cfg)), golden[name], `${name}: geometry differs from the theme golden file (${src.origin})`);
+  }
+});
+
+test('geometry sanity: one spoke per rim hole, spoke arrays sized like the Studio value (System and Standard)', () => {
+  for (const cfg of [...Object.values(SANDBOX_WHEELS), ...Object.values(STANDARD_WHEELS), ...Object.values(STANDARD_AUTO_WHEELS)]) {
     const g = geometry(cfg);
     for (const [w, sides] of Object.entries(g)) {
       const want = cfg.wheels[w];
@@ -65,4 +75,15 @@ test('geometry sanity: one spoke per rim hole, spoke arrays sized like the Studi
       assert.equal(new Set(idx).size, want.rimHoles, `${w}: one spoke per rim hole`);
     }
   }
+});
+
+test('radial (crossing 0): every spoke runs straight out, its hub hole at the angle of its own rim hole; a crossing of 1 or more is not radial', () => {
+  for (const [name, cfg] of Object.entries(STANDARD_WHEELS)) {
+    const [w] = Object.keys(cfg.wheels), g = geometry(cfg)[w], radial = cfg.wheels[w].drive.cross === 0;
+    for (const side of ['drive', 'rotor']) {
+      const straight = g[side].every((p) => Math.abs(p.hub - p.rim) < 1e-9);
+      assert.equal(straight, radial, `${name} ${side}: radial = ${radial}`);
+    }
+  }
+  assert.equal(geometry({ wheels: { front: { erd: 600, rimHoles: 24, drive: { n: 12, pcd: 58, cross: 0 }, rotor: { n: 12, pcd: 58, cross: 0 } } } }).front.drive.length, 12);
 });
