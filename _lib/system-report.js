@@ -156,7 +156,7 @@ function wheelHtml(w, images, imageErrors, opts) {
 function noteText(wheels, lengthsByPos, imageErrors) {
   let note = `${SYSTEM_REPORT_MARKER} (Industry Nine SYSTEM spokes)\n`; // the marker doubles as the "already processed" record (see _lib/system-dedupe.js)
   note += '--------------------------------------------------\n';
-  note += 'No Length Variant inventory was deducted (System spokes have no length yet).\n';
+  note += 'System spokes are one bundle per wheel; no length-variant inventory is deducted.\n';
   wheels.forEach((w) => {
     const l = lengthsByPos[w.position];
     note += `\n${w.label.toUpperCase()} WHEEL (${w.hubModel}, ${w.spokeCountLabel})\n`;
