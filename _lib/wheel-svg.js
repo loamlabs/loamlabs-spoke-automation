@@ -35,7 +35,8 @@ export const RIM_COLOR = '#3b4148';   // .lls-preview .lls-rim (light) and --rim
 export const ARROW_COLOR = '#2a6fd0';  // medium blue, solid (the Studio's --rollarrow #0b57c4 / #6db2ff, without the fade)
 export const FINAL_CROSS_TOP = 'trailing'; // which group of a side's spokes is drawn on top: 'trailing' (shipped in the Studio) or 'leading'
 export const STEM_DARK = '#2b2b2b';     // valve stem colour on a photo ring (round 13): very dark gray instead of the light gray stud
-export const STEM_WIDTH_RING = 0.011;   // valve stem width on a photo ring, as a fraction of the picture (the plain-rim stem is 0.018)
+export const RING_SPOKE_SCALE = 0.85;   // spoke width on photo-ring pictures, as a fraction of the old width (round 13, Jerry picked 85%)
+export const STEM_WIDTH_RING = 0.011;  // valve stem width on a photo ring, as a fraction of the picture (the plain-rim stem is 0.018)
 export const EDGE_COLOR ='#8e939a';  // thin dark edge around every spoke (opaque; the Studio's 32% black edge over white, a little darker)
 
 // REVIEW: every number written into the SVG must be finite and sane. Coordinates in the 1e8 range (rim_erd = 0.0001 from a tampered
@@ -82,8 +83,9 @@ export function wheelSvg(o) {
   const L = o.ring ? ringLayout(box, ro, o.ring) : null;
   const scale = (L ? L.meanInner : rimR) / (wh.erd / 2);
   // the Studio draws th = 3 (edge 1 px each side) in its 522 px stage; scale that to the box
-  // o.spokeScale (default 1 = unchanged) thins every spoke, the 2 px minimum scales with it so the thinner spokes stay visible at small sizes
-  const ss = Number.isFinite(o.spokeScale) && o.spokeScale > 0 ? o.spokeScale : 1;
+  // o.spokeScale thins every spoke, the 2 px minimum scales with it so the thinner spokes stay visible at small sizes. Default: RING_SPOKE_SCALE (85%, Jerry's
+  // pick, round 13) when a photo ring is drawn, 1 (as it always was) for the plain-rim fallback; pass 1 for the old width on a ring picture.
+  const ss = Number.isFinite(o.spokeScale) && o.spokeScale > 0 ? o.spokeScale : (L ? RING_SPOKE_SCALE : 1);
   const th = Math.max(2 * ss, 3 * box / 522 * ss), e = th > 2.5 ? 1 : 0.5, halo = th + 2 * e;
   let spokes = '';
   sides.forEach((side) => {

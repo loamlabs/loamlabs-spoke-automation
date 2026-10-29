@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { chartOrder, recipeOf } from './helpers/chart-order.mjs';
 import { systemWheels, hexFor } from '../_lib/system-build.js';
 import { geometry } from '../_lib/studio-geometry.js';
-import { wheelSvg, STEM_DARK, STEM_WIDTH_RING, EDGE_COLOR } from '../_lib/wheel-svg.js';
+import { wheelSvg, STEM_DARK, STEM_WIDTH_RING, RING_SPOKE_SCALE, EDGE_COLOR } from '../_lib/wheel-svg.js';
 import { loadRing } from '../_lib/rim-rings.js';
 
 const WAO_TITLE = 'We Are One FUSE Carbon Rim (Enduro)', I9_TITLE = 'Industry Nine Sector Alloy Rim (Trail)';
@@ -23,19 +23,20 @@ const stemOf = (svg) => {
 const haloWidths = (svg) => [...svg.matchAll(new RegExp(`<line [^>]*stroke="${EDGE_COLOR}" stroke-width="([\\d.]+)"`, 'g'))].map((m) => +m[1]);
 const colorWidths = (svg) => [...svg.matchAll(/<line [^>]*stroke="#(?!8e939a)[0-9a-f]{6}" stroke-width="([\d.]+)"/gi)].map((m) => +m[1]);
 
-test('spokeScale: default (absent, 1, junk) is unchanged; 0.85 / 0.7 thin every spoke and its edge, minimum width scales with it', async () => {
-  const w = wheelOf('front', 28, I9_TITLE);
-  for (const key of ['i9', null]) {
+test('spokeScale: ring pictures default to 85% (RING_SPOKE_SCALE), the plain-rim picture to 100%; explicit values win, junk is ignored; the minimum width scales with it', async () => {
+  assert.equal(RING_SPOKE_SCALE, 0.85);
+  const w = wheelOf('front', 28, I9_TITLE), OLD = 3 * 600 / 522;
+  for (const [key, def] of [['i9', 0.85], ['wao', 0.85], [null, 1]]) {
     const base = await draw(w, key);
-    assert.equal(await draw(w, key, { spokeScale: 1 }), base, 'spokeScale 1 = absent');
+    assert.ok(Math.abs(colorWidths(base)[0] - OLD * def) < 0.015, `default width at 600 px, ring ${key}: ${colorWidths(base)[0]}`);
+    assert.equal(await draw(w, key, { spokeScale: def }), base, 'explicit default = absent');
     assert.equal(await draw(w, key, { spokeScale: 'x' }), base, 'junk = absent');
     assert.equal(await draw(w, key, { spokeScale: -2 }), base, 'negative = absent');
-    const th = colorWidths(base)[0];
-    assert.ok(Math.abs(th - 3 * 600 / 522) < 0.01, 'current spoke width at 600 px is 3.45');
+    assert.ok(Math.abs(colorWidths(await draw(w, key, { spokeScale: 1 }))[0] - OLD) < 0.01, 'spokeScale 1 = the old width, also on a ring');
     for (const s of [0.85, 0.7]) {
       const svg = await draw(w, key, { spokeScale: s });
       assert.equal(new Set(colorWidths(svg)).size, 1);
-      assert.ok(Math.abs(colorWidths(svg)[0] - th * s) < 0.015, `600 px: ${s}`);
+      assert.ok(Math.abs(colorWidths(svg)[0] - OLD * s) < 0.015, `600 px: ${s}`);
       const e = colorWidths(svg)[0] > 2.5 ? 1 : 0.5; // the existing rule: 1 px edge each side, 0.5 px once the spoke is 2.5 px or thinner
       assert.ok(Math.abs(haloWidths(svg)[0] - (colorWidths(svg)[0] + 2 * e)) < 0.01, 'edge width');
       const small = await draw(w, key, { spokeScale: s, size: 240 });
