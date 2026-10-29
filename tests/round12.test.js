@@ -156,8 +156,8 @@ test('layers and placement: spokes, ring, valve stem, hub; the ring is one image
       const svg = await drawWith(w, key, pov);
       const at = (re) => svg.search(re);
       assert.ok(at(/<g data-side="drive">/) < at(/<image /) && at(/<g data-side="rotor">/) < at(/<image /), 'both spoke groups before the ring');
-      assert.ok(at(/<image /) < at(/<rect x="[^"]+" y="[^"]+" width="[^"]+" height="[^"]+" rx=[^>]*fill="#2b2b2b"/), 'ring before the stem (round 13: a flat very dark stem on rings)');
-      assert.ok(at(/fill="#2b2b2b"/) < at(/fill="url\(#hubshine\)"/), 'stem before the hub');
+      assert.ok(at(/<image /) < at(/<path data-valve=/), 'ring before the valve (round 14: a stem + nut path on rings)');
+      assert.ok(at(/<path data-valve=/) < at(/fill="url\(#hubshine\)"/), 'valve before the hub');
       assert.equal((svg.match(/<image /g) || []).length, 1);
       assert.ok(!/stroke="#3b4148"/.test(svg), 'no stroked rim circle');
       const tag = /<image [^>]*>/.exec(svg)[0];
@@ -167,8 +167,8 @@ test('layers and placement: spokes, ring, valve stem, hub; the ring is one image
       const ring = ringGeometry(key, 'rear'), s = 0.464 * BOX / ((ring.outerRx + ring.outerRy) / 2);
       assert.ok(Math.abs(+/ width="([\d.]+)"/.exec(tag)[1] - 1024 * s) < 0.01 && Math.abs(+/ x="([-\d.]+)"/.exec(tag)[1] - (300 - ring.outerCx * s)) < 0.01 && Math.abs(+/ y="([-\d.]+)"/.exec(tag)[1] - (300 - ring.outerCy * s)) < 0.01);
       // the stem's base is on the inner edge at the bottom
-      const L = ringLayout(BOX, 0.464 * BOX, ring), stemY = +/<rect x="[^"]+" y="([-\d.]+)"[^>]*fill="#2b2b2b"/.exec(svg)[1];
-      assert.ok(Math.abs(stemY + BOX * 0.05 - L.end(180, 0)[1]) < 0.02);
+      const L = ringLayout(BOX, 0.464 * BOX, ring), stemTop = +/<path data-valve="[^"]+" d="M[-\d.]+ ([-\d.]+)H/.exec(svg)[1];
+      assert.ok(Math.abs(stemTop + BOX * 0.0483 - L.end(180, 0)[1]) < 0.02, 'the nut\'s bottom (stem top + 0.0483 S) is on the inner edge');
       // hub hole radius = pcd / 2 * mean inner radius / (erd / 2)
       const pairs = spokeGroups(svg).find((g) => g.side === 'drive').pairs, hubR = Math.hypot(pairs[0].x1 - 300, pairs[0].y1 - 300);
       assert.ok(Math.abs(hubR - (w.config.drive.pcd / 2) * L.meanInner / (w.config.erd / 2)) < 0.02, `hub radius ${hubR}`);

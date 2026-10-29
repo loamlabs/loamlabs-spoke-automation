@@ -225,7 +225,7 @@ export async function buildSystemReport(o) {
                 <div class="summary-box">
                     <h3>Industry Nine SYSTEM build (${esc(hubModels)})</h3>
                     ${summary}
-                    <p>Wheels with custom colors: ${multi} of ${wheels.length}. No Length Variant inventory was deducted.</p>
+                    <p>Wheels with custom colors: ${multi} of ${wheels.length}. System spokes are one bundle per wheel; no length-variant inventory is deducted.</p>
                     <p><em>${esc(SYSTEM_LENGTHS_PENDING_TEXT.split(':')[0])}: ${Object.values(lengthsByPos).every((l) => l.pending) ? 'not calculated (method pending)' : 'see each wheel'}</em></p>
                 </div>
 
