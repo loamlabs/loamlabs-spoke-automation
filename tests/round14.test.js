@@ -63,7 +63,7 @@ test('valveColor: any #rrggbb is used for stem and nut; light colors (silver, wh
     // the outline (geometry) does not depend on the color
     assert.equal(v.d, valveOf(dflt).d);
   }
-  assert.equal(VALVE_EDGE, 0.3);
+  assert.equal(VALVE_EDGE, 0.6); // round 15 (was 0.3)
 });
 
 test('the plain-rim fallback keeps its old stem (gradient rect, 0.018 of the picture); no valve path; spokeScale and valveColor do not touch it', async () => {

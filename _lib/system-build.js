@@ -19,6 +19,7 @@
 //   Spoke index k in value.spokes[wheel][side] is the index as drawn in the Studio's drive-side view (see _lib/studio-geometry.js).
 
 import { ringKeyForRim } from './rim-rings.js'; // round 12: which photo rim ring a wheel's pictures get
+import { valveFieldsFor } from './valve-colors.js'; // round 15: the valve stem color the customer chose
 
 /* ------------------------------------------------------------------ constants vendored from the dev theme (assets/i9-system.js CFG) */
 
@@ -323,6 +324,7 @@ export function systemWheels(recipe, componentData, orderData) {
       hubColor, hubColorHex: hexFor(hubColor),
       freehub: pos === 'rear' ? ((hub?.spec_freehub || recipe?.specs?.freehubType) ? clip(hub?.spec_freehub || recipe?.specs?.freehubType, MAX_NAME_CHARS) : null) : null,
       rimTitle: rimTitleOf(rim), rimRing: ringKeyForRim(rim), // round 12: which photo ring the pictures get
+      ...valveFieldsFor(comps[pos + 'ValveStem']), // round 15: valveColor / valveLight / valveColorText / valveColorUnknown, from the build's valve stem component
       spokeCountLabel: `${cfg.rimHoles}h${ratioLabel} (${cfg.drive.n} drive / ${cfg.rotor.n} rotor)`,
       total: cfg.rimHoles,
       config: cfg, colors, counts, isMultiColor, warnings, feeLines, cartCounts,

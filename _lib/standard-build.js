@@ -23,6 +23,7 @@ import {
 } from './system-build.js';
 
 import { ringKeyForRim } from './rim-rings.js'; // round 12: which photo rim ring a wheel's pictures get
+import { valveFieldsFor } from './valve-colors.js'; // round 15: the valve stem color the customer chose
 
 export const STANDARD_FEE_NAME = SYSTEM_FEE.name;                // the existing fee product, "Custom Spoke Color Configuration"
 export const STANDARD_FEE_VARIANTS = { mixed: 'Mixed colors', painted: 'Berd painted color', multi: 'Berd multi-color' };
@@ -244,6 +245,7 @@ export function standardWheels(recipe, componentData, orderData) {
       hubColor, hubColorHex: hexOfStandard(recipe, hubColor), hexOf: (name) => hexOfStandard(recipe, name),
       freehub: pos === 'rear' ? ((hub?.spec_freehub || recipe?.specs?.freehubType) ? clip(hub?.spec_freehub || recipe?.specs?.freehubType, MAX_NAME_CHARS) : null) : null,
       rimTitle: rimTitleOf(rim), rimRing: ringKeyForRim(rim), // round 12: which photo ring the pictures get
+      ...valveFieldsFor(comps[pos + 'ValveStem']), // round 15: valveColor / valveLight / valveColorText / valveColorUnknown, from the build's valve stem component
       spokeProduct: clip(spokes?.title || 'n/a', MAX_TITLE_CHARS), vendor: clip(spokes?.vendor || '', MAX_NAME_CHARS),
       spokeCountLabel: `${total}h`,
       total, config: wc.cfg ? cfg : null, drawConfig: cfg, sideLabels: wc.sideLabels,

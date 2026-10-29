@@ -40,7 +40,7 @@ export const VALVE_THICKNESS = 0.0068;  // stem width (4.1 px at 600, 1.6 px at 
 export const VALVE_HEIGHT = 0.0483;     // stem top above the rim's inner edge, the nut included (29.0 px at 600)
 export const NUT_WIDTH = 0.0164;        // nut width (9.8 px at 600; 2.4 x the stem)
 export const NUT_HEIGHT = 0.0041;       // nut height (2.46 px at 600), its bottom sits on the rim's inner edge
-export const VALVE_EDGE = 0.3;          // px, edge of a light valve
+export const VALVE_EDGE = 0.6;          // px, edge of a light valve (round 15: 0.6, was 0.3 in round 14, which was invisible at 240 px)
 const isLight = (hex) => { const n = parseInt(hex.slice(1), 16); return (0.299 * (n >> 16 & 255) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255)) / 255 > 0.5; };
 export const RING_SPOKE_SCALE = 0.85;   // spoke width on photo-ring pictures, as a fraction of the old width (round 13, Jerry picked 85%)
 export const EDGE_COLOR ='#8e939a';  // thin dark edge around every spoke (opaque; the Studio's 32% black edge over white, a little darker)
@@ -120,8 +120,9 @@ export function wheelSvg(o) {
     const vc = /^#[0-9a-f]{6}$/i.test(String(o.valveColor || '').trim()) ? String(o.valveColor).trim().toLowerCase() : VALVE_COLOR_DEFAULT;
     const base = L.end(180, 0)[1], top = base - box * VALVE_HEIGHT, sx = box * VALVE_THICKNESS / 2, nx = box * NUT_WIDTH / 2, ny = base - box * NUT_HEIGHT;
     const d = `M${f(c - sx)} ${f(top)}H${f(c + sx)}V${f(ny)}H${f(c + nx)}V${f(base)}H${f(c - nx)}V${f(ny)}H${f(c - sx)}Z`;
-    // a light valve (silver, white, gold) gets a thin darker edge of its own shade so it shows on the white picture
-    stem = `<path data-valve="${vc}" d="${d}" fill="${vc}"${isLight(vc) ? ` stroke="${mixHex(vc, '#000000', 0.5)}" stroke-width="${VALVE_EDGE}" stroke-linejoin="miter"` : ''}/>`;
+    // a light valve (brightness above 50%, or flagged light in the valve color map and passed as o.valveLight: silver, gold, yellow-ish) gets a darker edge of its own shade
+    // (VALVE_EDGE px) so it shows on the white picture
+    stem = `<path data-valve="${vc}" d="${d}" fill="${vc}"${isLight(vc) || o.valveLight === true ?` stroke="${mixHex(vc, '#000000', 0.5)}" stroke-width="${VALVE_EDGE}" stroke-linejoin="miter"` : ''}/>`;
   } else {
     const sw = Math.max(2, box * 0.018), stemH = box * 0.05 + 1, stemX = c - sw / 2, stemY = c + inner - box * 0.05;
     stem = `<rect x="${f(stemX)}" y="${f(stemY)}" width="${f(sw)}" height="${f(stemH)}" rx="${f(Math.min(3, sw / 2))}" fill="url(#stem)" stroke="#6b7076" stroke-width="1"/>`;

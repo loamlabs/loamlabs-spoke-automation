@@ -12,6 +12,7 @@ import { systemWheels, hexFor, SYSTEM_FEE } from './system-build.js';
 import { geometry } from './studio-geometry.js';
 import { wheelSvg } from './wheel-svg.js';
 import { loadRing } from './rim-rings.js';
+import { unknownValveColorText } from './valve-colors.js';
 import { svgToPng } from './wheel-png.js';
 import { calculateSystemSpokeLengths, SYSTEM_LENGTHS_PENDING_TEXT } from './system-lengths.js';
 import { SYSTEM_REPORT_MARKER } from './system-dedupe.js';
@@ -72,9 +73,11 @@ export async function renderWheelImages(wheel, renderPng, width) {
   if (wheel.rimRing !== null) {
     try { ring = await loadRing(wheel.rimRing || 'wao', wheel.position); } catch (e) { console.log(`I9-SYSTEM: ${wheel.label} wheel: rim ring not loaded, plain rim drawn: ${e && e.message}`); }
   }
+  // round 15: the valve is drawn in the color the customer chose for this wheel (wheel.valveColor, from the build's valve stem component; default dark)
+  if (wheel.valveColorUnknown) console.log(`I9-SYSTEM: ${unknownValveColorText(wheel.valveColorText)} (${wheel.label} wheel), the default dark valve is drawn`);
   for (const spec of imageSpecsFor(wheel.position, !wheel.isMultiColor, wheel.sideLabels || null)) {
     try {
-      const draw = (r) => wheelSvg({ config: wheel.config, geom, colorsHex, hubHex: wheel.hubColorHex, pov: spec.pov, sides: spec.sides, size: width, ring: r });
+      const draw = (r) => wheelSvg({ config: wheel.config, geom, colorsHex, hubHex: wheel.hubColorHex, pov: spec.pov, sides: spec.sides, size: width, ring: r, valveColor: wheel.valveColor, valveLight: wheel.valveLight });
       let svg = draw(ring), png;
       try { png = await renderPng(svg, { width }); } catch (e) {
         if (!ring) throw e;
