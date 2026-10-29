@@ -46,8 +46,6 @@ test('data: the ring geometry equals Agent A\'s contract (re-read when the proje
       assert.deepEqual(RING_GEOMETRY[mine], rest, mine);
     }
   }
-  assert.equal(RING_GEOMETRY.i9_front.rotationDeg, 40);
-  assert.equal(RING_GEOMETRY.i9_rear.rotationDeg, -40);
   assert.equal(RING_GEOMETRY.wao.rotationDeg, 0);
   assert.equal(RING_GEOMETRY.wao.valveAngleDeg, 1.77);
   for (const k of ['wao', 'i9']) {
@@ -93,18 +91,18 @@ test('ring choice (the cart rule): "We Are One" title -> WAO; otherwise vendor I
   assert.equal(ringKeyForRim({ title: '  we are one SECTOR', vendor: 'Industry Nine' }), 'wao');
 });
 
-test('ring choice through the order parsing: System (title) and Standard (title / vendor), both positions; I9 turned +40 front and -40 rear, WAO 0', async () => {
+test('ring choice through the order parsing: System (title) and Standard (title / vendor), both positions; I9 turned by its contract rotation, WAO 0', async () => {
   for (const [title, key] of [[WAO_TITLE, 'wao'], [I9_TITLE, 'i9']]) {
     const order = chartOrder({ front: { rim: '51797702934835', holes: 28, rimTitle: title }, rear: { rim: '51797702967603', holes: 32, rimTitle: title }, orderNumber: 91450 });
     const [f, r] = systemWheels(recipeOf(order), null, order);
     assert.deepEqual([f.rimRing, r.rimRing], [key, key], 'System ' + key);
     const gf = ringGeometry(f.rimRing, 'front'), gr = ringGeometry(r.rimRing, 'rear');
-    assert.deepEqual([gf.rotationDeg, gr.rotationDeg], key === 'i9' ? [40, -40] : [0, 0]);
+    assert.deepEqual([gf.rotationDeg, gr.rotationDeg], key === 'i9' ? [RING_GEOMETRY.i9_front.rotationDeg, RING_GEOMETRY.i9_rear.rotationDeg] : [0, 0]);
     const rep = await buildSystemReport({ recipe: recipeOf(order), orderData: order, renderPng: png });
     const turn = (pos) => /<image data-ring="(\w+)"[^>]* transform="rotate\(([-\d.]+) /.exec(rep.images.find((i) => i.cid === `${pos}-all-spokes`).svg);
     const tf = turn('front'), tr = turn('rear');
     assert.equal(tf[1], key); assert.equal(tr[1], key);
-    if (key === 'i9') assert.deepEqual([+tf[2], +tr[2]], [40, -40], 'I9: valveAngleDeg 0 + rotation');
+    if (key === 'i9') assert.deepEqual([+tf[2], +tr[2]], [RING_GEOMETRY.i9_front.valveAngleDeg + RING_GEOMETRY.i9_front.rotationDeg, RING_GEOMETRY.i9_rear.valveAngleDeg + RING_GEOMETRY.i9_rear.rotationDeg], 'I9: valveAngleDeg + rotation (from the data)');
     else assert.deepEqual([+tf[2], +tr[2]], [1.77, 1.77], 'WAO: valveAngleDeg 1.77 + rotation 0');
   }
   // Standard: the rim component's title / vendor
