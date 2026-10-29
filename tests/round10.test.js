@@ -104,7 +104,7 @@ test('Hydra2 28h front + 32h rear on a 29" Sector alloy: front 302/303 (rotor/ri
   assert.ok(report.note.includes('Spoke lengths (System): Left/Rotor 300 mm, Right/Drive 299 mm'), report.note);
   assert.ok(report.note.includes('source: I9 System chart 2026, row Sector 29" 28h TR255'));
   assert.ok(report.note.includes('source: I9 System chart 2026, row Sector 29" 32h TR256'));
-  assert.ok(!/not calculated \(method pending\)\n/.test(report.note));
+  assert.ok(!/NOT CALCULATED/.test(report.note));
   assert.ok(report.html.includes('source: I9 System chart 2026, row Sector 29&quot; 32h TR256'));
   const front = wheelResult(order, 'front').lengths, rear = wheelResult(order, 'rear').lengths;
   assert.equal(front.confidence, 'chart'); assert.equal(rear.confidence, 'chart'); assert.equal(front.note, undefined);
@@ -116,9 +116,11 @@ test('Fuse 29" carbon 32h/32h: the rear gets 303 (rotor) / 300 (drive); the FRON
   assert.equal(f.lengths, null); assert.match(f.reason, /Hydra2 32h FRONT hub/);
   assert.deepEqual([r.lengths.left, r.lengths.right], [303, 300]);
   const { report } = await lengthsOf(order);
-  assert.equal(report.lengths.front.pending, true); assert.equal(report.lengths.front.text, SYSTEM_LENGTHS_PENDING_TEXT);
+  const FRONT_TEXT = "Spoke lengths for System hubs: NOT CALCULATED. I9 has not published 32h front numbers yet, so check the front lengths with I9 before ordering spokes. (The rear numbers are rear-hub numbers and do not apply to the front.)";
+  assert.equal(report.lengths.front.pending, true); assert.equal(report.lengths.front.text, FRONT_TEXT);
   assert.equal(report.lengths.rear.pending, false);
-  assert.ok(report.note.includes(SYSTEM_LENGTHS_PENDING_TEXT), 'the front keeps the old "not calculated" wording');
+  assert.ok(report.note.includes(`  ${FRONT_TEXT}\n`), 'the front says NOT CALCULATED and why, with no numbers and no "method pending"');
+  assert.ok(!report.note.includes('method pending'));
 });
 
 test('Solix 24h Whisp, front and rear: the same pair 300/297 mirrored between the sides, the longer on the 16-spoke side; the front is marked inferred', async () => {
@@ -198,11 +200,12 @@ test('null cases: unmapped rim, 32h Hydra2 front, hub that does not match the ch
   } finally { console.log = real; }
 });
 
-test('a miss still gives the old note wording, no source line, and the internal email says "not calculated (method pending)"', async () => {
+test('a miss says NOT CALCULATED and why in the note, no source line, and the internal email summary says NOT CALCULATED', async () => {
   const { report } = await lengthsOf(chartOrder({ rear: { rim: '12345', holes: 32 }, orderNumber: 91207 }));
-  assert.ok(report.note.includes(`  ${SYSTEM_LENGTHS_PENDING_TEXT}\n`));
+  assert.ok(report.note.includes("  Spoke lengths for System hubs: NOT CALCULATED. This rim is not in I9's spoke length chart, so check the lengths with I9 before ordering spokes.\n"));
   assert.ok(!/I9 System chart 2026/.test(report.note) && !/I9 System chart 2026/.test(report.html));
-  assert.ok(report.html.includes('not calculated (method pending)'));
+  assert.ok(report.html.includes('NOT CALCULATED, see each wheel for the reason'));
+  assert.ok(!report.html.includes('method pending') && !report.note.includes('method pending'));
 });
 
 /* ------------------------------------------------------------------ 5. customer email, Standard, whole webhook */

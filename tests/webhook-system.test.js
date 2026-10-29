@@ -22,7 +22,7 @@ test('System wheel set: 200, no inventory adjustment, no variant lookup, note wr
   assert.ok(r.note.includes('Customer note: please match the purple hubs'), 'customer note preserved');
   assert.ok(r.note.includes('AUTOMATED SYSTEM BUILD REPORT'));
   assert.ok(r.note.includes('FRONT WHEEL (Solix, 24h 2:1 (8 drive / 16 rotor))'));
-  assert.ok(r.note.includes('Spoke lengths for System hubs: not calculated (method pending)'), 'the length line is in the order note');
+  assert.ok(r.note.includes('Spoke lengths for System hubs: NOT CALCULATED.'), 'the length line is in the order note');
   assert.equal(r.sdkEmails.length, 0, 'the Standard email path was not used');
   assert.equal(r.restEmails.length, 1, 'flag off: only the internal email');
   const email = r.restEmails[0];
@@ -55,7 +55,7 @@ test('flag off (unset, "off", "ON", "true", "1"): nothing is ever sent to the cu
   assert.ok(customer.html.includes('Hi Alex,'));
   assert.equal(/Spoke lengths|not calculated|NOTE:|Build ID|inventory/i.test(customer.html), false, 'no internal text in the customer email');
   assert.deepEqual(internal.to, ['builder@example.com'], 'the internal email still goes to the builder only');
-  assert.ok(internal.html.includes('Spoke lengths for System hubs: not calculated (method pending)'), 'lengths stay in the internal email');
+  assert.ok(internal.html.includes('Spoke lengths for System hubs: NOT CALCULATED.'), 'lengths stay in the internal email');
 });
 
 test('flag on: order.email missing -> falls back to customer.email; no address at all -> no customer email, internal unaffected', async () => {

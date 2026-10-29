@@ -103,7 +103,8 @@ test('report: 3 images per multi-color wheel in order a, b, c (all spokes first)
   assert.ok(pos.every((p, i) => p > 0 && (i === 0 || p > pos[i - 1])), 'images appear in this order in the HTML');
   assert.ok(report.html.indexOf('FRONT WHEEL') < report.html.indexOf('REAR WHEEL'), 'front section before rear');
   assert.deepEqual(report.imageErrors, []);
-  assert.ok(report.html.includes(SYSTEM_LENGTHS_PENDING_TEXT));
+  assert.ok(report.html.includes('Spoke lengths for System hubs: NOT CALCULATED.'));
+  assert.equal(report.html.includes('method pending'), false);
   assert.ok(report.subject.includes('System'));
 
   const single = recipeOf('solix-single-color-front');
@@ -156,7 +157,7 @@ test('LENGTH-CALC HOOK wiring: numbers from the hook show up in the email and th
   assert.ok(pending.html.includes(SYSTEM_LENGTHS_PENDING_TEXT));
   assert.ok(pending.note.includes(SYSTEM_LENGTHS_PENDING_TEXT));
   const throwing = await buildSystemReport({ recipe, orderData: order, renderPng: fakePng, lengthCalculator: () => { throw new Error('boom'); } });
-  assert.ok(throwing.note.includes('calculator error: boom'));
+  assert.ok(throwing.note.includes('The length lookup failed (boom)'));
 });
 
 test('a failing renderer never fails the report: text stays, an "image failed" line appears per image (3 per wheel)', async () => {
@@ -192,7 +193,7 @@ test('hub metafields from Shopify override the sample geometry; the Studio value
 test('order note: text only, carries the length line (pending text, or the numbers once the hook returns them), no images, no customer wording', async () => {
   const { order, recipe } = recipeOf('hydra2-wheelset-28f-32r');
   const pending = await buildSystemReport({ recipe, orderData: order, renderPng: fakePng });
-  assert.equal((pending.note.match(/Spoke lengths for System hubs: not calculated \(method pending\)/g) || []).length, 2, 'one length line per wheel');
+  assert.equal((pending.note.match(/Spoke lengths for System hubs: NOT CALCULATED\./g) || []).length, 2, 'one length line per wheel');
   const numbers = await buildSystemReport({ recipe, orderData: order, renderPng: fakePng, lengthCalculator: () => ({ left: 280, right: 282 }) });
   assert.equal((numbers.note.match(/Left\/Rotor 280 mm, Right\/Drive 282 mm/g) || []).length, 2);
   for (const note of [pending.note, numbers.note]) {

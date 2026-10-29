@@ -84,17 +84,19 @@ const r1 = (n) => Math.round(n * 10) / 10;
 export function resolveSystemLengths(wheel) {
   const w = wheel || {};
   const hit = chartLengthsForRim(w.rimVariantId);
-  if (!hit) return { lengths: null, reason: 'rim variant is not in the I9 chart map' };                                   // (b)
+  if (!hit) return { lengths: null, reason: 'rim variant is not in the I9 chart map', plain: "This rim is not in I9's spoke length chart, so check the lengths with I9 before ordering spokes." };   // (b)
   const row = hit.row, need = CHART_HUBS[row.hub];
   const holes = Number.isFinite(w.holes) && w.holes > 0 ? w.holes : ((w.spokes && Number(w.spokes.left) + Number(w.spokes.right)) || null);
-  if (!need) return { lengths: null, reason: `chart row hub "${row.hub}" is not known` };
-  if (!w.hubModel) return { lengths: null, reason: 'hub model unknown (Solix or Hydra2 not recognized)' };                  // (c)
+  if (!need) return { lengths: null, reason: `chart row hub "${row.hub}" is not known`, plain: "The chart row for this rim lists a hub we do not recognize, so check the lengths with I9 before ordering spokes." };
+  if (!w.hubModel) return { lengths: null, reason: 'hub model unknown (Solix or Hydra2 not recognized)', plain: "The hub model (Solix or Hydra2) was not recognized on this wheel, so check the lengths with I9 before ordering spokes." };   // (c)
   if (w.hubModel !== need.model || holes !== need.holes) {                                                                  // (c)
-    return { lengths: null, reason: `hub ${w.hubModel} ${holes}h does not match the chart row (${row.model} ${row.partNumber} is ${row.hub})` };
+    return { lengths: null, reason: `hub ${w.hubModel} ${holes}h does not match the chart row (${row.model} ${row.partNumber} is ${row.hub})`,
+      plain: `The hub on this wheel (${w.hubModel} ${holes}h) does not match the hub in I9's chart row for this rim (${row.hub}), so check the lengths with I9 before ordering spokes.` };
   }
-  if (w.position !== 'front' && w.position !== 'rear') return { lengths: null, reason: 'wheel position unknown' };
+  if (w.position !== 'front' && w.position !== 'rear') return { lengths: null, reason: 'wheel position unknown', plain: "The wheel position (front or rear) was not recognized, so check the lengths with I9 before ordering spokes." };
   if (w.position === 'front' && need.model === 'Hydra2' && need.holes === 32) {                                             // (a)
-    return { lengths: null, reason: "Hydra2 32h FRONT hub: I9's chart 32h numbers are rear-hub numbers (its Convergence tab lists 32h as rear-only)" };
+    return { lengths: null, reason: "Hydra2 32h FRONT hub: I9's chart 32h numbers are rear-hub numbers (its Convergence tab lists 32h as rear-only)",
+      plain: "I9 has not published 32h front numbers yet, so check the front lengths with I9 before ordering spokes. (The rear numbers are rear-hub numbers and do not apply to the front.)" };
   }
   const cols = COLUMN_SIDES[w.position];
   const side = { [cols.first]: hit.driveColumn, [cols.second]: hit.nonDriveColumn };
@@ -120,6 +122,13 @@ export function resolveSystemLengths(wheel) {
   };
   if (notes.length) lengths.note = notes.join('; ');
   return { lengths, reason: null };
+}
+
+// Front-note wording round: the order note and internal email say WHY a wheel has no numbers, in plain words (the reason used to be in the log only).
+export const SYSTEM_LENGTHS_NOT_CALCULATED_PREFIX = 'Spoke lengths for System hubs: NOT CALCULATED.';
+export function systemLengthsNotCalculatedText(wheel) {
+  const { lengths, plain } = resolveSystemLengths(wheel);
+  return lengths ? null : `${SYSTEM_LENGTHS_NOT_CALCULATED_PREFIX} ${plain}`;
 }
 
 /**

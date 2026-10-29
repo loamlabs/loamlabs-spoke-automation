@@ -14,7 +14,7 @@ import { wheelSvg } from './wheel-svg.js';
 import { loadRing } from './rim-rings.js';
 import { unknownValveColorText } from './valve-colors.js';
 import { svgToPng } from './wheel-png.js';
-import { calculateSystemSpokeLengths, SYSTEM_LENGTHS_PENDING_TEXT } from './system-lengths.js';
+import { calculateSystemSpokeLengths, SYSTEM_LENGTHS_PENDING_TEXT, SYSTEM_LENGTHS_NOT_CALCULATED_PREFIX, systemLengthsNotCalculatedText } from './system-lengths.js';
 import { SYSTEM_REPORT_MARKER } from './system-dedupe.js';
 import { resendTimeoutMs } from './http-timeout.js';
 
@@ -100,9 +100,11 @@ function lengthsFor(wheel, lengthCalculator) {
       // round 10: a result from I9's chart also says where it came from (r.sourceText), in the internal email and the order note only
       return { pending: false, text: `Spoke lengths (System): Left/Rotor ${r.left} mm, Right/Drive ${r.right} mm${r.note ? ` (${r.note})` : ''}`, sourceText: typeof r.sourceText === 'string' ? r.sourceText : null };
     }
-    return { pending: true, text: SYSTEM_LENGTHS_PENDING_TEXT };
+    // the chart lookup says why in plain words; an injected calculator (tests) keeps the old text
+    const why = lengthCalculator === calculateSystemSpokeLengths ? systemLengthsNotCalculatedText(wheel.geometryInput) : null;
+    return { pending: true, text: why || SYSTEM_LENGTHS_PENDING_TEXT };
   } catch (e) {
-    return { pending: true, text: `${SYSTEM_LENGTHS_PENDING_TEXT}; calculator error: ${e.message}` };
+    return { pending: true, text: `${SYSTEM_LENGTHS_NOT_CALCULATED_PREFIX} The length lookup failed (${e.message}), so check the lengths with I9 before ordering spokes.` };
   }
 }
 
@@ -229,7 +231,7 @@ export async function buildSystemReport(o) {
                     <h3>Industry Nine SYSTEM build (${esc(hubModels)})</h3>
                     ${summary}
                     <p>Wheels with custom colors: ${multi} of ${wheels.length}. System spokes are one bundle per wheel; no length-variant inventory is deducted.</p>
-                    <p><em>${esc(SYSTEM_LENGTHS_PENDING_TEXT.split(':')[0])}: ${Object.values(lengthsByPos).every((l) => l.pending) ? 'not calculated (method pending)' : 'see each wheel'}</em></p>
+                    <p><em>${esc(SYSTEM_LENGTHS_PENDING_TEXT.split(':')[0])}: ${Object.values(lengthsByPos).every((l) => l.pending) ? 'NOT CALCULATED, see each wheel for the reason' : 'see each wheel'}</em></p>
                 </div>
 
                 ${wheels.map((w) => wheelHtml(w, images, imageErrors, { internal: true, lengths: lengthsByPos[w.position] })).join('')}
