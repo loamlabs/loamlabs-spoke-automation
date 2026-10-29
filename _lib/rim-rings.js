@@ -31,7 +31,7 @@ export function ringKeyForRim(rim) {
   return 'wao';
 }
 
-/** The ring geometry for a brand and wheel position (Industry Nine is turned +40 deg on a front wheel and -40 deg on a rear wheel; We Are One 0). */
+/** The ring geometry for a brand and wheel position (Industry Nine is turned by its contract rotation, 93.54 deg for front and rear since update 2, which puts the small decal at 12 o'clock; We Are One 0). */
 export function ringGeometry(key, position) {
   if (key === 'i9') return { key, ...(position === 'rear' ? RING_GEOMETRY.i9_rear : RING_GEOMETRY.i9_front) };
   return { key: 'wao', ...RING_GEOMETRY.wao };
