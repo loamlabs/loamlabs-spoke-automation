@@ -137,7 +137,7 @@ test('SVG content per image: spokes-only draws one side, all-spokes draws both; 
   assert.equal(lines(byId['rear-rotor-only'], 'rotor'), 32); assert.equal(lines(byId['rear-rotor-only'], 'drive'), 0);
   for (const svg of Object.values(byId)) {
     assert.ok(svg.includes('<rect width="600" height="600" fill="#ffffff"/>'), 'white background');
-    assert.ok(svg.includes('fill="url(#stem)"'), 'valve stem');
+    assert.ok(svg.includes('fill="url(#stem)"') || svg.includes('fill="#2b2b2b"'), 'valve stem (plain rim: gradient; photo ring: flat very dark gray, round 13)');
   }
   // Black hub: the hub gradient stops are built from the customer's hub color (#1d1f23)
   assert.ok(byId['front-all-spokes'].includes('stop-color="#1d1f23"'));
