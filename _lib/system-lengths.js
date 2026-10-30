@@ -94,10 +94,11 @@ export function resolveSystemLengths(wheel) {
       plain: `The hub on this wheel (${w.hubModel} ${holes}h) does not match the hub in I9's chart row for this rim (${row.hub}), so check the lengths with I9 before ordering spokes.` };
   }
   if (w.position !== 'front' && w.position !== 'rear') return { lengths: null, reason: 'wheel position unknown', plain: "The wheel position (front or rear) was not recognized, so check the lengths with I9 before ordering spokes." };
-  if (w.position === 'front' && need.model === 'Hydra2' && need.holes === 32) {                                             // (a)
-    return { lengths: null, reason: "Hydra2 32h FRONT hub: I9's chart 32h numbers are rear-hub numbers (its Convergence tab lists 32h as rear-only)",
-      plain: "I9 has not published 32h front numbers yet, so check the front lengths with I9 before ordering spokes. (The rear numbers are rear-hub numbers and do not apply to the front.)" };
-  }
+  // Hydra2 32h FRONT (was "not calculated" until Thomas Ward, I9, wrote on 2026-10-30 that the chart lengths apply to the various hubshells / axle widths and that
+  // 32/32 System can use the same lengths front and rear): the same two chart numbers as the 32h rear for that rim, any front axle spacing. Which side gets which:
+  // the front columns are shorter = left/disc side, longer = right/non-disc side (same COLUMN_SIDES.front as the 28h front), which is also what the hub says
+  // (front flange 27.5 mm from center on the disc side, 40.5 mm on the non-disc side: more offset = longer spoke); every Hydra2 32h chart row has drive <= non-drive.
+  const front32 = w.position === 'front' && need.model === 'Hydra2' && need.holes === 32;
   const cols = COLUMN_SIDES[w.position];
   const side = { [cols.first]: hit.driveColumn, [cols.second]: hit.nonDriveColumn };
   const flags = [], notes = [];
@@ -121,6 +122,12 @@ export function resolveSystemLengths(wheel) {
     sourceText: `source: ${SOURCE_LABEL}, row ${row.model} ${row.partNumber}`
   };
   if (notes.length) lengths.note = notes.join('; ');
+  if (front32) {
+    // plain side words on the front so the sides cannot be misread; the source line names I9's statement; the internal-email-only line carries the geometry caveat
+    lengths.sideLabels = { left: 'Disc side', right: 'Non-disc side' };
+    lengths.sourceText = `Source: ${SOURCE_LABEL}, row ${row.model} ${row.partNumber}, 32h pair (Thomas Ward, I9, 2026-10-30: same lengths front and rear)`;
+    lengths.internalText = "Front uses the rear 32h pair per I9. Jerry's geometry check differs by up to about 4 mm on one side; if the first real front build looks off, tell Claude.";
+  }
   return { lengths, reason: null };
 }
 

@@ -98,7 +98,8 @@ function lengthsFor(wheel, lengthCalculator) {
     const r = lengthCalculator(wheel.geometryInput);
     if (r && typeof r === 'object' && isFinite(r.left) && isFinite(r.right)) {
       // round 10: a result from I9's chart also says where it came from (r.sourceText), in the internal email and the order note only
-      return { pending: false, text: `Spoke lengths (System): Left/Rotor ${r.left} mm, Right/Drive ${r.right} mm${r.note ? ` (${r.note})` : ''}`, sourceText: typeof r.sourceText === 'string' ? r.sourceText : null };
+      const sides = r.sideLabels && r.sideLabels.left && r.sideLabels.right ? `${r.sideLabels.left} ${r.left} mm, ${r.sideLabels.right} ${r.right} mm` : `Left/Rotor ${r.left} mm, Right/Drive ${r.right} mm`;
+      return { pending: false, text: `Spoke lengths (System): ${sides}${r.note ? ` (${r.note})` : ''}`, sourceText: typeof r.sourceText === 'string' ? r.sourceText : null, internalText: typeof r.internalText === 'string' ? r.internalText : null };
     }
     // the chart lookup says why in plain words; an injected calculator (tests) keeps the old text
     const why = lengthCalculator === calculateSystemSpokeLengths ? systemLengthsNotCalculatedText(wheel.geometryInput) : null;
@@ -164,7 +165,7 @@ function wheelHtml(w, images, imageErrors, opts) {
                 ${colorRow(`Whole wheel (${w.total})`, w.counts.all, w.hexOf)}
             </table>
             ${visual}
-            ${internal ? `<p><em>${esc(lengths.text)}</em>${lengths.sourceText ? `<br><span class="caption">${esc(lengths.sourceText)}</span>` : ''}</p>` : ''}
+            ${internal ? `<p><em>${esc(lengths.text)}</em>${lengths.sourceText ? `<br><span class="caption">${esc(lengths.sourceText)}</span>` : ''}${lengths.internalText ? `<br><span class="caption">${esc(lengths.internalText)}</span>` : ''}</p>` : ''}
             ${warnings}
         </div>`;
 }

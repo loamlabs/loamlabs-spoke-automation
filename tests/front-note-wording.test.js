@@ -12,24 +12,50 @@ const input = (order, pos, patch = {}) => ({ ...systemWheels(recipeOf(order), nu
 const noteOf = async (order) => (await buildSystemReport({ recipe: recipeOf(order), orderData: order, renderPng: png }));
 const P = SYSTEM_LENGTHS_NOT_CALCULATED_PREFIX;
 
-test('the exact text for a Hydra2 32h FRONT hub (the #1459 case)', () => {
+test('a Hydra2 32h FRONT hub no longer says NOT CALCULATED when its rim has a chart row (the #1459 case)', () => {
   const order = chartOrder({ front: { rim: '51797703131443', holes: 32 }, rear: { rim: '51797703131443', holes: 32 }, orderNumber: 91401 });
-  assert.equal(systemLengthsNotCalculatedText(input(order, 'front')),
-    "Spoke lengths for System hubs: NOT CALCULATED. I9 has not published 32h front numbers yet, so check the front lengths with I9 before ordering spokes. (The rear numbers are rear-hub numbers and do not apply to the front.)");
-  assert.equal(systemLengthsNotCalculatedText(input(order, 'rear')), null, 'the rear has numbers, so no text');
+  assert.equal(systemLengthsNotCalculatedText(input(order, 'front')), null);
+  assert.equal(systemLengthsNotCalculatedText(input(order, 'rear')), null);
 });
 
-test('the order #1459 case end to end: front says NOT CALCULATED with no numbers, rear unchanged (303 / 300 and the source line), summary line unchanged', async () => {
+test('the order #1459 case end to end: front gets the rear 32h pair labelled by disc / non-disc side, rear unchanged, the geometry line only in the internal email', async () => {
   const order = chartOrder({ front: { rim: '51797703131443', holes: 32 }, rear: { rim: '51797703131443', holes: 32 }, orderNumber: 91401 });
   const r = await noteOf(order);
   const front = r.note.split('REAR WHEEL')[0], rear = r.note.split('REAR WHEEL')[1];
-  assert.ok(front.includes('  Spoke lengths for System hubs: NOT CALCULATED. I9 has not published 32h front numbers yet'));
-  assert.equal(/\d+ mm/.test(front), false, 'no number on the front');
+  assert.ok(front.includes('  Spoke lengths (System): Disc side 300 mm, Non-disc side 303 mm\n'));
+  assert.ok(front.includes('  Source: I9 System chart 2026, row Triad 29" 32h TR304, 32h pair (Thomas Ward, I9, 2026-10-30: same lengths front and rear)\n'));
   assert.ok(rear.includes('  Spoke lengths (System): Left/Rotor 303 mm, Right/Drive 300 mm\n'));
   assert.ok(rear.includes('  source: I9 System chart 2026, row Triad 29" 32h TR304\n'));
-  assert.equal(r.note.includes('method pending'), false);
-  assert.ok(r.html.includes('<em>Spoke lengths for System hubs: see each wheel</em>'), 'one wheel has numbers: "see each wheel"');
-  assert.ok(r.html.includes('NOT CALCULATED. I9 has not published 32h front numbers yet'), 'the internal email carries the reason too');
+  assert.equal(/NOT CALCULATED|method pending/.test(r.note), false);
+  assert.equal(r.note.includes('geometry check') || r.note.includes('Front uses the rear'), false, 'the caveat is NOT in the order note');
+  assert.equal(r.html.split('Front uses the rear 32h pair per I9. Jerry').length - 1, 1, 'the caveat is in the internal email exactly once (front wheel only)');
+  assert.ok(r.html.includes('geometry check differs by up to about 4 mm on one side; if the first real front build looks off, tell Claude.'));
+  assert.ok(r.html.includes('Disc side 300 mm, Non-disc side 303 mm'));
+  assert.ok(r.html.includes('<em>Spoke lengths for System hubs: see each wheel</em>'));
+});
+
+test('front 32h on I9 and We Are One rims; a rim with no chart row still says NOT CALCULATED, check with I9; any front axle spacing gives the same pair', async () => {
+  // I9 rim: Sector alloy 29" 32h (TR256) 299 / 300; We Are One rim: Fuse carbon 29" 32h (TR307) 300 / 303
+  for (const [rim, disc, nonDisc, row] of [['53530701168947', 299, 300, 'Sector 29" 32h TR256'], ['51797702967603', 300, 303, 'Fuse 29" 32h TR307']]) {
+    const r = await noteOf(chartOrder({ front: { rim, holes: 32 }, rear: { rim, holes: 32 }, orderNumber: 91408 }));
+    const front = r.note.split('REAR WHEEL')[0];
+    assert.ok(front.includes(`Disc side ${disc} mm, Non-disc side ${nonDisc} mm`), row);
+    assert.ok(front.includes(`row ${row}, 32h pair`), row);
+    assert.equal(r.lengths.front.pending, false);
+  }
+  const miss = await noteOf(chartOrder({ front: { rim: '12345', holes: 32 }, rear: { rim: '12345', holes: 32 }, orderNumber: 91409 }));
+  assert.ok(miss.note.split('REAR WHEEL')[0].includes("Spoke lengths for System hubs: NOT CALCULATED. This rim is not in I9's spoke length chart"));
+  assert.equal(miss.note.includes('Disc side'), false);
+  // the lookup has no axle-spacing input at all (15x110, 20x110, 15x100 ... all give the same pair): the wheel geometry it reads has no such field
+  const w = input(chartOrder({ front: { rim: '51797703131443', holes: 32 }, orderNumber: 91410 }), 'front');
+  assert.equal(Object.keys(w).some((k) => /spacing|axle/i.test(k)), false);
+});
+
+test('every Hydra2 32h chart row has drive <= non-drive, so the front mapping (shorter = disc side) puts the longer number on the non-disc side, as the hub geometry says', async () => {
+  const { CHART_ROWS } = await import('../_lib/i9-system-chart.js');
+  const rows = CHART_ROWS.filter((r) => r.hub === 'H2 32h');
+  assert.ok(rows.length >= 15);
+  assert.ok(rows.every((r) => r.driveColumn <= r.nonDriveColumn), 'a row with drive > non-drive would put the longer number on the disc side: look at it before using it');
 });
 
 test('every other null case says its own plain reason', () => {

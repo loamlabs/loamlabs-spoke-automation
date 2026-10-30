@@ -110,17 +110,17 @@ test('Hydra2 28h front + 32h rear on a 29" Sector alloy: front 302/303 (rotor/ri
   assert.equal(front.confidence, 'chart'); assert.equal(rear.confidence, 'chart'); assert.equal(front.note, undefined);
 });
 
-test('Fuse 29" carbon 32h/32h: the rear gets 303 (rotor) / 300 (drive); the FRONT 32h gets no number and says why', async () => {
+test('Fuse 29" carbon 32h/32h: the rear gets 303 (rotor) / 300 (drive); the FRONT 32h gets the same chart pair, shorter on the disc side (I9, Thomas Ward 2026-10-30)', async () => {
   const order = chartOrder({ front: { rim: '51797702967603', holes: 32 }, rear: { rim: '51797702967603', holes: 32 }, orderNumber: 91102 });
   const f = wheelResult(order, 'front'), r = wheelResult(order, 'rear');
-  assert.equal(f.lengths, null); assert.match(f.reason, /Hydra2 32h FRONT hub/);
+  assert.deepEqual([f.lengths.left, f.lengths.right], [300, 303], 'front: left = disc side gets the shorter chart number, right = non-disc side the longer');
   assert.deepEqual([r.lengths.left, r.lengths.right], [303, 300]);
+  assert.equal(f.lengths.confidence, 'chart'); assert.equal(f.lengths.chart.partNumber, r.lengths.chart.partNumber);
   const { report } = await lengthsOf(order);
-  const FRONT_TEXT = "Spoke lengths for System hubs: NOT CALCULATED. I9 has not published 32h front numbers yet, so check the front lengths with I9 before ordering spokes. (The rear numbers are rear-hub numbers and do not apply to the front.)";
-  assert.equal(report.lengths.front.pending, true); assert.equal(report.lengths.front.text, FRONT_TEXT);
+  assert.equal(report.lengths.front.pending, false); assert.equal(report.lengths.front.text, 'Spoke lengths (System): Disc side 300 mm, Non-disc side 303 mm');
   assert.equal(report.lengths.rear.pending, false);
-  assert.ok(report.note.includes(`  ${FRONT_TEXT}\n`), 'the front says NOT CALCULATED and why, with no numbers and no "method pending"');
-  assert.ok(!report.note.includes('method pending'));
+  assert.ok(report.note.includes('  Spoke lengths (System): Disc side 300 mm, Non-disc side 303 mm\n'));
+  assert.ok(!report.note.includes('method pending') && !report.note.includes('NOT CALCULATED'));
 });
 
 test('Solix 24h Whisp, front and rear: the same pair 300/297 mirrored between the sides, the longer on the 16-spoke side; the front is marked inferred', async () => {
@@ -177,13 +177,12 @@ test('Hydra2 28h REAR: the chart row is returned but marked inferred (the chart 
 
 /* ------------------------------------------------------------------ 4. null cases */
 
-test('null cases: unmapped rim, 32h Hydra2 front, hub that does not match the chart row, unknown hub: each null with its own reason, logged with the order number', () => {
+test('null cases: unmapped rim, hub that does not match the chart row, unknown hub: each null with its own reason, logged with the order number', () => {
   const logs = []; const real = console.log; console.log = (...a) => logs.push(a.join(' '));
   try {
     const cases = [
       ['rim variant not in the map', chartOrder({ rear: { rim: '53530694779187', holes: 28 }, orderNumber: 91201 }), 'rear', /not in the I9 chart map/],      // Triad alloy 27.5" 28h: explicitly not allowed
       ['unknown variant id', chartOrder({ rear: { rim: '12345', holes: 32 }, orderNumber: 91202 }), 'rear', /not in the I9 chart map/],
-      ['Hydra2 32h front', chartOrder({ front: { rim: '51797702967603', holes: 32 }, orderNumber: 91203 }), 'front', /32h FRONT hub/],
       ['28h rim with a Solix hub', chartOrder({ rear: { rim: '51797702934835', holes: 28, hub: 'Solix' }, orderNumber: 91204 }), 'rear', /does not match the chart row/],
       ['24h Solix rim with a Hydra2 hub', chartOrder({ rear: { rim: '67796530037043', holes: 24, hub: 'Hydra2' }, orderNumber: 91205 }), 'rear', /does not match the chart row/],
       ['32h rim row with a 28h wheel', chartOrder({ rear: { rim: '51797702967603', holes: 28 }, orderNumber: 91206 }), 'rear', /does not match the chart row/]
