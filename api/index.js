@@ -746,6 +746,18 @@ export function runCalculationEngine(buildRecipe, componentData) {
             return { calculationSuccessful: false, error: `Skipping calculation: Customer is supplying their own ${position} rim.` };
         }
 
+        // --- DATA THE CALCULATION CANNOT DO WITHOUT ---
+        // A component that Shopify no longer returns (retired variant) or whose numbers are blank used to read as zeros and gave a silent wrong length
+        // (and an inventory adjustment for it). Now the wheel says what is missing and nothing is deducted for it.
+        const missingData = [];
+        if (!(getMeta(rim.variantId, rim.productId, 'rim_erd', true) > 0)) missingData.push(`rim ERD (${rim.title})`);
+        const hubKeys = [['hub_flange_diameter_left', 'left flange diameter'], ['hub_flange_diameter_right', 'right flange diameter'], ['hub_flange_offset_left', 'left flange offset'], ['hub_flange_offset_right', 'right flange offset']];
+        const hubMissing = hubKeys.filter(([key]) => !(getMeta(hub.variantId, hub.productId, key, true) > 0)).map(([, label]) => label);
+        if (hubMissing.length) missingData.push(`hub ${hubMissing.join(', ')} (${hub.title})`);
+        if (missingData.length) {
+            return { calculationSuccessful: false, error: `Missing data in Shopify, so the ${position} lengths were NOT calculated and no inventory was changed for this wheel: ${missingData.join('; ')}. Check the product's metafields, or whether the variant was retired.` };
+        }
+
         // --- DETERMINING CROSS PATTERN ---
         let crossL, crossR;
         let lacingAlert = null;
