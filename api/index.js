@@ -917,6 +917,21 @@ if (hubType !== 'Straight Pull') {
     return results;
 }
 
+// Wording only: a side whose inventory status is not "Adjusted" was NOT deducted. These helpers only make that visible in the summary line and the email subject.
+function notDeductedFlag(side) {
+    const status = side && side.status;
+    if (status === 'Adjusted') return '';
+    if (!status || /variant not found/i.test(status)) return ' NOT DEDUCTED (no variant)';
+    if (/failed to adjust/i.test(status)) return ' NOT DEDUCTED (adjust failed)';
+    return ` NOT DEDUCTED (${String(status).replace(/^FAIL:\s*/i, '').toLowerCase()})`;
+}
+export function anySideNotDeducted(report) {
+    return ['front', 'rear'].some((pos) => {
+        const w = report && report[pos];
+        return !!(w && w.calculationSuccessful && w.inventory && ['left', 'right'].some((s) => notDeductedFlag(w.inventory[s])));
+    });
+}
+
 export function formatNote(report) {
     let note = "AUTOMATED SPOKE CALCULATION & INVENTORY\n";
     
@@ -928,7 +943,7 @@ export function formatNote(report) {
         if (wheel && wheel.calculationSuccessful) {
             const left = wheel.inventory.left;
             const right = wheel.inventory.right;
-            return `${position.toUpperCase()}:  L: ${left.quantity}x${left.length}mm  |  R: ${right.quantity}x${right.length}mm\n`;
+            return `${position.toUpperCase()}:  L: ${left.quantity}x${left.length}mm${notDeductedFlag(left)}  |  R: ${right.quantity}x${right.length}mm${notDeductedFlag(right)}\n`;
         }
         return "";
     };
@@ -1148,13 +1163,14 @@ export async function sendEmailReport(report, orderData, buildRecipe, extra, opt
         </html>
     `;
     if (options && options.noteFailure) emailHtml = addNoteFailureNotice(emailHtml, options.noteFailure);
+    const emailSubject = `${anySideNotDeducted(report) ? 'ACTION REQUIRED: ' : ''}Spoke Calculation Complete for Order #${orderNumber}`;
 
     // STANDARD-STUDIO: with images the email goes through the Resend REST API so the wheel images can be inline attachments (content ids), like System;
     // the sender, reply-to and subject are exactly today's. If that fails the normal SDK send below still runs (without images).
     if (extra && extra.images && extra.images.length) {
         try {
             const sent = await sendSystemEmail({
-                report: { subject: `Spoke Calculation Complete for Order #${orderNumber}`, html: emailHtml, images: extra.images },
+                report: { subject: emailSubject, html: emailHtml, images: extra.images },
                 to: recipientEmail, from: 'Spoke Calculator <calculator@loamlabsusa.com>', replyTo: 'LoamLabs Support <info@loamlabsusa.com>'
             });
             console.log(`✅ Successfully sent email report to ${recipientEmail} (${sent.inline ? 'inline images' : 'text only'}). Resend ID: ${sent.id}`);
@@ -1169,7 +1185,7 @@ export async function sendEmailReport(report, orderData, buildRecipe, extra, opt
             from: 'Spoke Calculator <calculator@loamlabsusa.com>',
             to: [recipientEmail],
             reply_to: 'LoamLabs Support <info@loamlabsusa.com>',
-            subject: `Spoke Calculation Complete for Order #${orderNumber}`,
+            subject: emailSubject,
             html: emailHtml,
         }), resendTimeoutMs(), 'Resend SDK send'); // the SDK takes no signal: the webhook stops waiting after the limit
 
