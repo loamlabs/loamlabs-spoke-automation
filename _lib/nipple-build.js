@@ -95,6 +95,8 @@ export function nippleInfoFor(recipe, pos, cfg, orderData) {
         hexOf, hex: { drive: side.drive.map(hexOf), rotor: side.rotor.map(hexOf) },
         // what to pull by hand: every color with its count; only the cart line's color is deducted by the order
         pull: counts.all.map((c) => ({ color: c.color, n: c.n, inCart: !!cartColor && c.color === cartColor })),
+        // the cart line deducts a full wheel of its color, so every nipple of another color means that many cart-line-color nipples were deducted but not used: put them back
+        putBack: cartColor ? { color: cartColor, n: counts.all.filter((c) => c.color !== cartColor).reduce((s, c) => s + c.n, 0) } : null,
         feeLines: 0, expectedFee: true
       };
       if (cartColor && !counts.all.some((c) => c.color === cartColor)) warnings.push(`${cap(pos)} wheel: the cart nipple line is ${cartColor} but no nipple on the wheel is ${cartColor}.`);
@@ -118,6 +120,8 @@ export function nippleInfoFor(recipe, pos, cfg, orderData) {
 // "Front wheel: Brass Black ×28 (the cart line's color), Brass Silver ×4 (NOT in the cart line: pull from stock)"
 export function pullLineParts(n, times = '×') {
   const items = n.pull.map((p) => `${n.material} ${p.color} ${times}${p.n}${p.inCart ? " (the cart line's color)" : ' (NOT in the cart line: pull from stock)'}`);
-  return { where: `${cap(n.position)} wheel`, rest: items.join(', ') };
+  // "... Put 4 Brass Black back." : the cart line deducted a full wheel of its color, the accent nipples came from other stock
+  const back = n.putBack && n.putBack.n > 0 ? ` Put ${n.putBack.n} ${n.material} ${n.putBack.color} back.` : '';
+  return { where: `${cap(n.position)} wheel`, rest: items.join(', ') + (back ? '.' + back : '') };
 }
 export function nippleSideText(n, side, times = '×') { return n.counts[side].map((c) => `${c.color} ${times}${c.n}`).join(', '); }

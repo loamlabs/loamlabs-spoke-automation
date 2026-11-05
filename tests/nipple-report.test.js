@@ -302,3 +302,21 @@ test('the vendoring headers name the theme commit (9fdb48f) and the drift tests 
   assert.ok(geo.includes('9fdb48f'));
   assert.ok(fs.existsSync(path.join(here, 'studio-nipples-drift.test.js')) && fs.existsSync(path.join(here, 'studio-geometry-drift.test.js')));
 });
+
+/* ------------------------------------------------------------------ put back (Jerry: the pull block says how many cart-line-color nipples to put back) */
+
+test('"Nipples to pull" says how many cart-line-color nipples to put back (internal email and note only, never the customer email, no stock number changed)', async () => {
+  const exp = [[MASTER2, ['Put 4 Brass Black back.']], [BOTH, ['Put 4 Brass Black back.', 'Put 8 Brass Black back.']], [BERD5, ['Put 2 Aluminum Black back.']]];
+  for (const [n, lines] of exp) {
+    const o = order(n), x = await additions(o);
+    for (const l of lines) { assert.ok(x.noteText.includes(l), `${n} note: ${l}`); assert.ok(text(x.html).includes(l), `${n} email: ${l}`); }
+    assert.equal(count(x.noteText, /Put \d+ /g), lines.length, `${n}: one put-back line per mixed wheel`);
+    const c = buildCustomerEmail({ wheels: x.wheels, images: x.images, orderData: o });
+    assert.equal(/put \d+|back\./i.test(text(c.html)), false, `${n}: not in the customer email`);
+  }
+  const r = recipeOf(order(MASTER2)); delete r.components.frontNipples;
+  assert.equal(nippleInfoFor(r, 'front', { drive: { n: 16 }, rotor: { n: 16 } }, null).nipples.putBack, null, 'no cart nipple line, no put-back claim');
+  const none = await additions(order(ONE));
+  assert.equal(/Put \d+|pull/i.test(none.noteText + text(none.html)), false, 'a single color per wheel (even a non-default one): no nipple text, no nipple drawing');
+  assert.equal(none.images.some((i) => i.svg.includes('data-nipples')), false);
+});

@@ -160,7 +160,7 @@ function pullHtml(wheels) {
   return `
         <div class="wheel-section">
             <h3>NIPPLES TO PULL (for the builder, not in the customer email)</h3>
-            <p>The order deducts only the nipple color in the cart line. Every other nipple color below is not deducted: pull it from stock by hand. No stock number was changed.</p>
+            <p>The order deducts only the nipple color in the cart line, and a full wheel of it. Every other nipple color below is not deducted: pull it from stock by hand, and put back the same number of cart-line-color nipples. No stock number was changed.</p>
             ${list.map((w) => { const p = pullLineParts(w.nipples, TIMES_HTML); return `<p style="margin:4px 0;"><strong>${esc(p.where)}:</strong> ${escKeepTimes(p.rest)}</p>`; }).join('')}
         </div>`;
 }
@@ -188,7 +188,7 @@ function noteTextFor(wheels, plans, imageErrors) {
     });
   }
   if (wheels.some((w) => w.nipples)) { // NIPPLE-REPORT
-    note += 'NIPPLES TO PULL (the order deducts only the nipple color in the cart line; every other color is not deducted, pull it by hand):\n';
+    note += 'NIPPLES TO PULL (the order deducts a full wheel of the nipple color in the cart line only; pull every other color by hand and put back the same number of cart-line-color nipples):\n';
     wheels.filter((w) => w.nipples).forEach((w) => { const p = pullLineParts(w.nipples); note += `  ${p.where}: ${p.rest}\n`; });
   }
   if (imageErrors.length) note += `IMAGES:\n- ${imageErrors.join('\n- ')}\n`;
