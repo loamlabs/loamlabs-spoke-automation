@@ -13,9 +13,9 @@
 export const NIPPLE = { width: 0.0069, length: 0.0185, pos: -0.006, minBox: 140, edgeShade: 0.55, edgePx: 0.6, corner: 0.0012, taper: 0, head: 0, headLen: 0.3, darkEdge: '#ffffff', darkEdgeOpacity: 0.4 };
 // the light-nipple test of the Studio's valve (VALVE.lightAbove): luma above this = a light nipple, which gets a darker outline
 export const NIPPLE_LIGHT_ABOVE = 0.5;
-// REPORT ONLY (Jerry, 5 Nov): the order-report pictures draw each nipple 50% wider and 50% longer than the Studio does, so a Silver nipple is easy to spot and a Black one is at least
-// faintly visible. The Studio's own numbers above stay as they are (the drift test pins them); wheelSvg passes this scale, nippleShapes' default of 1 is the Studio's look.
-export const REPORT_NIPPLE_SCALE = 1.5;
+// REPORT ONLY (Jerry, 5 Nov): the order-report pictures draw each nipple 50% wider and 20% longer than the Studio does (first 50% longer; Jerry: "1/5 shorter than they are" = 1.5 x 0.8 = 1.2),
+// so a Silver nipple is easy to spot and a Black one is at least faintly visible. The Studio's own numbers above stay as they are (the drift test pins them); wheelSvg passes this scale, nippleShapes' default of 1 is the Studio's look.
+export const REPORT_NIPPLE_SCALE = { width: 1.5, length: 1.2 };
 
 // Spoke color -> nipple color for "Match my spokes" (Studio default table). Not used by the report; vendored so the drift test can pin the whole nipple contract.
 export const NIPPLE_MATCH = {
@@ -56,12 +56,13 @@ function isVeryDark(hex) {
  * The shapes (no wrapper) of the nipples of one wheel picture: one <rect> per nipple, rotated onto its spoke.
  * list[]: { x, y, ux, uy, hex }, (x, y) = the spoke's rim end point (already tucked `tuck` px under the ring edge), (ux, uy) = the spoke's unit direction towards the rim.
  * Same math as the Studio's ART.nipples (the plain-rectangle branch: the shipped numbers have taper 0 and head 0; a theme change that sets them fails the drift test).
- * scale (default 1 = exactly the Studio's size) multiplies the nipple's width and length. The rim-side end stays where the Studio puts it (behind the rim), so a larger nipple grows
+ * scale (default 1 = exactly the Studio's size) multiplies the nipple's width and length: a number for both, or { width, length }. The rim-side end stays where the Studio puts it (behind the rim), so a larger nipple grows
  * toward the hub: the visible part of the nipple gets longer by the full amount. The 0.6 px outline does not scale.
  */
 export function nippleShapes(box, list, tuck, scale = 1) {
-  const k = Number.isFinite(scale) && scale > 0 ? scale : 1;
-  const w = box * NIPPLE.width * k, len = box * NIPPLE.length * k, mid = box * NIPPLE.pos - (box * NIPPLE.length * (k - 1)) / 2, f = (n) => +n.toFixed(2);
+  const ok = (v) => Number.isFinite(v) && v > 0;
+  const kw = ok(scale) ? scale : (scale && ok(scale.width) ? scale.width : 1), kl = ok(scale) ? scale : (scale && ok(scale.length) ? scale.length : 1);
+  const w = box * NIPPLE.width * kw, len = box * NIPPLE.length * kl, mid = box * NIPPLE.pos - (box * NIPPLE.length * (kl - 1)) / 2, f = (n) => +n.toFixed(2);
   const corner = Math.max(0, box * NIPPLE.corner);
   return list.map((q) => {
     const ex = q.x - q.ux * tuck, ey = q.y - q.uy * tuck, sx = ex + q.ux * (mid - len / 2), sy = ey + q.uy * (mid - len / 2), ang = Math.atan2(q.uy, q.ux) * 180 / Math.PI;

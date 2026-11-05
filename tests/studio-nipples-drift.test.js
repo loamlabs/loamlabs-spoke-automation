@@ -77,9 +77,9 @@ test('the 140 px rule is the theme\'s: no nipples at 139 px, nipples at 140 px, 
   assert.equal(NIPPLE.minBox, 140);
 });
 
-test('report pictures: nipples are 1.5 times wider and longer than the Studio size, rim-side end unchanged; the Studio size (scale 1) and the default are what the tests above pin', (t) => {
+test('report pictures: nipples are 1.5 times wider and 1.2 times longer than the Studio size (Jerry: 1/5 shorter than 1.5), rim-side end unchanged; the Studio size (scale 1) and the default are what the tests above pin', (t) => {
   if (skipLive) { t.skip('LOAM_THEME_DIR=skip'); return; }
-  assert.equal(REPORT_NIPPLE_SCALE, 1.5);
+  assert.deepEqual(REPORT_NIPPLE_SCALE, { width: 1.5, length: 1.2 });
   const src = themeSource(), Studio = loadStudio(src), wheel = WHEELS[0], value = mixedValue(Studio, wheel);
   const rects = (shapes) => [...shapes.matchAll(/<rect x="([-\d.]+)" y="([-\d.]+)" width="([-\d.]+)" height="([-\d.]+)" transform="rotate\(([-\d.]+) ([-\d.]+) ([-\d.]+)\)"/g)].map((m) => m.slice(1).map(Number));
   const studio = rects(themeNipples(Studio, wheel, value, 300).shapes), big = rects(ourNipples(wheel, value, 300, REPORT_NIPPLE_SCALE).shapes);
@@ -87,7 +87,7 @@ test('report pictures: nipples are 1.5 times wider and longer than the Studio si
   assert.equal(big.length, studio.length);
   studio.forEach((a, i) => {
     const b = big[i];
-    assert.ok(Math.abs(b[2] / a[2] - 1.5) < 0.02, 'length 1.5x');
+    assert.ok(Math.abs(b[2] / a[2] - 1.2) < 0.02, 'length 1.2x');
     assert.ok(Math.abs(b[3] / a[3] - 1.5) < 0.03, 'width 1.5x');
     assert.equal(b[4], a[4], 'same angle');
     // the rim-side end (rotation origin + length along the spoke) stays where the Studio has it
