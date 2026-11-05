@@ -1,0 +1,79 @@
+{
+  "_comment": "sha256 of the report pieces of the 7 existing Standard samples, taken from the BASELINE code (main 85ef9b9) by scripts/compare-nipples.mjs --write-baseline; the images are the SVG text per picture (renderer = svg text)",
+  "standard": {
+    "std-steel-wheelset-solid": {
+      "images": [
+        "front-all-spokes:5c68b50f0a369e7e765fb548e1414936f67ce4774e8fe947bbc1cdf8afb5b7f3",
+        "rear-all-spokes:a5165e704e71ceb37e814920ccc6241ff90b81653e331c23eed7dc545bbf5ca7"
+      ],
+      "html": "1c60d652949c39b72ede2a1f013fe3c58e853dda659478e1de9915adab22c2bb",
+      "note": "e864fd3620719d5c893ca639ab3fc0c69e98aa1f2095d78681739969d589ced8",
+      "customer": "0904d164a67f16fa96e1ac6c25be4e9bc34e63ccef5b34c776eea24450a61e38",
+      "warnings": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "std-berd-rear-custom-two-painted": {
+      "images": [
+        "rear-all-spokes:d57de7beb8e5e1e0a7d5c3470cfb0b6cb9aaf1e62f739a616a8621e08a9a7979",
+        "rear-drive-only:6f8c7f9db8d07dcfacb581f2415c17970fedece0649229a333b0a8559489dd7c",
+        "rear-rotor-only:a1a3f95f36d6c9fc39196f888e27f1f018b8804c3821e412e970b2eef4deb929"
+      ],
+      "html": "dee301e1a7832b78db4f226e88e8b23c0de29b720c20edd53e915995ad5829fe",
+      "note": "1c78ae8dd70444063645d6e2c0937037722fa06f50049dfdf8cb90dba6c39201",
+      "customer": "af93382789e1ffa1423a4a146d33c723cbc93c998d4411945fb009b87ffab63e",
+      "warnings": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "std-berd-front-24h-radial-solid-purple": {
+      "images": [
+        "front-all-spokes:e6af1db6fdea700f867ac48013c6e3b41bbbb01e792517c75722200464ba07d1"
+      ],
+      "html": "3f24948cd5520f6ef13c337c16212b67632288dd38478418263d6deb4355603d",
+      "note": "3cba912c74f777087a1b7bf23f62b5400ac03f07dfc638a08093d688aabf2b89",
+      "customer": "53663a26730bec21e78aca7cc561c7060e78a7087968fa2adb328a400de3b322",
+      "warnings": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "std-berd-rear-24h-2cross-custom": {
+      "images": [
+        "rear-all-spokes:66ed2805445e04ffd02fdbcdc54eb1087f718ebae1d69f6c03a79157f1f6866c",
+        "rear-drive-only:8802d548d6b0b167d3e5a5d82db1f9226c6b33d7d3023e81821eeac43942aa2b",
+        "rear-rotor-only:322160886fbc86032e260d1f5797ef4b05aa1ad4855c2a2a235940df10683cb6"
+      ],
+      "html": "81503e4447396a234d0cbba14fd1ab4ebdcdfc24d8c7168e3118262081c5bfaa",
+      "note": "059f773f6834f8a7cf90e90bc5d39a9ef0fea25a4f755fd773834cbb211fdb8e",
+      "customer": "55b433ccb568a253967c304a56a71a63392dccfc4fee65c5b5ddeda9cb8796f5",
+      "warnings": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "std-steel-front-32h-3cross-two-colors": {
+      "images": [
+        "front-all-spokes:c2f8bff592de375bc3833324dbd4ccf9168c37e28f4bfb43e1732d032757a704",
+        "front-rotor-only:5f70b5de103f6083fd7c940bd8120a860819bec7dfdd02a44022eaebebca7cb0",
+        "front-drive-only:ac0242bbf7757f89e3899a157e1772a990d48e998cd82f44db6d5ebebfc51678"
+      ],
+      "html": "7fcb7bb66ce2ec6ccbbbcd0f66e99f691b1062f58b25da8002f10ab8b6d4c45b",
+      "note": "47e06c380238e3020f568551948dbf6f93577bfcc95676433bbb8330897365c3",
+      "customer": "d0f24c8f9d298c1f2f9712a5885fa0722d84f2af3a31d5ab89d2bfe2184c0c22",
+      "warnings": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "std-steel-rear-36h-3cross-custom": {
+      "images": [
+        "rear-all-spokes:45209e4af8d699f3a6b9dcc84215c367d199064a0fb69ae736b586e6ef6fff93",
+        "rear-drive-only:8ab39bea97002ed2e9ef586500294f42df75e2a461888133ba302a1a96b83c1e",
+        "rear-rotor-only:9cb2223261a840caf60841c54241165980ad08f5c39517b1fb1b54b8d07ee3fb"
+      ],
+      "html": "2a05992d0d6ee522ea5c839f21b1c9044878a4914815c4448d58fd4154a261b9",
+      "note": "df3fff5000db348b3e24160f38dd4bd026033a87a47ba3fd740e97617127bf2b",
+      "customer": "e4b8d65250f7404c34ce18f56e8ee3b22f48a51f31fa5444ae6668b417da54c1",
+      "warnings": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    "std-steel-front-28h-3cross-custom": {
+      "images": [
+        "front-all-spokes:7fb12449a9e9b7ee758087e63e035003203c5fb476e8cf4028c44772fe87e6b8",
+        "front-rotor-only:5dff050592f48de3ff2020151e4e1468e9e129af5fd9f50ba16262514bad54df",
+        "front-drive-only:9d0b6d8ea6ed03c8083be9eacf536ed132bc36e7719ed5eb97d9d1ae20fbeb6b"
+      ],
+      "html": "eb80653741e2db5fc93593dd4a58e6bf3c65640ad42db1b3c96f6a022a72639d",
+      "note": "fa6edd8dbede63f03bce04e6fa9460b10d7cdaab00702ed8b296d1252b0a15b2",
+      "customer": "5e921344c57736dc88d3f06797ddb2201c9bb945cf6be20ea217ded29872bb79",
+      "warnings": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    }
+  }
+}

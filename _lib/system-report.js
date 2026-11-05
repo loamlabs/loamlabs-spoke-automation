@@ -77,7 +77,8 @@ export async function renderWheelImages(wheel, renderPng, width) {
   if (wheel.valveColorUnknown) console.log(`I9-SYSTEM: ${unknownValveColorText(wheel.valveColorText)} (${wheel.label} wheel), the default dark valve is drawn`);
   for (const spec of imageSpecsFor(wheel.position, !wheel.isMultiColor, wheel.sideLabels || null)) {
     try {
-      const draw = (r) => wheelSvg({ config: wheel.config, geom, colorsHex, hubHex: wheel.hubColorHex, pov: spec.pov, sides: spec.sides, size: width, ring: r, valveColor: wheel.valveColor, valveLight: wheel.valveLight });
+      // NIPPLE-REPORT: a Standard wheel with mixed nipple colors also gets its nipples drawn (wheel.nipples.hex, one color per spoke); every other wheel passes undefined = as before
+      const draw = (r) => wheelSvg({ config: wheel.config, geom, colorsHex, hubHex: wheel.hubColorHex, pov: spec.pov, sides: spec.sides, size: width, ring: r, valveColor: wheel.valveColor, valveLight: wheel.valveLight, nipples: wheel.nipples ? wheel.nipples.hex : undefined });
       let svg = draw(ring), png;
       try { png = await renderPng(svg, { width }); } catch (e) {
         if (!ring) throw e;
@@ -136,6 +137,20 @@ export function colorRow(label, list, hexOf = hexFor) {
   return `<tr><td>${esc(label)}</td><td>${cells}</td></tr>`;
 }
 
+// NIPPLE-REPORT: the nipple color tables of a Standard wheel with mixed nipples (customer email; the Standard internal email has its own, standard-report.js). '' for every other wheel.
+function nippleTables(w) {
+  const n = w.nipples;
+  if (!n) return '';
+  const side = (w.sideLabels && w.sideLabels.drive) || 'Drive side', other = (w.sideLabels && w.sideLabels.rotor) || 'Rotor side';
+  return `
+            <h4>Nipple Colors</h4>
+            <table class="data-table">
+                ${colorRow(`${side} (${n.drive.length})`, n.counts.drive, n.hexOf)}
+                ${colorRow(`${other} (${n.rotor.length})`, n.counts.rotor, n.hexOf)}
+                ${colorRow(`Whole wheel (${n.total})`, n.counts.all, n.hexOf)}
+            </table>`;
+}
+
 // One wheel section. internal: lengths, fee check, warnings, image-failure lines. customer: component details, color tables and images only.
 function wheelHtml(w, images, imageErrors, opts) {
   const internal = !!(opts && opts.internal), lengths = opts && opts.lengths;
@@ -163,7 +178,7 @@ function wheelHtml(w, images, imageErrors, opts) {
                 ${colorRow(`${(w.sideLabels && w.sideLabels.drive) || 'Drive side'} (${w.colors.drive.length})`, w.counts.drive, w.hexOf)}
                 ${colorRow(`${(w.sideLabels && w.sideLabels.rotor) || 'Rotor side'} (${w.colors.rotor.length})`, w.counts.rotor, w.hexOf)}
                 ${colorRow(`Whole wheel (${w.total})`, w.counts.all, w.hexOf)}
-            </table>
+            </table>${nippleTables(w)}
             ${visual}
             ${internal ? `<p><em>${esc(lengths.text)}</em>${lengths.sourceText ? `<br><span class="caption">${esc(lengths.sourceText)}</span>` : ''}${lengths.internalText ? `<br><span class="caption">${esc(lengths.internalText)}</span>` : ''}</p>` : ''}
             ${warnings}

@@ -93,7 +93,7 @@ async function standardTest(res, body, orderData, recipe) {
     const orderNumber = orderData.order_number != null ? orderData.order_number : 'TEST';
     const summary = {
         ok: true, standard: true, subject: `Spoke Calculation Complete for Order #${orderNumber}`,
-        wheels: extra.wheels.map((w) => ({ position: w.position, spokeProduct: w.spokeProduct, hubColor: w.hubColor, isMultiColor: w.isMultiColor, counts: w.counts, sideLabels: w.sideLabels, expectedFee: w.expectedFee, feeLines: w.feeLines })),
+        wheels: extra.wheels.map((w) => ({ position: w.position, spokeProduct: w.spokeProduct, hubColor: w.hubColor, isMultiColor: w.isMultiColor, counts: w.counts, sideLabels: w.sideLabels, expectedFee: w.expectedFee, feeLines: w.feeLines, nipples: w.nipples ? { counts: w.nipples.counts.all, feeLines: w.nipples.feeLines } : null })), // NIPPLE-REPORT: nipples only for a wheel with mixed nipple colors
         images: extra.images.map((i) => ({ filename: i.filename, cid: i.cid, bytes: i.png.length, caption: i.caption })),
         imageErrors: extra.imageErrors, warnings: extra.warnings,
         paintPlans: extra.paintPlans, lengths: Object.fromEntries(['front', 'rear'].filter((p) => buildReport[p] && buildReport[p].calculationSuccessful).map((p) => [p, { left: buildReport[p].lengths.left.rounded, right: buildReport[p].lengths.right.rounded }])),

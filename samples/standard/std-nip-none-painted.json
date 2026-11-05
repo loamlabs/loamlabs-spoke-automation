@@ -1,0 +1,423 @@
+{
+  "id": 6000091105,
+  "admin_graphql_api_id": "gid://shopify/Order/6000091105",
+  "order_number": 91105,
+  "name": "#91105",
+  "email": "customer@example.com",
+  "customer": {
+    "first_name": "Alex",
+    "last_name": "Sample",
+    "email": "customer@example.com"
+  },
+  "note": null,
+  "location_id": null,
+  "financial_status": "paid",
+  "line_items": [
+    {
+      "id": 15010,
+      "title": "LoamLabs Custom Wheel Build",
+      "name": "LoamLabs Custom Wheel Build",
+      "variant_title": null,
+      "quantity": 1,
+      "price": "0.00",
+      "sku": null,
+      "product_id": null,
+      "variant_id": 51500432228659,
+      "properties": [
+        {
+          "name": "_BuildID",
+          "value": "X"
+        },
+        {
+          "name": "_bundle_id",
+          "value": "X"
+        },
+        {
+          "name": "_is_custom_wheel_build",
+          "value": "true"
+        },
+        {
+          "name": "_EstLeadTime",
+          "value": "Approx. 2-3 Weeks"
+        },
+        {
+          "name": "_build",
+          "value": "{\"step\":3,\"buildType\":\"Wheel Set\",\"ridingStyle\":\"mtb\",\"ridingStyleDisplay\":\"Mountain\",\"spokeInterface\":\"standard\",\"system\":null,\"standardStudio\":{\"v\":1,\"studioOpened\":true,\"studio\":{\"v\":1,\"hubColor\":{\"front\":\"Black (Anodized)\"},\"base\":{\"front\":{\"drive\":\"Black\",\"rotor\":\"Black\"}},\"spokes\":{\"front\":{\"drive\":[\"Silver\",\"Silver\",\"Black\",\"Black\",\"Black\",\"Black\",\"Black\",\"Black\",\"Black\",\"Black\",\"Black\",\"Black\",\"Black\",\"Black\",\"Black\",\"Black\"],\"rotor\":[\"Black\",\"Black\",\"Black\",\"Black\",\"Black\",\"Black\",\"Black\",\"Black\",\"Black\",\"Black\",\"Black\",\"Black\",\"Black\",\"Black\",\"Black\",\"Black\"]}},\"accent\":\"Silver\"},\"wheels\":{\"front\":{\"drive\":{\"n\":16,\"pcd\":41.6,\"cross\":3},\"rotor\":{\"n\":16,\"pcd\":41.6,\"cross\":3},\"erd\":599,\"sideLabels\":{\"drive\":\"Right side\",\"rotor\":\"Left side\"}},\"rear\":{\"drive\":{\"n\":16,\"pcd\":60,\"cross\":3},\"rotor\":{\"n\":16,\"pcd\":60,\"cross\":3},\"erd\":599,\"sideLabels\":{\"drive\":\"Drive side\",\"rotor\":\"Non-drive side\"}}},\"colors\":{\"Silver\":\"#c3c8cf\",\"Black\":\"#1d1f23\",\"Black (Anodized)\":\"#1d1f23\"},\"paint\":{\"blank\":\"White Berd\",\"wheels\":{\"front\":{\"paintColors\":[]},\"rear\":{\"paintColors\":[]}}}},\"customerSupplied\":{\"front\":{\"rim\":false,\"hub\":false},\"rear\":{\"rim\":false,\"hub\":false}},\"specs\":{\"frontWheelSize\":\"29\\\"\",\"rearWheelSize\":\"29\\\"\",\"frontSpokeCount\":\"32h\",\"rearSpokeCount\":\"32h\",\"brakeStyle\":\"6-Bolt\",\"frontHubSpacing\":\"20x110mm (Boost)\",\"rearHubSpacing\":\"12x150mm\",\"freehubType\":\"XD\",\"systemHub\":null},\"components\":{\"frontRim\":{\"variantId\":\"gid://shopify/ProductVariant/51797703328051\",\"title\":\"Reserve 30|DH Carbon Rim\",\"variantTitle\":\"29\\\" / 32h / Black\",\"sku\":null,\"price\":64900,\"vendor\":\"Reserve\",\"spokeCount\":\"32h\",\"wheelSize\":\"29\\\"\",\"selectedOptions\":[{\"name\":\"Size\",\"value\":\"29\\\"\"},{\"name\":\"Spoke Count\",\"value\":\"32h\"},{\"name\":\"Color\",\"value\":\"Black\"}],\"rimDepth\":20,\"internal_width_mm\":30,\"quantityAvailable\":0,\"leadTimeDays\":6,\"wheelModel\":\"Carbon\",\"weight_g\":645,\"rim_erd\":\"599.0\",\"freehubVariantMap\":{},\"availableFreehubs\":[]},\"rearRim\":{\"variantId\":\"gid://shopify/ProductVariant/51797703328051\",\"title\":\"Reserve 30|DH Carbon Rim\",\"variantTitle\":\"29\\\" / 32h / Black\",\"sku\":null,\"price\":64900,\"vendor\":\"Reserve\",\"selectedOptions\":[{\"name\":\"Size\",\"value\":\"29\\\"\"},{\"name\":\"Spoke Count\",\"value\":\"32h\"},{\"name\":\"Color\",\"value\":\"Black\"}],\"quantityAvailable\":0,\"leadTimeDays\":6,\"wheelModel\":\"Carbon\",\"weight_g\":645,\"spokeCount\":\"32h\",\"wheelSize\":\"29\\\"\",\"rimDepth\":20,\"internal_width_mm\":30,\"rim_erd\":\"599.0\"},\"frontHub\":{\"variantId\":\"gid://shopify/ProductVariant/51798763241779\",\"title\":\"Onyx Vesper Boost Front Hub - 6-Bolt - 20x110mm\",\"variantTitle\":\"32h / Black (Anodized)\",\"sku\":null,\"price\":24500,\"vendor\":\"Onyx Racing\",\"spec_spoke_count\":\"32h\",\"spec_brake_interface\":[\"6-Bolt\"],\"spec_hub_spacing\":\"20x110mm (Boost)\",\"spec_freehub\":null,\"selectedOptions\":[{\"name\":\"Spoke Count\",\"value\":\"32h\"},{\"name\":\"Color\",\"value\":\"Black (Anodized)\"}],\"leadTimeDays\":9,\"wheelModel\":\"Onyx Vesper \",\"quantityAvailable\":0,\"weight_g\":170},\"rearHub\":{\"variantId\":\"gid://shopify/ProductVariant/51798803841331\",\"title\":\"Onyx Vesper Rear Hub - 6-Bolt - 12x150mm\",\"variantTitle\":\"32h / Black (Anodized)\",\"sku\":null,\"price\":55000,\"vendor\":\"Onyx Racing\",\"selectedOptions\":[{\"name\":\"Spoke Count\",\"value\":\"32h\"},{\"name\":\"Color\",\"value\":\"Black (Anodized)\"}],\"quantityAvailable\":0,\"leadTimeDays\":9,\"wheelModel\":\"Onyx Vesper \",\"weight_g\":411,\"spec_spoke_count\":\"32h\",\"spec_brake_interface\":[\"6-Bolt\"],\"spec_hub_spacing\":\"12x150mm\",\"spec_freehub\":\"XD\"},\"frontSpokes\":{\"variantId\":\"gid://shopify/ProductVariant/51484533031219\",\"title\":\"Sapim Race Spokes- J-Bend\",\"variantTitle\":\"Black / -\",\"sku\":\"SPOKE-SAP-RACE-BLK\",\"price\":5499,\"vendor\":\"Sapim\",\"selectedOptions\":[{\"name\":\"Color\",\"value\":\"Black\"},{\"name\":\"Length\",\"value\":\"-\"}],\"quantityAvailable\":-35,\"leadTimeDays\":0,\"wheelModel\":\"Sapim Race - J-Bend (Trail/Enduro/DH)\",\"selectedColor\":\"Black\",\"weight_g\":5.95},\"rearSpokes\":{\"variantId\":\"gid://shopify/ProductVariant/51484533031219\",\"title\":\"Sapim Race Spokes- J-Bend\",\"variantTitle\":\"Black / -\",\"sku\":\"SPOKE-SAP-RACE-BLK\",\"price\":5499,\"vendor\":\"Sapim\",\"selectedOptions\":[{\"name\":\"Color\",\"value\":\"Black\"},{\"name\":\"Length\",\"value\":\"-\"}],\"quantityAvailable\":-35,\"leadTimeDays\":0,\"wheelModel\":\"Sapim Race - J-Bend (Trail/Enduro/DH)\",\"weight_g\":5.95,\"selectedColor\":\"Black\"},\"frontNipples\":{\"variantId\":\"gid://shopify/ProductVariant/51476658979123\",\"title\":\"Sapim Brass Nipples\",\"variantTitle\":\"Black\",\"sku\":\"NIP-SAP-BRS-BLK\",\"price\":1998.9999999999998,\"vendor\":\"Sapim\",\"selectedOptions\":[{\"name\":\"Color\",\"value\":\"Black\"}],\"quantityAvailable\":49,\"leadTimeDays\":0,\"weight_g\":1.22},\"rearNipples\":{\"variantId\":\"gid://shopify/ProductVariant/51476658979123\",\"title\":\"Sapim Brass Nipples\",\"variantTitle\":\"Black\",\"sku\":\"NIP-SAP-BRS-BLK\",\"price\":1998.9999999999998,\"vendor\":\"Sapim\",\"selectedOptions\":[{\"name\":\"Color\",\"value\":\"Black\"}],\"quantityAvailable\":49,\"leadTimeDays\":0,\"weight_g\":1.22},\"frontValveStem\":{\"variantId\":\"gid://shopify/ProductVariant/47228020195635\",\"title\":\"Reserve Fillmore Valve Stem\",\"variantTitle\":\"Black / 50mm\",\"sku\":null,\"price\":3099,\"vendor\":\"Reserve\",\"selectedOptions\":[{\"name\":\"Color\",\"value\":\"Black\"},{\"name\":\"Length\",\"value\":\"50mm\"}],\"selectedWithRimDepth\":20,\"valveMinDepth\":14,\"valveMaxDepth\":32,\"quantityAvailable\":-4,\"leadTimeDays\":4,\"weight_g\":9},\"rearValveStem\":{\"variantId\":\"gid://shopify/ProductVariant/47228020195635\",\"title\":\"Reserve Fillmore Valve Stem\",\"variantTitle\":\"Black / 50mm\",\"sku\":null,\"price\":3099,\"vendor\":\"Reserve\",\"selectedOptions\":[{\"name\":\"Color\",\"value\":\"Black\"},{\"name\":\"Length\",\"value\":\"50mm\"}],\"selectedWithRimDepth\":20,\"valveMinDepth\":14,\"valveMaxDepth\":32,\"quantityAvailable\":-4,\"leadTimeDays\":4,\"weight_g\":9},\"rearComponentFreehub\":{\"variantId\":\"gid://shopify/ProductVariant/51752460255539\",\"title\":\"Onyx Freehub\",\"variantTitle\":\"XD\",\"price\":0,\"name\":\"Onyx Freehub - XD\",\"weight_g\":null},\"frontRequiredAddons\":[{\"name\":\"Custom Spoke Color Configuration (Mixed colors)\",\"price\":25,\"variantGid\":\"gid://shopify/ProductVariant/67791816196403\",\"costInCents\":2500,\"ssFee\":true,\"feeType\":\"mixed\"},{\"name\":\"Custom Nipple Color Configuration (Mixed nipple colors)\",\"price\":15,\"variantGid\":\"gid://shopify/ProductVariant/67928782668083\",\"costInCents\":1500,\"ssFee\":true,\"nipFee\":true,\"feeType\":\"nipples\"}],\"frontAssemblyService\":{\"variantGid\":\"gid://shopify/ProductVariant/51504906666291\",\"name\":\"Assembly Service\",\"price\":80,\"costInCents\":8000},\"frontTubelessTape\":{\"variantGid\":\"gid://shopify/ProductVariant/51561220669747\",\"name\":\"Tubeless Tape (Installed)\",\"price\":0,\"costInCents\":0},\"rearRequiredAddons\":[],\"rearAssemblyService\":{\"variantGid\":\"gid://shopify/ProductVariant/51504906666291\",\"name\":\"Assembly Service\",\"price\":80,\"costInCents\":8000},\"rearTubelessTape\":{\"variantGid\":\"gid://shopify/ProductVariant/51561220669747\",\"name\":\"Tubeless Tape (Installed)\",\"price\":0,\"costInCents\":0}},\"selectedOptionalAddons\":{},\"buildId\":\"X\",\"_ui\":{\"activeVendor\":{\"frontRim\":\"Reserve\",\"rearRim\":\"Reserve\",\"frontHub\":\"Onyx Racing\",\"rearHub\":\"Onyx Racing\",\"frontSpokes\":\"Sapim\",\"rearSpokes\":\"Sapim\",\"frontNipples\":\"Sapim\",\"rearNipples\":\"Sapim\",\"frontValveStem\":\"Reserve\",\"rearValveStem\":\"Reserve\"},\"valveStemExplicitlyRemoved\":{\"front\":false,\"rear\":false},\"step2AutoSelected\":{}}}"
+        },
+        {
+          "name": "Front Spoke Colors",
+          "value": "Black ×30, Silver ×2"
+        },
+        {
+          "name": "Front Drive Side",
+          "value": "1 Silver, 2 Silver, 3 Black, 4 Black, 5 Black, 6 Black, 7 Black, 8 Black, 9 Black, 10 Black, 11 Black, 12 Black, 13 Black, 14 Black, 15 Black, 16 Black"
+        },
+        {
+          "name": "Front Rotor Side",
+          "value": "1 Black, 2 Black, 3 Black, 4 Black, 5 Black, 6 Black, 7 Black, 8 Black, 9 Black, 10 Black, 11 Black, 12 Black, 13 Black, 14 Black, 15 Black, 16 Black"
+        }
+      ]
+    },
+    {
+      "id": 15000,
+      "title": "Onyx Freehub",
+      "name": "Onyx Freehub - XD",
+      "variant_title": "XD",
+      "quantity": 1,
+      "price": "0.00",
+      "sku": null,
+      "product_id": null,
+      "variant_id": 51752460255539,
+      "properties": [
+        {
+          "name": "_BuildID",
+          "value": "X"
+        },
+        {
+          "name": "_bundle_id",
+          "value": "X"
+        },
+        {
+          "name": "Wheel",
+          "value": "Rear"
+        },
+        {
+          "name": "Component",
+          "value": "Freehub"
+        }
+      ]
+    },
+    {
+      "id": 15001,
+      "title": "Onyx Vesper Rear Hub - 6-Bolt - 12x150mm",
+      "name": "Onyx Vesper Rear Hub - 6-Bolt - 12x150mm - 32h / Black (Anodized)",
+      "variant_title": "32h / Black (Anodized)",
+      "quantity": 1,
+      "price": "550.00",
+      "sku": null,
+      "product_id": null,
+      "variant_id": 51798803841331,
+      "properties": [
+        {
+          "name": "_BuildID",
+          "value": "X"
+        },
+        {
+          "name": "_bundle_id",
+          "value": "X"
+        },
+        {
+          "name": "Wheel",
+          "value": "Rear"
+        },
+        {
+          "name": "_Freehub_Type",
+          "value": "XD"
+        }
+      ]
+    },
+    {
+      "id": 15002,
+      "title": "Custom Spoke Color Configuration",
+      "name": "Custom Spoke Color Configuration - Mixed colors",
+      "variant_title": "Mixed colors",
+      "quantity": 1,
+      "price": "25.00",
+      "sku": null,
+      "product_id": null,
+      "variant_id": 67791816196403,
+      "properties": [
+        {
+          "name": "_BuildID",
+          "value": "X"
+        },
+        {
+          "name": "_bundle_id",
+          "value": "X"
+        },
+        {
+          "name": "Wheel",
+          "value": "Front"
+        }
+      ]
+    },
+    {
+      "id": 15003,
+      "title": "Tubeless Tape (Installed)",
+      "name": "Tubeless Tape (Installed)",
+      "variant_title": null,
+      "quantity": 2,
+      "price": "0.00",
+      "sku": null,
+      "product_id": null,
+      "variant_id": 51561220669747,
+      "properties": [
+        {
+          "name": "_BuildID",
+          "value": "X"
+        },
+        {
+          "name": "_bundle_id",
+          "value": "X"
+        },
+        {
+          "name": "Wheel",
+          "value": "Front/Rear"
+        }
+      ]
+    },
+    {
+      "id": 15004,
+      "title": "Assembly Service",
+      "name": "Assembly Service - 80.00",
+      "variant_title": "80.00",
+      "quantity": 2,
+      "price": "80.00",
+      "sku": null,
+      "product_id": null,
+      "variant_id": 51504906666291,
+      "properties": [
+        {
+          "name": "_BuildID",
+          "value": "X"
+        },
+        {
+          "name": "_bundle_id",
+          "value": "X"
+        },
+        {
+          "name": "Wheel",
+          "value": "Front/Rear"
+        }
+      ]
+    },
+    {
+      "id": 15005,
+      "title": "Reserve Fillmore Valve Stem",
+      "name": "Reserve Fillmore Valve Stem - Black / 50mm",
+      "variant_title": "Black / 50mm",
+      "quantity": 2,
+      "price": "30.99",
+      "sku": null,
+      "product_id": null,
+      "variant_id": 47228020195635,
+      "properties": [
+        {
+          "name": "_BuildID",
+          "value": "X"
+        },
+        {
+          "name": "_bundle_id",
+          "value": "X"
+        },
+        {
+          "name": "Wheel",
+          "value": "Front/Rear"
+        }
+      ]
+    },
+    {
+      "id": 15006,
+      "title": "Sapim Brass Nipples",
+      "name": "Sapim Brass Nipples - Black",
+      "variant_title": "Black",
+      "quantity": 2,
+      "price": "19.99",
+      "sku": null,
+      "product_id": null,
+      "variant_id": 51476658979123,
+      "properties": [
+        {
+          "name": "_BuildID",
+          "value": "X"
+        },
+        {
+          "name": "_bundle_id",
+          "value": "X"
+        },
+        {
+          "name": "Wheel",
+          "value": "Front/Rear"
+        }
+      ]
+    },
+    {
+      "id": 15007,
+      "title": "Sapim Race Spokes- J-Bend",
+      "name": "Sapim Race Spokes- J-Bend - Black / -",
+      "variant_title": "Black / -",
+      "quantity": 2,
+      "price": "54.99",
+      "sku": null,
+      "product_id": null,
+      "variant_id": 51484533031219,
+      "properties": [
+        {
+          "name": "_BuildID",
+          "value": "X"
+        },
+        {
+          "name": "_bundle_id",
+          "value": "X"
+        },
+        {
+          "name": "Wheel",
+          "value": "Front/Rear"
+        }
+      ]
+    },
+    {
+      "id": 15008,
+      "title": "Onyx Vesper Boost Front Hub - 6-Bolt - 20x110mm",
+      "name": "Onyx Vesper Boost Front Hub - 6-Bolt - 20x110mm - 32h / Black (Anodized)",
+      "variant_title": "32h / Black (Anodized)",
+      "quantity": 1,
+      "price": "245.00",
+      "sku": null,
+      "product_id": null,
+      "variant_id": 51798763241779,
+      "properties": [
+        {
+          "name": "_BuildID",
+          "value": "X"
+        },
+        {
+          "name": "_bundle_id",
+          "value": "X"
+        },
+        {
+          "name": "Wheel",
+          "value": "Front"
+        }
+      ]
+    },
+    {
+      "id": 15009,
+      "title": "Reserve 30|DH Carbon Rim",
+      "name": "Reserve 30|DH Carbon Rim - 29\" / 32h / Black",
+      "variant_title": "29\" / 32h / Black",
+      "quantity": 2,
+      "price": "649.00",
+      "sku": null,
+      "product_id": null,
+      "variant_id": 51797703328051,
+      "properties": [
+        {
+          "name": "_BuildID",
+          "value": "X"
+        },
+        {
+          "name": "_bundle_id",
+          "value": "X"
+        },
+        {
+          "name": "Wheel",
+          "value": "Front/Rear"
+        }
+      ]
+    }
+  ],
+  "_sample": {
+    "name": "std-nip-none-painted",
+    "description": "DERIVED from the real master 2 cart: front spokes painted (spoke fee Mixed colors) but no nipple painting and no nipple fee line, the nipples are the cart line (Brass Black)",
+    "metafields": {
+      "gid://shopify/ProductVariant/51797703328051": {
+        "lead_time_days": "6",
+        "pairing_key": "reserve-30dh",
+        "rim_depth_mm": "20.0",
+        "wheel_spec_model": "Carbon",
+        "rim_spoke_hole_offset": "3.6",
+        "rim_target_tension_kgf": "120",
+        "rim_washer_policy": "Optional",
+        "nipple_washer_thickness": "0.0",
+        "rim_wall": "double",
+        "pre_configured_wheel_rules": "[{\"name\":\"LoamLabs Reserve 30|HD + Onyx Vesper\",\"pairedRimProductId\":\"gid://shopify/Product/9716654899507\",\"requiredFrontHubProductId\":\"gid://shopify/Product/9792788300083\",\"requiredRearHubProductId\":\"gid://shopify/Product/9792809926963\",\"requiredSpokeProductId\":\"gid://shopify/Product/9737461760307\",\"masterVariantGid\":\"gid://shopify/ProductVariant/67884205539635\",\"hubColors\":[\"Black (Anodized)\"],\"spokeColors\":[\"Black\"],\"valves\":\"extra\",\"freehubLine\":true},{\"name\":\"LoamLabs Reserve 30|DH + Onyx Vesper\",\"pairedRimProductId\":\"gid://shopify/Product/9804627542323\",\"requiredFrontHubProductId\":\"gid://shopify/Product/9794307293491\",\"requiredRearHubProductId\":\"gid://shopify/Product/9794307883315\",\"requiredSpokeProductId\":\"gid://shopify/Product/9737461760307\",\"masterVariantGid\":\"gid://shopify/ProductVariant/67884207014195\",\"hubColors\":[\"Black (Anodized)\"],\"spokeColors\":[\"Black\"],\"valves\":\"extra\",\"freehubLine\":true,\"frontWheelSize\":\"29\\\"\",\"rearWheelSize\":\"29\\\"\"},{\"name\":\"LoamLabs Reserve 30|DH Mullet + Onyx Vesper\",\"pairedRimProductId\":\"gid://shopify/Product/9804627542323\",\"requiredFrontHubProductId\":\"gid://shopify/Product/9794307293491\",\"requiredRearHubProductId\":\"gid://shopify/Product/9794307883315\",\"requiredSpokeProductId\":\"gid://shopify/Product/9737461760307\",\"masterVariantGid\":\"gid://shopify/ProductVariant/67884207341875\",\"hubColors\":[\"Black (Anodized)\"],\"spokeColors\":[\"Black\"],\"valves\":\"extra\",\"freehubLine\":true,\"frontWheelSize\":\"29\\\"\",\"rearWheelSize\":\"27.5\\\"\"}]",
+        "wheel_spec_rim_size": "[\"29\\\"\"]",
+        "wheel_spec_position": "Front/Rear",
+        "wheel_spec_internal_width_mm": "30",
+        "rim_erd": "599.0",
+        "weight_g": "645.0",
+        "i9_system_allowed": "true",
+        "_parent_product_id": "gid://shopify/Product/9804627542323"
+      },
+      "gid://shopify/ProductVariant/51798763241779": {
+        "vendor_logo": "gid://shopify/MediaImage/35395102441779",
+        "wheel_spec_model": "Onyx Vesper ",
+        "hub_flange_diameter_left": "41.6",
+        "hub_flange_diameter_right": "41.6",
+        "hub_flange_offset_left": "27.0",
+        "hub_flange_offset_right": "42.0",
+        "hub_spoke_hole_diameter": "2.6",
+        "lead_time_days": "9",
+        "optional_addon_gids": "[\"gid://shopify/Product/8800704233779\"]",
+        "pairing_key": "onyx-vesper",
+        "hub_type": "Classic Flange",
+        "weight_g": "170.0",
+        "wheel_spec_position": "Front",
+        "wheel_spec_hub_spacing": "20x110mm (Boost)",
+        "wheel_spec_brake_interface": "[\"6-Bolt\"]",
+        "_parent_product_id": "gid://shopify/Product/9794307293491"
+      },
+      "gid://shopify/ProductVariant/51798803841331": {
+        "wheel_spec_model": "Onyx Vesper ",
+        "vendor_logo": "gid://shopify/MediaImage/35395102441779",
+        "freehub_variant_map": "{\"MS\":\"gid://shopify/ProductVariant/51752460321075\",\"XD\":\"gid://shopify/ProductVariant/51752460255539\",\"HG\":\"gid://shopify/ProductVariant/51752460288307\",\"XD-R\":\"gid://shopify/ProductVariant/51752460353843\",\"HG-R\":\"gid://shopify/ProductVariant/51752460386611\",\"Campy N3W\":\"gid://shopify/ProductVariant/51752460419379\"}",
+        "freehub": "[\"XD\",\"XD-R\",\"HG\",\"HG-R\",\"MS\",\"Campy N3W\"]",
+        "hub_flange_diameter_left": "60.0",
+        "hub_flange_diameter_right": "60.0",
+        "hub_flange_offset_left": "40.15",
+        "hub_flange_offset_right": "26.97",
+        "hub_spoke_hole_diameter": "2.6",
+        "lead_time_days": "9",
+        "optional_addon_gids": "[\"gid://shopify/Product/8800704233779\"]",
+        "pairing_key": "onyx-vesper",
+        "hub_type": "Classic Flange",
+        "weight_g": "411.0",
+        "wheel_spec_position": "Rear",
+        "wheel_spec_hub_spacing": "12x150mm",
+        "wheel_spec_brake_interface": "[\"6-Bolt\"]",
+        "_parent_product_id": "gid://shopify/Product/9794307883315"
+      },
+      "gid://shopify/ProductVariant/51484533031219": {
+        "wheel_spec_model": "Sapim Race - J-Bend (Trail/Enduro/DH)",
+        "pairing_key": "sapim-race-jbend",
+        "vendor_logo": "gid://shopify/MediaImage/41041667621171",
+        "lead_time_days": "0",
+        "spoke_type": "Steel",
+        "spoke_cross_section_area_mm2": "2.545",
+        "spoke_model_group": "Sapim Race",
+        "inventory_alert_threshold": "[40]",
+        "inventory_monitoring_enabled": "true",
+        "weight_g": "5.95",
+        "spoke_diameter_spec": "2.0 / 1.8 / 2.0mm",
+        "spoke_hub_interface": "J-Bend",
+        "historical_order_count": "37",
+        "_parent_product_id": "gid://shopify/Product/9737461760307"
+      },
+      "gid://shopify/ProductVariant/51476658979123": {
+        "pairing_key": "sapim-brass-nipples",
+        "wheel_spec_model": "Sapim Brass Nipples",
+        "vendor_logo": "gid://shopify/MediaImage/41041667621171",
+        "lead_time_days": "0",
+        "rim_compatible_nipple_types": "[\"External\"]",
+        "weight_g": "1.22",
+        "historical_order_count": "47",
+        "_parent_product_id": "gid://shopify/Product/9737493905715"
+      },
+      "gid://shopify/ProductVariant/47228020195635": {
+        "vendor_logo": "gid://shopify/MediaImage/42074500825395",
+        "wheel_spec_model": "Reserve Fillmore Tubeless Valve",
+        "pairing_key": "fillmore-tubeless-valve",
+        "lead_time_days": "4",
+        "optional_addon_gids": "[\"gid://shopify/Product/8762385826099\"]",
+        "valve_min_rim_depth_mm": "14",
+        "valve_max_rim_depth_mm": "32",
+        "weight_g": "9.0",
+        "_parent_product_id": "gid://shopify/Product/8762384023859"
+      },
+      "gid://shopify/ProductVariant/51752460255539": {
+        "_parent_product_id": "gid://shopify/Product/9799037124915"
+      }
+    }
+  }
+}

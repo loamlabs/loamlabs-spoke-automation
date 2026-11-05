@@ -19,6 +19,12 @@ import stdBerdRear24Cross2 from './standard/std-berd-rear-24h-2cross-custom.json
 import stdSteelFront32Cross3 from './standard/std-steel-front-32h-3cross-two-colors.json' with { type: 'json' };
 import stdSteelRear36Cross3 from './standard/std-steel-rear-36h-3cross-custom.json' with { type: 'json' };
 import stdSteelFront28Cross3 from './standard/std-steel-front-28h-3cross-custom.json' with { type: 'json' };
+// NIPPLE-REPORT: Release 15 nipple colors (3 real carts, 2 derived from a real cart; see scripts/make-nipple-samples.mjs)
+import nipMaster2Front4Silver from './standard/std-nip-master2-front4-silver.json' with { type: 'json' };
+import nipBothWheels from './standard/std-nip-both-wheels-painted-both-fees.json' with { type: 'json' };
+import nipBerd5 from './standard/std-nip-berd5-aluminum-matched.json' with { type: 'json' };
+import nipOneColor from './standard/std-nip-one-color-no-fee.json' with { type: 'json' };
+import nipNonePainted from './standard/std-nip-none-painted.json' with { type: 'json' };
 
 export const SYSTEM_SAMPLES = {
   'solix-24h-wheelset-multicolor': solix24,
@@ -45,5 +51,10 @@ export const STANDARD_STUDIO_SAMPLES = {
   'std-berd-rear-24h-2cross-custom': stdBerdRear24Cross2,
   'std-steel-front-32h-3cross-two-colors': stdSteelFront32Cross3,
   'std-steel-rear-36h-3cross-custom': stdSteelRear36Cross3,
-  'std-steel-front-28h-3cross-custom': stdSteelFront28Cross3
+  'std-steel-front-28h-3cross-custom': stdSteelFront28Cross3,
+  'std-nip-master2-front4-silver': nipMaster2Front4Silver,
+  'std-nip-both-wheels-painted-both-fees': nipBothWheels,
+  'std-nip-berd5-aluminum-matched': nipBerd5,
+  'std-nip-one-color-no-fee': nipOneColor,
+  'std-nip-none-painted': nipNonePainted
 };

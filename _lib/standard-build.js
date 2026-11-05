@@ -24,6 +24,7 @@ import {
 
 import { ringKeyForRim } from './rim-rings.js'; // round 12: which photo rim ring a wheel's pictures get
 import { valveFieldsFor } from './valve-colors.js'; // round 15: the valve stem color the customer chose
+import { nippleInfoFor } from './nipple-build.js'; // NIPPLE-REPORT: nipple colors (Release 15)
 
 export const STANDARD_FEE_NAME = SYSTEM_FEE.name;                // the existing fee product, "Custom Spoke Color Configuration"
 export const STANDARD_FEE_VARIANTS = { mixed: 'Mixed colors', painted: 'Berd painted color', multi: 'Berd multi-color' };
@@ -237,6 +238,9 @@ export function standardWheels(recipe, componentData, orderData) {
       else if (expectedFee && feeLines.length > 0 && !feeLines.some((li) => String(li.variant_title || '').includes(expectedFee))) warnings.push(`${cap(pos)} wheel: the fee line is "${clip(feeLines[0].variant_title, 40)}" but the fee rule expects "${expectedFee}".`);
       if (feeLines.length > 1) warnings.push(`${cap(pos)} wheel: the order has ${feeLines.length} fee lines for this wheel (one expected).`);
     }
+    // NIPPLE-REPORT: mixed nipple colors and the nipple fee cross-check (null / no warning for every build without nipple data, so older orders read exactly as before)
+    const nip = nippleInfoFor(recipe, pos, cfg, orderData);
+    warnings.push(...nip.warnings);
     const total = cfg.rimHoles;
     return {
       standard: true, position: pos, label: cap(pos),
@@ -251,7 +255,8 @@ export function standardWheels(recipe, componentData, orderData) {
       total, config: wc.cfg ? cfg : null, drawConfig: cfg, sideLabels: wc.sideLabels,
       colors, counts, isMultiColor, warnings,
       feeLines: feeLines.length, cartCounts: cartCounts || {}, expectedFee, berdType,
-      paintColors: paintColors || [], blank
+      paintColors: paintColors || [], blank,
+      nipples: nip.nipples // NIPPLE-REPORT: null unless the wheel has mixed nipples
     };
   });
 }

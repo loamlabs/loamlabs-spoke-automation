@@ -1,0 +1,465 @@
+{
+  "id": 6000091103,
+  "admin_graphql_api_id": "gid://shopify/Order/6000091103",
+  "order_number": 91103,
+  "name": "#91103",
+  "email": "customer@example.com",
+  "customer": {
+    "first_name": "Alex",
+    "last_name": "Sample",
+    "email": "customer@example.com"
+  },
+  "note": null,
+  "location_id": null,
+  "financial_status": "paid",
+  "line_items": [
+    {
+      "id": 15011,
+      "title": "LoamLabs Custom Wheel Build",
+      "name": "LoamLabs Custom Wheel Build",
+      "variant_title": null,
+      "quantity": 1,
+      "price": "0.00",
+      "sku": null,
+      "product_id": null,
+      "variant_id": 51500432228659,
+      "properties": [
+        {
+          "name": "_BuildID",
+          "value": "X"
+        },
+        {
+          "name": "_bundle_id",
+          "value": "X"
+        },
+        {
+          "name": "_is_custom_wheel_build",
+          "value": "true"
+        },
+        {
+          "name": "_EstLeadTime",
+          "value": "Approx. 3-4 Weeks"
+        },
+        {
+          "name": "_build",
+          "value": "{\"step\":3,\"buildType\":\"Wheel Set\",\"ridingStyle\":\"mtb\",\"ridingStyleDisplay\":\"Mountain\",\"spokeInterface\":\"standard\",\"system\":null,\"standardStudio\":{\"v\":1,\"studioOpened\":true,\"studio\":{\"v\":1,\"hubColor\":{\"front\":\"Black\"},\"base\":{\"front\":{\"drive\":\"Black Berd\",\"rotor\":\"Black Berd\"}},\"spokes\":{\"front\":{\"drive\":[\"Blue Berd\",\"Blue Berd\",\"Black Berd\",\"Black Berd\",\"Black Berd\",\"Black Berd\",\"Black Berd\",\"Black Berd\",\"Black Berd\",\"Black Berd\",\"Black Berd\",\"Black Berd\",\"Black Berd\",\"Black Berd\"],\"rotor\":[\"Black Berd\",\"Black Berd\",\"Black Berd\",\"Black Berd\",\"Black Berd\",\"Black Berd\",\"Black Berd\",\"Black Berd\",\"Black Berd\",\"Black Berd\",\"Black Berd\",\"Black Berd\",\"Black Berd\",\"Black Berd\"]}},\"accent\":\"Blue Berd\",\"nipples\":{\"front\":{\"drive\":[\"Blue\",\"Blue\",\"Black\",\"Black\",\"Black\",\"Black\",\"Black\",\"Black\",\"Black\",\"Black\",\"Black\",\"Black\",\"Black\",\"Black\"],\"rotor\":[\"Black\",\"Black\",\"Black\",\"Black\",\"Black\",\"Black\",\"Black\",\"Black\",\"Black\",\"Black\",\"Black\",\"Black\",\"Black\",\"Black\"]}},\"nbase\":{\"front\":{\"drive\":\"Black\",\"rotor\":\"Black\"}},\"naccent\":\"Silver\"},\"wheels\":{\"front\":{\"drive\":{\"n\":14,\"pcd\":44,\"cross\":3},\"rotor\":{\"n\":14,\"pcd\":44,\"cross\":3},\"erd\":602,\"sideLabels\":{\"drive\":\"Right side\",\"rotor\":\"Left side\"}},\"rear\":{\"drive\":{\"n\":14,\"pcd\":64,\"cross\":3},\"rotor\":{\"n\":14,\"pcd\":60,\"cross\":3},\"erd\":602,\"sideLabels\":{\"drive\":\"Drive side\",\"rotor\":\"Non-drive side\"}}},\"colors\":{\"Blue Berd\":\"#1f62d6\",\"Black Berd\":\"#1d1f23\",\"Black\":\"#1d1f23\",\"Blue\":\"#244d90\"},\"paint\":{\"blank\":\"White Berd\",\"wheels\":{\"front\":{\"paintColors\":[\"Blue Berd\",\"Flamingo Pink\",\"Mallard Green\",\"Martin Purple\",\"Oriole Orange\",\"Robin Red\"]},\"rear\":{\"paintColors\":[\"Blue Berd\",\"Flamingo Pink\",\"Mallard Green\",\"Martin Purple\",\"Oriole Orange\",\"Robin Red\"]}}}},\"customerSupplied\":{\"front\":{\"rim\":false,\"hub\":false},\"rear\":{\"rim\":false,\"hub\":false}},\"specs\":{\"frontWheelSize\":\"29\\\"\",\"rearWheelSize\":\"29\\\"\",\"frontSpokeCount\":\"28h\",\"rearSpokeCount\":\"28h\",\"brakeStyle\":\"Centerlock\",\"frontHubSpacing\":\"15x110mm\",\"rearHubSpacing\":\"12x148mm (Boost)\",\"freehubType\":\"XD\",\"systemHub\":null},\"components\":{\"frontRim\":{\"variantId\":\"gid://shopify/ProductVariant/51797704671539\",\"title\":\"DT Swiss XRC 310 Carbon Rim\",\"variantTitle\":\"29\\\" / 28h / Black\",\"sku\":null,\"price\":65627,\"vendor\":\"DT Swiss\",\"spokeCount\":\"28h\",\"wheelSize\":\"29\\\"\",\"selectedOptions\":[{\"name\":\"Size\",\"value\":\"29\\\"\"},{\"name\":\"Spoke Count\",\"value\":\"28h\"},{\"name\":\"Color\",\"value\":\"Black\"}],\"rimDepth\":20,\"internal_width_mm\":30,\"quantityAvailable\":0,\"leadTimeDays\":5,\"wheelModel\":\"Carbon\",\"weight_g\":373,\"rim_erd\":\"602.0\",\"freehubVariantMap\":{},\"availableFreehubs\":[]},\"rearRim\":{\"variantId\":\"gid://shopify/ProductVariant/51797704671539\",\"title\":\"DT Swiss XRC 310 Carbon Rim\",\"variantTitle\":\"29\\\" / 28h / Black\",\"sku\":null,\"price\":65627,\"vendor\":\"DT Swiss\",\"selectedOptions\":[{\"name\":\"Size\",\"value\":\"29\\\"\"},{\"name\":\"Spoke Count\",\"value\":\"28h\"},{\"name\":\"Color\",\"value\":\"Black\"}],\"quantityAvailable\":0,\"leadTimeDays\":5,\"wheelModel\":\"Carbon\",\"weight_g\":373,\"spokeCount\":\"28h\",\"wheelSize\":\"29\\\"\",\"rimDepth\":20,\"internal_width_mm\":30,\"rim_erd\":\"602.0\"},\"frontHub\":{\"variantId\":\"gid://shopify/ProductVariant/51702258991411\",\"title\":\"Berd Talon Front Hub - Centerlock - 15x110mm\",\"variantTitle\":\"28h / Black\",\"sku\":\"BO3002\",\"price\":14900,\"vendor\":\"Berd\",\"spec_spoke_count\":\"28h\",\"spec_brake_interface\":[\"Centerlock\"],\"spec_hub_spacing\":\"15x110mm\",\"spec_freehub\":null,\"selectedOptions\":[{\"name\":\"Spoke Count\",\"value\":\"28h\"},{\"name\":\"Color\",\"value\":\"Black\"}],\"leadTimeDays\":13,\"wheelModel\":\"Talon\",\"quantityAvailable\":0,\"weight_g\":156},\"rearHub\":{\"variantId\":\"gid://shopify/ProductVariant/51702261580083\",\"title\":\"Berd Talon Rear Hub - Centerlock - 12x148mm\",\"variantTitle\":\"28h / Black\",\"sku\":null,\"price\":39900,\"vendor\":\"Berd\",\"selectedOptions\":[{\"name\":\"Spoke Count\",\"value\":\"28h\"},{\"name\":\"Color\",\"value\":\"Black\"}],\"quantityAvailable\":0,\"leadTimeDays\":13,\"wheelModel\":\"Berd Talon\",\"weight_g\":311,\"spec_spoke_count\":\"28h\",\"spec_brake_interface\":[\"Centerlock\"],\"spec_hub_spacing\":\"12x148mm (Boost)\",\"spec_freehub\":\"XD\"},\"frontSpokes\":{\"variantId\":\"gid://shopify/ProductVariant/52962864038195\",\"title\":\"Berd PolyLightX Spokes\",\"variantTitle\":\"Black Berd / -\",\"sku\":null,\"price\":42999,\"vendor\":\"Berd\",\"selectedOptions\":[{\"name\":\"Color\",\"value\":\"Black Berd\"},{\"name\":\"Length\",\"value\":\"-\"}],\"quantityAvailable\":-2,\"leadTimeDays\":10,\"wheelModel\":\"Berd PolyLightX (Extreme) - HOOK FLANGE ONLY\",\"selectedColor\":\"Black Berd\",\"weight_g\":3.5},\"rearSpokes\":{\"variantId\":\"gid://shopify/ProductVariant/52962864038195\",\"title\":\"Berd PolyLightX Spokes\",\"variantTitle\":\"Black Berd / -\",\"sku\":null,\"price\":42999,\"vendor\":\"Berd\",\"selectedOptions\":[{\"name\":\"Color\",\"value\":\"Black Berd\"},{\"name\":\"Length\",\"value\":\"-\"}],\"quantityAvailable\":-2,\"leadTimeDays\":10,\"wheelModel\":\"Berd PolyLightX (Extreme) - HOOK FLANGE ONLY\",\"weight_g\":3.5,\"selectedColor\":\"Black Berd\"},\"frontNipples\":{\"variantId\":\"gid://shopify/ProductVariant/51476712554803\",\"title\":\"Sapim Aluminum Nipples\",\"variantTitle\":\"Black\",\"sku\":\"NIP-SAP-ALU-BLK\",\"price\":2599,\"vendor\":\"Sapim\",\"selectedOptions\":[{\"name\":\"Color\",\"value\":\"Black\"}],\"quantityAvailable\":42,\"leadTimeDays\":0,\"weight_g\":0.39},\"rearNipples\":{\"variantId\":\"gid://shopify/ProductVariant/51476712554803\",\"title\":\"Sapim Aluminum Nipples\",\"variantTitle\":\"Black\",\"sku\":\"NIP-SAP-ALU-BLK\",\"price\":2599,\"vendor\":\"Sapim\",\"selectedOptions\":[{\"name\":\"Color\",\"value\":\"Black\"}],\"quantityAvailable\":42,\"leadTimeDays\":0,\"weight_g\":0.39},\"frontValveStem\":{\"variantId\":\"gid://shopify/ProductVariant/47228020195635\",\"title\":\"Reserve Fillmore Valve Stem\",\"variantTitle\":\"Black / 50mm\",\"sku\":null,\"price\":3099,\"vendor\":\"Reserve\",\"selectedOptions\":[{\"name\":\"Color\",\"value\":\"Black\"},{\"name\":\"Length\",\"value\":\"50mm\"}],\"selectedWithRimDepth\":20,\"valveMinDepth\":14,\"valveMaxDepth\":32,\"quantityAvailable\":-4,\"leadTimeDays\":4,\"weight_g\":9},\"rearValveStem\":{\"variantId\":\"gid://shopify/ProductVariant/47228020195635\",\"title\":\"Reserve Fillmore Valve Stem\",\"variantTitle\":\"Black / 50mm\",\"sku\":null,\"price\":3099,\"vendor\":\"Reserve\",\"selectedOptions\":[{\"name\":\"Color\",\"value\":\"Black\"},{\"name\":\"Length\",\"value\":\"50mm\"}],\"selectedWithRimDepth\":20,\"valveMinDepth\":14,\"valveMaxDepth\":32,\"quantityAvailable\":-4,\"leadTimeDays\":4,\"weight_g\":9},\"rearComponentFreehub\":{\"variantId\":\"gid://shopify/ProductVariant/51752114618675\",\"title\":\"Berd Talon Freehub\",\"variantTitle\":\"XD\",\"price\":0,\"name\":\"Berd Talon Freehub - XD\",\"weight_g\":null},\"frontRequiredAddons\":[{\"name\":\"Custom Spoke Color Configuration (Berd painted color)\",\"price\":35,\"variantGid\":\"gid://shopify/ProductVariant/67803454931251\",\"costInCents\":3500,\"ssFee\":true,\"feeType\":\"painted\"},{\"name\":\"Custom Nipple Color Configuration (Mixed nipple colors)\",\"price\":15,\"variantGid\":\"gid://shopify/ProductVariant/67928782668083\",\"costInCents\":1500,\"ssFee\":true,\"nipFee\":true,\"feeType\":\"nipples\"}],\"frontAssemblyService\":{\"variantGid\":\"gid://shopify/ProductVariant/51504906600755\",\"name\":\"Assembly Service\",\"price\":60,\"costInCents\":6000},\"frontTubelessTape\":{\"variantGid\":\"gid://shopify/ProductVariant/51561220669747\",\"name\":\"Tubeless Tape (Installed)\",\"price\":0,\"costInCents\":0},\"rearRequiredAddons\":[],\"rearAssemblyService\":{\"variantGid\":\"gid://shopify/ProductVariant/51504906600755\",\"name\":\"Assembly Service\",\"price\":60,\"costInCents\":6000},\"rearTubelessTape\":{\"variantGid\":\"gid://shopify/ProductVariant/51561220669747\",\"name\":\"Tubeless Tape (Installed)\",\"price\":0,\"costInCents\":0}},\"selectedOptionalAddons\":{},\"buildId\":\"X\",\"_ui\":{\"activeVendor\":{\"frontRim\":\"DT Swiss\",\"rearRim\":\"DT Swiss\",\"frontHub\":\"Berd\",\"rearHub\":\"Berd\",\"frontSpokes\":\"Berd\",\"rearSpokes\":\"Berd\",\"frontNipples\":\"Sapim\",\"rearNipples\":\"Sapim\",\"frontValveStem\":\"Reserve\",\"rearValveStem\":\"Reserve\"},\"valveStemExplicitlyRemoved\":{\"front\":false,\"rear\":false},\"step2AutoSelected\":{}}}"
+        },
+        {
+          "name": "Front Spoke Colors",
+          "value": "Black Berd ×26, Blue Berd ×2"
+        },
+        {
+          "name": "Front Drive Side",
+          "value": "1 Blue Berd, 2 Blue Berd, 3 Black Berd, 4 Black Berd, 5 Black Berd, 6 Black Berd, 7 Black Berd, 8 Black Berd, 9 Black Berd, 10 Black Berd, 11 Black Berd, 12 Black Berd, 13 Black Berd, 14 Black Berd"
+        },
+        {
+          "name": "Front Rotor Side",
+          "value": "1 Black Berd, 2 Black Berd, 3 Black Berd, 4 Black Berd, 5 Black Berd, 6 Black Berd, 7 Black Berd, 8 Black Berd, 9 Black Berd, 10 Black Berd, 11 Black Berd, 12 Black Berd, 13 Black Berd, 14 Black Berd"
+        },
+        {
+          "name": "Front Nipple Colors",
+          "value": "Black ×26, Blue ×2"
+        },
+        {
+          "name": "Front Nipples Drive Side",
+          "value": "1 Blue, 2 Blue, 3 Black, 4 Black, 5 Black, 6 Black, 7 Black, 8 Black, 9 Black, 10 Black, 11 Black, 12 Black, 13 Black, 14 Black"
+        },
+        {
+          "name": "Front Nipples Rotor Side",
+          "value": "1 Black, 2 Black, 3 Black, 4 Black, 5 Black, 6 Black, 7 Black, 8 Black, 9 Black, 10 Black, 11 Black, 12 Black, 13 Black, 14 Black"
+        }
+      ]
+    },
+    {
+      "id": 15000,
+      "title": "Berd Talon Freehub",
+      "name": "Berd Talon Freehub - XD",
+      "variant_title": "XD",
+      "quantity": 1,
+      "price": "0.00",
+      "sku": null,
+      "product_id": null,
+      "variant_id": 51752114618675,
+      "properties": [
+        {
+          "name": "_BuildID",
+          "value": "X"
+        },
+        {
+          "name": "_bundle_id",
+          "value": "X"
+        },
+        {
+          "name": "Wheel",
+          "value": "Rear"
+        },
+        {
+          "name": "Component",
+          "value": "Freehub"
+        }
+      ]
+    },
+    {
+      "id": 15001,
+      "title": "Berd Talon Rear Hub - Centerlock - 12x148mm",
+      "name": "Berd Talon Rear Hub - Centerlock - 12x148mm - 28h / Black",
+      "variant_title": "28h / Black",
+      "quantity": 1,
+      "price": "399.00",
+      "sku": null,
+      "product_id": null,
+      "variant_id": 51702261580083,
+      "properties": [
+        {
+          "name": "_BuildID",
+          "value": "X"
+        },
+        {
+          "name": "_bundle_id",
+          "value": "X"
+        },
+        {
+          "name": "Wheel",
+          "value": "Rear"
+        },
+        {
+          "name": "_Freehub_Type",
+          "value": "XD"
+        }
+      ]
+    },
+    {
+      "id": 15002,
+      "title": "Custom Nipple Color Configuration",
+      "name": "Custom Nipple Color Configuration - Mixed nipple colors",
+      "variant_title": "Mixed nipple colors",
+      "quantity": 1,
+      "price": "15.00",
+      "sku": null,
+      "product_id": null,
+      "variant_id": 67928782668083,
+      "properties": [
+        {
+          "name": "_BuildID",
+          "value": "X"
+        },
+        {
+          "name": "_bundle_id",
+          "value": "X"
+        },
+        {
+          "name": "Wheel",
+          "value": "Front"
+        }
+      ]
+    },
+    {
+      "id": 15003,
+      "title": "Custom Spoke Color Configuration",
+      "name": "Custom Spoke Color Configuration - Berd painted color",
+      "variant_title": "Berd painted color",
+      "quantity": 1,
+      "price": "35.00",
+      "sku": null,
+      "product_id": null,
+      "variant_id": 67803454931251,
+      "properties": [
+        {
+          "name": "_BuildID",
+          "value": "X"
+        },
+        {
+          "name": "_bundle_id",
+          "value": "X"
+        },
+        {
+          "name": "Wheel",
+          "value": "Front"
+        }
+      ]
+    },
+    {
+      "id": 15004,
+      "title": "Tubeless Tape (Installed)",
+      "name": "Tubeless Tape (Installed)",
+      "variant_title": null,
+      "quantity": 2,
+      "price": "0.00",
+      "sku": null,
+      "product_id": null,
+      "variant_id": 51561220669747,
+      "properties": [
+        {
+          "name": "_BuildID",
+          "value": "X"
+        },
+        {
+          "name": "_bundle_id",
+          "value": "X"
+        },
+        {
+          "name": "Wheel",
+          "value": "Front/Rear"
+        }
+      ]
+    },
+    {
+      "id": 15005,
+      "title": "Assembly Service",
+      "name": "Assembly Service - 60.00",
+      "variant_title": "60.00",
+      "quantity": 2,
+      "price": "60.00",
+      "sku": null,
+      "product_id": null,
+      "variant_id": 51504906600755,
+      "properties": [
+        {
+          "name": "_BuildID",
+          "value": "X"
+        },
+        {
+          "name": "_bundle_id",
+          "value": "X"
+        },
+        {
+          "name": "Wheel",
+          "value": "Front/Rear"
+        }
+      ]
+    },
+    {
+      "id": 15006,
+      "title": "Reserve Fillmore Valve Stem",
+      "name": "Reserve Fillmore Valve Stem - Black / 50mm",
+      "variant_title": "Black / 50mm",
+      "quantity": 2,
+      "price": "30.99",
+      "sku": null,
+      "product_id": null,
+      "variant_id": 47228020195635,
+      "properties": [
+        {
+          "name": "_BuildID",
+          "value": "X"
+        },
+        {
+          "name": "_bundle_id",
+          "value": "X"
+        },
+        {
+          "name": "Wheel",
+          "value": "Front/Rear"
+        }
+      ]
+    },
+    {
+      "id": 15007,
+      "title": "Sapim Aluminum Nipples",
+      "name": "Sapim Aluminum Nipples - Black",
+      "variant_title": "Black",
+      "quantity": 2,
+      "price": "25.99",
+      "sku": null,
+      "product_id": null,
+      "variant_id": 51476712554803,
+      "properties": [
+        {
+          "name": "_BuildID",
+          "value": "X"
+        },
+        {
+          "name": "_bundle_id",
+          "value": "X"
+        },
+        {
+          "name": "Wheel",
+          "value": "Front/Rear"
+        }
+      ]
+    },
+    {
+      "id": 15008,
+      "title": "Berd PolyLightX Spokes",
+      "name": "Berd PolyLightX Spokes - Black Berd / -",
+      "variant_title": "Black Berd / -",
+      "quantity": 2,
+      "price": "429.99",
+      "sku": null,
+      "product_id": null,
+      "variant_id": 52962864038195,
+      "properties": [
+        {
+          "name": "_BuildID",
+          "value": "X"
+        },
+        {
+          "name": "_bundle_id",
+          "value": "X"
+        },
+        {
+          "name": "Wheel",
+          "value": "Front/Rear"
+        }
+      ]
+    },
+    {
+      "id": 15009,
+      "title": "Berd Talon Front Hub - Centerlock - 15x110mm",
+      "name": "Berd Talon Front Hub - Centerlock - 15x110mm - 28h / Black",
+      "variant_title": "28h / Black",
+      "quantity": 1,
+      "price": "149.00",
+      "sku": null,
+      "product_id": null,
+      "variant_id": 51702258991411,
+      "properties": [
+        {
+          "name": "_BuildID",
+          "value": "X"
+        },
+        {
+          "name": "_bundle_id",
+          "value": "X"
+        },
+        {
+          "name": "Wheel",
+          "value": "Front"
+        }
+      ]
+    },
+    {
+      "id": 15010,
+      "title": "DT Swiss XRC 310 Carbon Rim",
+      "name": "DT Swiss XRC 310 Carbon Rim - 29\" / 28h / Black",
+      "variant_title": "29\" / 28h / Black",
+      "quantity": 2,
+      "price": "656.27",
+      "sku": null,
+      "product_id": null,
+      "variant_id": 51797704671539,
+      "properties": [
+        {
+          "name": "_BuildID",
+          "value": "X"
+        },
+        {
+          "name": "_bundle_id",
+          "value": "X"
+        },
+        {
+          "name": "Wheel",
+          "value": "Front/Rear"
+        }
+      ]
+    }
+  ],
+  "_sample": {
+    "name": "std-nip-berd5-aluminum-matched",
+    "description": "REAL Release 15 cart: master 5 (DT XRC 310 + Berd Talon + PolyLightX) with Aluminum nipples; 2 front spokes Blue Berd and the 2 matching nipples Blue (Berd painted color fee + nipple fee on the front)",
+    "metafields": {
+      "gid://shopify/ProductVariant/51797704671539": {
+        "lead_time_days": "5",
+        "pairing_key": "dtswiss-XRC310",
+        "rim_depth_mm": "20.0",
+        "wheel_spec_model": "Carbon",
+        "rim_spoke_hole_offset": "4.0",
+        "rim_target_tension_kgf": "120",
+        "rim_washer_policy": "Optional",
+        "nipple_washer_thickness": "0.0",
+        "out_of_stock_action": "Make Unavailable (Track Inventory)",
+        "rim_wall": "double",
+        "pre_configured_wheel_rules": "[{\"name\":\"LoamLabs DT Swiss XRC 310 + Berd Talon Berd\",\"pairedRimProductId\":\"gid://shopify/Product/9781463417139\",\"requiredFrontHubProductId\":\"gid://shopify/Product/8479410782515\",\"requiredRearHubProductId\":\"gid://shopify/Product/9783184064819\",\"requiredSpokeProductId\":\"gid://shopify/Product/10057325281587\",\"masterVariantGid\":\"gid://shopify/ProductVariant/67884209799475\",\"hubColors\":[\"Black\"],\"spokeColors\":[\"Black Berd\"],\"valves\":\"extra\",\"freehubLine\":true}]",
+        "wheel_spec_rim_size": "[\"29\\\"\"]",
+        "wheel_spec_position": "Front/Rear",
+        "wheel_spec_internal_width_mm": "30",
+        "rim_erd": "602.0",
+        "bti_part_number": "DT1516",
+        "weight_g": "373.0",
+        "i9_system_allowed": "true",
+        "_parent_product_id": "gid://shopify/Product/9781463417139"
+      },
+      "gid://shopify/ProductVariant/51702258991411": {
+        "wheel_spec_model": "Talon",
+        "pairing_key": "berd-talon",
+        "lead_time_days": "13",
+        "hub_flange_diameter_left": "44.0",
+        "hub_flange_diameter_right": "44.0",
+        "hub_flange_offset_left": "28.0",
+        "hub_flange_offset_right": "40.0",
+        "hub_type": "Hook Flange",
+        "weight_g": "156.0",
+        "hub_lacing_policy": "Use Manual Override Field",
+        "out_of_stock_action": "Make Unavailable (Track Inventory)",
+        "hub_spoke_hole_diameter": "2.6",
+        "wheel_spec_position": "Front",
+        "wheel_spec_brake_interface": "[\"Centerlock\"]",
+        "wheel_spec_hub_spacing": "15x110mm",
+        "hub_manual_cross_vavlue": "3.0",
+        "hub_manual_cross_value": "3.0",
+        "historical_order_count": "0",
+        "_parent_product_id": "gid://shopify/Product/8479410782515"
+      },
+      "gid://shopify/ProductVariant/51702261580083": {
+        "lead_time_days": "13",
+        "pairing_key": "berd-talon",
+        "wheel_spec_model": "Berd Talon",
+        "freehub": "[\"XD\",\"HG\",\"MS\"]",
+        "freehub_variant_map": "{\"XD\":\"gid://shopify/ProductVariant/51752114618675\",\"HG\":\"gid://shopify/ProductVariant/51752114651443\",\"MS\":\"gid://shopify/ProductVariant/51752114684211\"}",
+        "hub_flange_diameter_left": "60.0",
+        "hub_flange_diameter_right": "64.0",
+        "hub_flange_offset_left": "41.0",
+        "hub_flange_offset_right": "22.0",
+        "hub_type": "Hook Flange",
+        "weight_g": "311.0",
+        "hub_lacing_policy": "Use Manual Override Field",
+        "out_of_stock_action": "Make Unavailable (Track Inventory)",
+        "hub_spoke_hole_diameter": "2.6",
+        "wheel_spec_brake_interface": "[\"Centerlock\"]",
+        "wheel_spec_hub_spacing": "12x148mm (Boost)",
+        "wheel_spec_position": "Rear",
+        "hub_manual_cross_vavlue": "2.75",
+        "hub_manual_cross_value": "2.75",
+        "_parent_product_id": "gid://shopify/Product/9783184064819"
+      },
+      "gid://shopify/ProductVariant/52962864038195": {
+        "inventory_alert_threshold": "[0]",
+        "lead_time_days": "10",
+        "pairing_key": "berd-polylightx",
+        "spoke_diameter_spec": "2.7mm Braided UHMWPE",
+        "spoke_model_group": "Berd PolyLightX",
+        "spoke_type": "Berd",
+        "vendor_logo": "gid://shopify/MediaImage/35395327295795",
+        "weight_g": "3.5",
+        "wheel_spec_model": "Berd PolyLightX (Extreme) - HOOK FLANGE ONLY",
+        "spoke_hub_interface": "Hook Flange",
+        "inventory_monitoring_enabled": "false",
+        "_parent_product_id": "gid://shopify/Product/10057325281587"
+      },
+      "gid://shopify/ProductVariant/51476712554803": {
+        "pairing_key": "sapim-aluminum-nipples",
+        "wheel_spec_model": "Sapim Aluminum Nipples",
+        "vendor_logo": "gid://shopify/MediaImage/41041667621171",
+        "lead_time_days": "0",
+        "rim_compatible_nipple_types": "[\"External\"]",
+        "weight_g": "0.39",
+        "historical_order_count": "32",
+        "_parent_product_id": "gid://shopify/Product/9737495216435"
+      },
+      "gid://shopify/ProductVariant/47228020195635": {
+        "vendor_logo": "gid://shopify/MediaImage/42074500825395",
+        "wheel_spec_model": "Reserve Fillmore Tubeless Valve",
+        "pairing_key": "fillmore-tubeless-valve",
+        "lead_time_days": "4",
+        "optional_addon_gids": "[\"gid://shopify/Product/8762385826099\"]",
+        "valve_min_rim_depth_mm": "14",
+        "valve_max_rim_depth_mm": "32",
+        "weight_g": "9.0",
+        "_parent_product_id": "gid://shopify/Product/8762384023859"
+      },
+      "gid://shopify/ProductVariant/51752114618675": {
+        "_parent_product_id": "gid://shopify/Product/9798980927795"
+      }
+    }
+  }
+}

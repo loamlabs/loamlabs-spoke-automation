@@ -5,6 +5,7 @@
 //
 // Every spoke is drawn at full color and full opacity: there is NO fading and no alpha anywhere in the SVG (no opacity attributes, no
 // rgba(), no stop-opacity), so tests can assert that the output carries none.
+// (NIPPLE-REPORT: the one exception is inside <g data-nipples>, the Studio's own pale outline of a very dark nipple, stroke-opacity 0.4; no spoke is ever faded.)
 //
 //   wheelSvg({ config, geom, colorsHex, hubHex, pov, sides, size })
 //     config    { erd, drive: { n, pcd }, rotor: { n, pcd } }            (the Studio wheel config, see _lib/system-build.js wheelConfigFor)
@@ -15,6 +16,9 @@
 //     sides     which sides' spokes are drawn: ['drive'] | ['rotor'] | ['drive','rotor'] (default both). The viewed side is drawn on top.
 //     size      box width/height in px (default 600)
 //     arrow     false leaves out the rolling-forward arrow (default: drawn)
+//     nipples   optional { drive: ['#hex' ...], rotor: [...] }, one nipple color per spoke (same index k as colorsHex): nipples are drawn at the rim end of each drawn spoke
+//               (_lib/studio-nipples.js, the Studio's own shapes), BEHIND the rim: order spokes / nipples / ring / valve stem / hub. Pictures narrower than 140 px draw none, as in the
+//               Studio. Without this option the output is exactly what it was before.
 //     ring      optional photo rim ring { key, href (data URI), ...geometry } (_lib/rim-rings.js loadRing): drawn instead of the stroked circle, spoke ends on its inner
 //               ellipse, order spokes / ring / valve stem / hub. Without it the output is exactly what it was before round 12.
 //
@@ -30,6 +34,7 @@
 // it sits just outside the rim, inside the box, and is drawn as <g data-roll="cw|ccw"> so tests can find it.
 
 import { ringLayout } from './rim-rings.js';
+import { NIPPLE, nippleShapes } from './studio-nipples.js'; // NIPPLE-REPORT: the Studio's nipple drawing
 
 export const RIM_COLOR = '#3b4148';   // .lls-preview .lls-rim (light) and --rim of the light theme
 export const ARROW_COLOR = '#2a6fd0';  // medium blue, solid (the Studio's --rollarrow #0b57c4 / #6db2ff, without the fade)
@@ -94,6 +99,9 @@ export function wheelSvg(o) {
   const ss = Number.isFinite(o.spokeScale) && o.spokeScale > 0 ? o.spokeScale : (L ? RING_SPOKE_SCALE : 1);
   const th = Math.max(2 * ss, 3 * box / 522 * ss), e = th > 2.5 ? 1 : 0.5, halo = th + 2 * e;
   let spokes = '';
+  // NIPPLE-REPORT: the nipples of the drawn sides, collected in the Studio's order (sides back to front, spoke number inside a side); none on a picture narrower than NIPPLE.minBox
+  const nipHex = o.nipples && typeof o.nipples === 'object' && box >= NIPPLE.minBox ? o.nipples : null;
+  const nips = [];
   sides.forEach((side) => {
     const rh = wh[side].pcd / 2 * scale;
     let lines = '';
@@ -107,6 +115,8 @@ export function wheelSvg(o) {
       const [x2, y2] = L ? L.end(a2 * 180 / Math.PI) : [c + rimR * Math.sin(a2), c - rimR * Math.cos(a2)];
       const hex = (o.colorsHex && o.colorsHex[side] && o.colorsHex[side][k]) || '#8a9099';
       const pos = ` x1="${f(x1)}" y1="${f(y1)}" x2="${f(x2)}" y2="${f(y2)}"`;
+      const nh = nipHex && nipHex[side] ? nipHex[side][k] : null;
+      if (nh) { const ul = Math.hypot(x2 - x1, y2 - y1) || 1; nips.push({ side, k, x: x2, y: y2, ux: (x2 - x1) / ul, uy: (y2 - y1) / ul, hex: nh }); }
       lines += `<line${pos} stroke="${EDGE_COLOR}" stroke-width="${f(halo)}"/>` +
         `<line${pos} stroke="${esc(hex)}" stroke-width="${f(th)}"/>`;
     });
@@ -132,14 +142,19 @@ export function wheelSvg(o) {
   // hub disc (drawn over the spokes, like the Studio) and its cap; the Studio's white shine is a lighter opaque center here
   const hr = Math.max(wh.drive.pcd, wh.rotor.pcd) / 2 * scale + box * 0.012, hubBorder = Math.max(1.5, box * 0.008), cr = hr * 0.4;
   const hubHex = o.hubHex || '#8a9099';
+  // NIPPLE-REPORT: with nipples the layer order is the Studio's: spokes, nipples, rim (photo ring or plain circle), valve stem. The nipples sit BEHIND the rim, so the rim covers
+  // their rim-side end; the spoke end point is tucked under a photo ring by L.tuck px, which the nipple placement takes back out (no tuck for the plain circle).
+  nips.sort((a, b) => (sides.indexOf(a.side) - sides.indexOf(b.side)) || (a.k - b.k));
+  const nipLayer = nips.length ? `<g data-nipples="${nips.length}">${nippleShapes(box, nips, L ? L.tuck : 0)}</g>` : '';
+  const plainRim = `<circle cx="${f(c)}" cy="${f(c)}" r="${f(ro - bw / 2)}" fill="none" stroke="${RIM_COLOR}" stroke-width="${f(bw)}"/>`;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${box}" height="${box}" viewBox="0 0 ${box} ${box}">` +
     `<defs>` +
     `<linearGradient id="stem" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#8d949d"/><stop offset="0.5" stop-color="#e3e7ec"/><stop offset="1" stop-color="#8d949d"/></linearGradient>` +
     `<radialGradient id="hubshine" cx="0.35" cy="0.30" r="0.75"><stop offset="0" stop-color="${mixHex(hubHex, '#ffffff', 0.55)}"/><stop offset="0.7" stop-color="${hubHex}"/><stop offset="1" stop-color="${hubHex}"/></radialGradient>` +
     `</defs>` +
     `<rect width="${box}" height="${box}" fill="#ffffff"/>` +
-    (L ? spokes + ringImg + stem
-      : `<circle cx="${f(c)}" cy="${f(c)}" r="${f(ro - bw / 2)}" fill="none" stroke="${RIM_COLOR}" stroke-width="${f(bw)}"/>` + stem + spokes) +
+    (L ? spokes + nipLayer + ringImg + stem
+      : nipLayer ? spokes + nipLayer + plainRim + stem : plainRim + stem + spokes) +
     `<circle cx="${f(c)}" cy="${f(c)}" r="${f(hr - hubBorder / 2)}" fill="url(#hubshine)" stroke="#4a4d52" stroke-width="${f(hubBorder)}"/>` +
     `<circle cx="${f(c)}" cy="${f(c)}" r="${f(cr - 0.5)}" fill="#1d2127" stroke="#6b6f73" stroke-width="1"/>` +
     (o.arrow === false ? '' : rollArrow(box, ro, pov === 'rotor')) +

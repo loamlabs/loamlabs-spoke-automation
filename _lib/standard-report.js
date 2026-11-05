@@ -13,6 +13,7 @@ import { standardWheels } from './standard-build.js';
 import { renderWheelImages, IMAGE_WIDTH_PX } from './system-report.js';
 import { svgToPng } from './wheel-png.js';
 import { clip } from './system-build.js';
+import { pullLineParts, nippleSideText, NIPPLE_FEE } from './nipple-build.js'; // NIPPLE-REPORT: nipple colors (Release 15)
 
 const TIMES = '×';
 const TIMES_HTML = '&times;';
@@ -107,6 +108,21 @@ function swatchRow(label, list, hexOf) {
   return `<tr><td>${esc(label)}</td><td>${cells}</td></tr>`;
 }
 
+// NIPPLE-REPORT: the nipple color table of a wheel with mixed nipples, '' for every other wheel (so older orders keep their exact HTML)
+function nippleBlockHtml(w) {
+  const n = w.nipples;
+  if (!n) return '';
+  const fee = n.feeLines ? `${n.feeLines} ${TIMES_HTML} ${esc(NIPPLE_FEE.name)} line on the order` : 'expected, none found on the order';
+  return `
+            <h4>${esc(w.label.toUpperCase())} WHEEL NIPPLES (${esc(n.product)}, ${n.total})</h4>
+            <table class="data-table">
+                ${swatchRow(`${w.sideLabels.drive} (${n.drive.length})`, n.counts.drive, n.hexOf)}
+                ${swatchRow(`${w.sideLabels.rotor} (${n.rotor.length})`, n.counts.rotor, n.hexOf)}
+                ${swatchRow(`Whole wheel (${n.total})`, n.counts.all, n.hexOf)}
+                <tr><td>Nipple color fee</td><td>${fee}</td></tr>
+            </table>`;
+}
+
 function wheelColorsHtml(w, images, imageErrors) {
   const imgs = images.filter((i) => i.position === w.position);
   const errs = imageErrors.filter((e) => e.startsWith(`${w.label} wheel`));
@@ -120,7 +136,7 @@ function wheelColorsHtml(w, images, imageErrors) {
                 ${swatchRow(`${w.sideLabels.drive} (${w.colors.drive.length})`, w.counts.drive, w.hexOf)}
                 ${swatchRow(`${w.sideLabels.rotor} (${w.colors.rotor.length})`, w.counts.rotor, w.hexOf)}
                 ${swatchRow(`Whole wheel (${w.total})`, w.counts.all, w.hexOf)}
-            </table>
+            </table>${nippleBlockHtml(w)}
             ${solidLine}${pics}${failed}${warn}`;
 }
 
@@ -137,6 +153,18 @@ function paintHtml(plans) {
         </div>`;
 }
 
+// NIPPLE-REPORT: "Nipples to pull" for the builder: accent-color nipples are not a cart line, so the order does not deduct them. One block per order, wheels with mixed nipples only.
+function pullHtml(wheels) {
+  const list = wheels.filter((w) => w.nipples);
+  if (!list.length) return '';
+  return `
+        <div class="wheel-section">
+            <h3>NIPPLES TO PULL (for the builder, not in the customer email)</h3>
+            <p>The order deducts only the nipple color in the cart line. Every other nipple color below is not deducted: pull it from stock by hand. No stock number was changed.</p>
+            ${list.map((w) => { const p = pullLineParts(w.nipples, TIMES_HTML); return `<p style="margin:4px 0;"><strong>${esc(p.where)}:</strong> ${escKeepTimes(p.rest)}</p>`; }).join('')}
+        </div>`;
+}
+
 function noteTextFor(wheels, plans, imageErrors) {
   let note = '\n--------------------------------------------------\nSPOKE COLORS:\n';
   wheels.forEach((w) => {
@@ -144,6 +172,12 @@ function noteTextFor(wheels, plans, imageErrors) {
     note += `  ${w.sideLabels.drive} (${w.colors.drive.length}): ${countsText(w.counts.drive)}\n`;
     note += `  ${w.sideLabels.rotor} (${w.colors.rotor.length}): ${countsText(w.counts.rotor)}\n`;
     note += `  Whole wheel (${w.total}): ${countsText(w.counts.all)}${w.isMultiColor ? '' : ' (one color)'}\n`;
+    if (w.nipples) { // NIPPLE-REPORT
+      note += `  Nipples (${w.nipples.product}):\n`;
+      note += `    ${w.sideLabels.drive} (${w.nipples.drive.length}): ${nippleSideText(w.nipples, 'drive')}\n`;
+      note += `    ${w.sideLabels.rotor} (${w.nipples.rotor.length}): ${nippleSideText(w.nipples, 'rotor')}\n`;
+      note += `    Whole wheel (${w.nipples.total}): ${nippleSideText(w.nipples, 'all')}\n`;
+    }
     w.warnings.forEach((t) => { note += `  NOTE: ${t}\n`; });
   });
   if (plans.length) {
@@ -152,6 +186,10 @@ function noteTextFor(wheels, plans, imageErrors) {
       p.groups.forEach((g) => { note += `  ${paintGroupText(p, g)}\n`; });
       note += `  ${paintTotalText(p)}\n`;
     });
+  }
+  if (wheels.some((w) => w.nipples)) { // NIPPLE-REPORT
+    note += 'NIPPLES TO PULL (the order deducts only the nipple color in the cart line; every other color is not deducted, pull it by hand):\n';
+    wheels.filter((w) => w.nipples).forEach((w) => { const p = pullLineParts(w.nipples); note += `  ${p.where}: ${p.rest}\n`; });
   }
   if (imageErrors.length) note += `IMAGES:\n- ${imageErrors.join('\n- ')}\n`;
   return note;
@@ -179,7 +217,7 @@ export async function buildStandardAdditions(o) {
   const html = wheels.length ? `
         <div class="wheel-section">
             <h3>SPOKE COLORS</h3>${wheels.map((w) => wheelColorsHtml(w, images, imageErrors)).join('')}
-        </div>${paintHtml(plans)}` : '';
+        </div>${paintHtml(plans)}${pullHtml(wheels)}` : '';
   return {
     wheels, images, imageErrors, paintPlans: plans,
     warnings: wheels.flatMap((w) => w.warnings),

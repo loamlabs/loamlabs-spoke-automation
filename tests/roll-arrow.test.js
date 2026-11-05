@@ -70,7 +70,7 @@ test('every image of every System and Standard sample wheel has exactly one arro
     for (const img of images) {
       assert.equal(arrowOf(img.svg).count, 1, `${kind}/${name} ${w.position} ${img.cid}: exactly one arrow`);
       assert.equal((img.svg.match(/<polygon/g) || []).length, 1);
-      assert.equal(/opacity|rgba\(/i.test(img.svg), false, `${name} ${img.cid}: no opacity / alpha`);
+      assert.equal(/opacity|rgba\(/i.test(img.svg.replace(/<g data-nipples="\d+">[\s\S]*?<\/g>/, '')), false, `${name} ${img.cid}: no opacity / alpha`); // NIPPLE-REPORT: the one exception is the pale outline of a very dark nipple (the Studio's own stroke-opacity 0.4), inside <g data-nipples>
       assert.equal(/url\(/.test(/<g data-roll.*?<\/g>/.exec(img.svg)[0]), false, `${name} ${img.cid}: the arrow is a plain solid fill and stroke (no gradient)`);
       n++;
     }
@@ -154,6 +154,7 @@ test('spokes, rim, valve and hub are unchanged: the SVG without the arrow equals
       const geom = geometry(w.standard === true ? { autoValvePhase: true, wheels: { [w.position]: w.config } } : { wheels: { [w.position]: w.config } })[w.position];
       const colorsHex = { drive: w.colors.drive.map((c) => (w.hexOf || hexFor)(c)), rotor: w.colors.rotor.map((c) => (w.hexOf || hexFor)(c)) };
       for (const img of images) {
+        if (img.svg.includes('data-nipples')) continue; // NIPPLE-REPORT: an image with the nipple layer has no counterpart in that older commit; tests/nipple-report.test.js and scripts/compare-nipples.mjs prove the nipple layer is a pure addition
         const stripped = img.svg.replace(/<g data-roll="(cw|ccw)">.*?<\/g>/, '');
         const before = old.wheelSvg({ config: w.config, geom, colorsHex, hubHex: w.hubColorHex, pov: img.pov, sides: img.sides, size: 600 });
         assert.equal(orderIgnored(stripped), orderIgnored(before), `${name} ${img.cid}`); // the spoke paint order changed in round 5 (spoke-order.test.js); the set of spokes and everything else is as in 692c311

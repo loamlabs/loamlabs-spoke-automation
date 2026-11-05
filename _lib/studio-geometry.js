@@ -8,6 +8,8 @@
 //
 // Everything below the "ported" line is the theme code with the minimum of edits (ESM export, no DOM, no palettes).
 // Last synced with the theme commit dd908ad (branch agent-a-round6; the geometry is unchanged since 4308879, rounds 4 to 6 only changed the drawing, e.g. the over/under order of the spokes); before that 4308879 (branch agent-a-standard-studio; adds config.autoValvePhase: the valve between the two most parallel spokes, used for every STANDARD wheel and never for System); before that 63330f2 (adds radial crossing 0 for Standard wheels); earlier: e7f7c70 (agent-b-integration): LACING_PHASE_HOLES = { 'front:32': -2, 'rear:28': 2 } plus the explicit LACING_2TO1_24H table for the Solix 24h wheels.
+// NIPPLE-REPORT: re-checked against the theme commit 9fdb48f (branch studio-nipples, Agent A's nipple layer, f2683bf..9fdb48f): the lacing code is unchanged, the drift tests pass
+// against it, and the nipple drawing is vendored next to this file in _lib/studio-nipples.js. The drift tests now read the theme at 9fdb48f.
 //
 //   geometry(config) -> { front?: { drive: [spoke], rotor: [spoke] }, rear?: {...} }
 //   spoke = { hub, rim, rimIndex, rank, vrank, sweep }
