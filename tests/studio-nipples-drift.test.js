@@ -5,7 +5,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { geometry } from '../_lib/studio-geometry.js';
 import { wheelSvg } from '../_lib/wheel-svg.js';
-import { NIPPLE, NIPPLE_COLORS, NIPPLE_MATCH } from '../_lib/studio-nipples.js';
+import { NIPPLE, NIPPLE_COLORS, NIPPLE_MATCH, REPORT_NIPPLE_SCALE } from '../_lib/studio-nipples.js';
 import { themeSource, loadStudio } from './helpers/theme-studio.mjs';
 
 const skipLive = process.env.LOAM_THEME_DIR === 'skip';
@@ -33,11 +33,11 @@ function themeNipples(Studio, wheel, value, size) {
   const m = /<svg class="lls-nipples"[^>]*>([\s\S]*?)<\/svg>/.exec(el.innerHTML);
   return { cfg, shapes: m ? m[1] : '' };
 }
-function ourNipples(wheel, value, size) {
+function ourNipples(wheel, value, size, nippleScale = 1) { // scale 1 = the Studio's own size (the report draws 1.5, see the test below)
   const config = { erd: wheel.erd, drive: { n: wheel.n, pcd: wheel.pcdD, cross: wheel.cross }, rotor: { n: wheel.n, pcd: wheel.pcdR, cross: wheel.cross } };
   const geom = geometry({ wheels: { [wheel.pos]: { ...config, rimHoles: wheel.n * 2 } } })[wheel.pos];
   const nipples = { drive: value.nipples[wheel.pos].drive.map(hexOfNip), rotor: value.nipples[wheel.pos].rotor.map(hexOfNip) };
-  const svg = wheelSvg({ config, geom, colorsHex: { drive: Array(wheel.n).fill('#1d1f23'), rotor: Array(wheel.n).fill('#1d1f23') }, hubHex: '#1d1f23', pov: wheel.pov || 'drive', size, nipples, arrow: false });
+  const svg = wheelSvg({ config, geom, colorsHex: { drive: Array(wheel.n).fill('#1d1f23'), rotor: Array(wheel.n).fill('#1d1f23') }, hubHex: '#1d1f23', pov: wheel.pov || 'drive', size, nipples, nippleScale, arrow: false });
   const m = /<g data-nipples="\d+">([\s\S]*?)<\/g>/.exec(svg);
   return { svg, shapes: m ? m[1] : '' };
 }
@@ -75,4 +75,26 @@ test('the 140 px rule is the theme\'s: no nipples at 139 px, nipples at 140 px, 
     assert.equal(ourNipples(wheel, value, size).shapes.length > 0, drawn, `wheelSvg at ${size} px`);
   }
   assert.equal(NIPPLE.minBox, 140);
+});
+
+test('report pictures: nipples are 1.5 times wider and longer than the Studio size, rim-side end unchanged; the Studio size (scale 1) and the default are what the tests above pin', (t) => {
+  if (skipLive) { t.skip('LOAM_THEME_DIR=skip'); return; }
+  assert.equal(REPORT_NIPPLE_SCALE, 1.5);
+  const src = themeSource(), Studio = loadStudio(src), wheel = WHEELS[0], value = mixedValue(Studio, wheel);
+  const rects = (shapes) => [...shapes.matchAll(/<rect x="([-\d.]+)" y="([-\d.]+)" width="([-\d.]+)" height="([-\d.]+)" transform="rotate\(([-\d.]+) ([-\d.]+) ([-\d.]+)\)"/g)].map((m) => m.slice(1).map(Number));
+  const studio = rects(themeNipples(Studio, wheel, value, 300).shapes), big = rects(ourNipples(wheel, value, 300, REPORT_NIPPLE_SCALE).shapes);
+  assert.equal(studio.length, wheel.n * 2, 'the theme drew one nipple per spoke (and the pattern read them all)');
+  assert.equal(big.length, studio.length);
+  studio.forEach((a, i) => {
+    const b = big[i];
+    assert.ok(Math.abs(b[2] / a[2] - 1.5) < 0.02, 'length 1.5x');
+    assert.ok(Math.abs(b[3] / a[3] - 1.5) < 0.03, 'width 1.5x');
+    assert.equal(b[4], a[4], 'same angle');
+    // the rim-side end (rotation origin + length along the spoke) stays where the Studio has it
+    const end = (r) => { const rad = r[4] * Math.PI / 180; return [r[5] + r[2] * Math.cos(rad), r[6] + r[2] * Math.sin(rad)]; };
+    assert.ok(Math.hypot(end(a)[0] - end(b)[0], end(a)[1] - end(b)[1]) < 0.05, 'rim-side end unchanged');
+  });
+  // wheelSvg's default is the report size; without nipple colors nothing is drawn at all
+  const deflt = ourNipples(wheel, value, 300, null);
+  assert.equal(deflt.shapes, ourNipples(wheel, value, 300, REPORT_NIPPLE_SCALE).shapes);
 });

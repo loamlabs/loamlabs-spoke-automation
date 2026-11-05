@@ -17,7 +17,7 @@
 //     size      box width/height in px (default 600)
 //     arrow     false leaves out the rolling-forward arrow (default: drawn)
 //     nipples   optional { drive: ['#hex' ...], rotor: [...] }, one nipple color per spoke (same index k as colorsHex): nipples are drawn at the rim end of each drawn spoke
-//               (_lib/studio-nipples.js, the Studio's own shapes), BEHIND the rim: order spokes / nipples / ring / valve stem / hub. Pictures narrower than 140 px draw none, as in the
+//               (_lib/studio-nipples.js, the Studio's shapes drawn REPORT_NIPPLE_SCALE = 1.5 times wider and longer; o.nippleScale: 1 gives the Studio's own size), BEHIND the rim: order spokes / nipples / ring / valve stem / hub. Pictures narrower than 140 px draw none, as in the
 //               Studio. Without this option the output is exactly what it was before.
 //     ring      optional photo rim ring { key, href (data URI), ...geometry } (_lib/rim-rings.js loadRing): drawn instead of the stroked circle, spoke ends on its inner
 //               ellipse, order spokes / ring / valve stem / hub. Without it the output is exactly what it was before round 12.
@@ -34,7 +34,7 @@
 // it sits just outside the rim, inside the box, and is drawn as <g data-roll="cw|ccw"> so tests can find it.
 
 import { ringLayout } from './rim-rings.js';
-import { NIPPLE, nippleShapes } from './studio-nipples.js'; // NIPPLE-REPORT: the Studio's nipple drawing
+import { NIPPLE, REPORT_NIPPLE_SCALE, nippleShapes } from './studio-nipples.js'; // NIPPLE-REPORT: the Studio's nipple drawing
 
 export const RIM_COLOR = '#3b4148';   // .lls-preview .lls-rim (light) and --rim of the light theme
 export const ARROW_COLOR = '#2a6fd0';  // medium blue, solid (the Studio's --rollarrow #0b57c4 / #6db2ff, without the fade)
@@ -145,7 +145,7 @@ export function wheelSvg(o) {
   // NIPPLE-REPORT: with nipples the layer order is the Studio's: spokes, nipples, rim (photo ring or plain circle), valve stem. The nipples sit BEHIND the rim, so the rim covers
   // their rim-side end; the spoke end point is tucked under a photo ring by L.tuck px, which the nipple placement takes back out (no tuck for the plain circle).
   nips.sort((a, b) => (sides.indexOf(a.side) - sides.indexOf(b.side)) || (a.k - b.k));
-  const nipLayer = nips.length ? `<g data-nipples="${nips.length}">${nippleShapes(box, nips, L ? L.tuck : 0)}</g>` : '';
+  const nipLayer = nips.length ? `<g data-nipples="${nips.length}">${nippleShapes(box, nips, L ? L.tuck : 0, Number.isFinite(o.nippleScale) && o.nippleScale > 0 ? o.nippleScale : REPORT_NIPPLE_SCALE)}</g>` : '';
   const plainRim = `<circle cx="${f(c)}" cy="${f(c)}" r="${f(ro - bw / 2)}" fill="none" stroke="${RIM_COLOR}" stroke-width="${f(bw)}"/>`;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${box}" height="${box}" viewBox="0 0 ${box} ${box}">` +
     `<defs>` +
