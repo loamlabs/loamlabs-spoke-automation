@@ -65,3 +65,14 @@ test('cancel and restock are unaffected: flagged sides are not restocked, deduct
   assert.equal(r.inventoryAdjustments.length, 2, 'only the two rear lengths that were deducted are put back');
   assert.ok(r.note.includes('AUTOMATED RESTOCK COMPLETE'));
 });
+
+test('the staff test endpoint\'s "test only, nothing adjusted" status is not flagged (no ACTION REQUIRED subject, no NOT DEDUCTED in its note); a real missing deduction still is', async () => {
+  const { TEST_ONLY_STATUS, anySideNotDeducted, formatNote } = await import('../api/index.js');
+  assert.equal(TEST_ONLY_STATUS, 'test only, nothing adjusted');
+  const w = (status) => ({ calculationSuccessful: true, crossPattern: { left: 3, right: 3 }, lengths: { left: { geo: '290.00', rounded: 290 }, right: { geo: '290.00', rounded: 290 } }, inputs: { rim: 'r', hub: 'h', spokes: 's', erd: 599, finalErd: '599', washerPolicy: 'x', washerThickness: 0, targetTension: 120, hubDimensions: {} }, inventory: { left: { quantity: 16, length: 290, status }, right: { quantity: 16, length: 290, status } } });
+  const testRep = { front: w(TEST_ONLY_STATUS), rear: null };
+  assert.equal(anySideNotDeducted(testRep), false);
+  assert.equal(formatNote(testRep).includes('NOT DEDUCTED'), false);
+  assert.equal(anySideNotDeducted({ front: w('ACTION REQUIRED: Variant not found!'), rear: null }), true);
+  assert.equal(anySideNotDeducted({ front: w('test only'), rear: null }), true, 'only the exact test-endpoint status is exempt');
+});

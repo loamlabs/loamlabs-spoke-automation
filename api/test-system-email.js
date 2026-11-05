@@ -23,7 +23,7 @@ import { SYSTEM_SAMPLES, STANDARD_STUDIO_SAMPLES } from '../samples/index.js';
 // STANDARD-STUDIO: Standard orders that carry the standardStudio key (the same report the webhook builds, sent to the builder address only)
 import { findStandardStudioRecipe, isStandardStudioRecipe } from '../_lib/standard-build.js';
 import { buildStandardAdditions } from '../_lib/standard-report.js';
-import { runCalculationEngine, formatNote, sendEmailReport } from './index.js';
+import { runCalculationEngine, formatNote, sendEmailReport, TEST_ONLY_STATUS } from './index.js';
 import { shopifyTimeoutMs, timeoutSignal } from '../_lib/http-timeout.js';
 
 // 30 seconds for this function (Node.js /api config export), like api/index.js.
@@ -86,7 +86,7 @@ async function standardTest(res, body, orderData, recipe) {
         const w = buildReport[pos];
         if (w && w.calculationSuccessful) {
             const per = (parseInt(String(recipe.specs && recipe.specs[pos + 'SpokeCount'] || '').replace('h', ''), 10) || 0) / 2;
-            w.inventory = { left: { quantity: per, length: w.lengths.left.rounded, status: 'test only, nothing adjusted' }, right: { quantity: per, length: w.lengths.right.rounded, status: 'test only, nothing adjusted' } };
+            w.inventory = { left: { quantity: per, length: w.lengths.left.rounded, status: TEST_ONLY_STATUS }, right: { quantity: per, length: w.lengths.right.rounded, status: TEST_ONLY_STATUS } };
         }
     }
     const extra = await buildStandardAdditions({ recipe, orderData, componentData, buildReport, imageWidth: body.imageWidth != null ? clampImageWidth(body.imageWidth) : undefined });

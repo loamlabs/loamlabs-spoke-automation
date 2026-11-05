@@ -918,9 +918,11 @@ if (hubType !== 'Straight Pull') {
 }
 
 // Wording only: a side whose inventory status is not "Adjusted" was NOT deducted. These helpers only make that visible in the summary line and the email subject.
+// The staff test endpoint (api/test-system-email.js) shows lengths and adjusts nothing; its sides carry exactly this status, which is not a missing deduction, so it is not flagged.
+export const TEST_ONLY_STATUS = 'test only, nothing adjusted';
 function notDeductedFlag(side) {
     const status = side && side.status;
-    if (status === 'Adjusted') return '';
+    if (status === 'Adjusted' || status === TEST_ONLY_STATUS) return '';
     if (!status || /variant not found/i.test(status)) return ' NOT DEDUCTED (no variant)';
     if (/failed to adjust/i.test(status)) return ' NOT DEDUCTED (adjust failed)';
     return ` NOT DEDUCTED (${String(status).replace(/^FAIL:\s*/i, '').toLowerCase()})`;
