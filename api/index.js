@@ -489,7 +489,7 @@ async function handleOrderCreate(orderData) {
 
                     if (!spokeProductId) {
                          console.error(`🚨 Could not determine Product ID for ${position} spokes. Inventory adjustment skipped.`);
-                         wheel.inventory = { left: { status: 'FAIL: No Product ID' }, right: { status: 'FAIL: No Product ID' } };
+                         wheel.inventory = stockFailed(wheel, spokeCountPerSide, 'FAIL: No Product ID');
                          continue;
                     }
 
@@ -497,7 +497,7 @@ async function handleOrderCreate(orderData) {
                     const selectedColor = colorOption ? colorOption.value : null;
 
                     if (!selectedColor) {
-                        wheel.inventory = { left: { status: 'FAIL: No Color' }, right: { status: 'FAIL: No Color' } };
+                        wheel.inventory = stockFailed(wheel, spokeCountPerSide, 'FAIL: No Color');
                         continue;
                     }
 
@@ -922,6 +922,15 @@ if (hubType !== 'Straight Pull') {
 }
 
 // Wording only: a side whose inventory status is not "Adjusted" was NOT deducted. These helpers only make that visible in the summary line and the email subject.
+// STOCK-FAIL-LENGTHS: when the stock step cannot run (no spoke product id, no spoke Color), the report still shows the calculated lengths and the per-side spoke count with the failure
+// status beside them ("16 x 290mm (FAIL: No Color)") instead of "undefined x undefinedmm". Display only: nothing is deducted, lengths and the NOT DEDUCTED flag are unchanged.
+export function stockFailed(wheel, quantity, status) {
+    return {
+        left: { length: wheel.lengths.left.rounded, quantity, status },
+        right: { length: wheel.lengths.right.rounded, quantity, status }
+    };
+}
+
 // The staff test endpoint (api/test-system-email.js) shows lengths and adjusts nothing; its sides carry exactly this status, which is not a missing deduction, so it is not flagged.
 export const TEST_ONLY_STATUS = 'test only, nothing adjusted';
 function notDeductedFlag(side) {
