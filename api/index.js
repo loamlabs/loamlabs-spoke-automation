@@ -11,6 +11,7 @@ import {
 } from '../_lib/calculator.js';
 // I9-SYSTEM: Industry Nine System builds (Spoke Color Studio) take their own report path; Standard builds are untouched.
 import { findSystemBuildRecipe } from '../_lib/system-build.js';
+import { rimColorPolicy, rimLabel } from '../_lib/rim-color.js'; // RIM-COLOR: hub-choice orders name the rim color in the report
 import { buildSystemReport, buildFailureEmail, addNoteFailureNotice, sendSystemEmail, buildCustomerEmail, sendCustomerEmailIfEnabled } from '../_lib/system-report.js';
 import { shopifyTimeoutMs, resendTimeoutMs, timeoutSignal, withTimeout } from '../_lib/http-timeout.js';
 import { waitUntil } from '@vercel/functions';
@@ -463,7 +464,7 @@ async function handleOrderCreate(orderData) {
             const componentData = await fetchComponentData(buildRecipe);
             
             if (componentData) {
-                let buildReport = runCalculationEngine(buildRecipe, componentData);
+                let buildReport = runCalculationEngine(buildRecipe, componentData, rimColorPolicy(buildRecipe, wheelBuildLineItem.properties));
                 console.log("✅ Initial Build Report:", JSON.stringify(buildReport, null, 2));
 
                 // Clear cache before starting processing
@@ -706,7 +707,7 @@ async function handleOrderCancelled(orderData) {
     await addNoteToOrder(orderData.admin_graphql_api_id, restockNote, orderData.order_number); // no internal email on this path: a rejected write is in the log (ORDER #n: note write rejected)
 }
 
-export function runCalculationEngine(buildRecipe, componentData) {
+export function runCalculationEngine(buildRecipe, componentData, rimColorPolicy_ = null) { // 3rd argument (optional): which orders name the rim color, see _lib/rim-color.js
     console.log("--- RUNNING CALCULATION ENGINE V4 (with FINAL buildType fix) ---");
 
     const results = { front: null, rear: null, errors: [] };
@@ -733,11 +734,7 @@ export function runCalculationEngine(buildRecipe, componentData) {
             return { calculationSuccessful: false, error: `Skipping ${position} wheel: Missing component.` }; 
         }
         
-        let rimTitleWithSize = rim.title;
-        const sizeOption = rim.selectedOptions?.find(opt => opt.name === 'Size');
-        if (sizeOption && sizeOption.value) {
-            rimTitleWithSize = `${rim.title} - ${sizeOption.value}`;
-        }
+        const rimTitleWithSize = rimLabel(rim, rimColorPolicy_); // "<title> - <size>", plus " - <color>" only for hub-choice rim-color orders (_lib/rim-color.js)
 
         if (hub.title.includes('Your Own')) {
             return { calculationSuccessful: false, error: `Skipping calculation: Customer is supplying their own ${position} hub.` };
