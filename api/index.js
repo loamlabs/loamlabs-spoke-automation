@@ -753,7 +753,12 @@ export function runCalculationEngine(buildRecipe, componentData) {
         if (!(getMeta(rim.variantId, rim.productId, 'rim_erd', true) > 0)) missingData.push(`rim ERD (${rim.title})`);
         const hubKeys = [['hub_flange_diameter_left', 'left flange diameter'], ['hub_flange_diameter_right', 'right flange diameter'], ['hub_flange_offset_left', 'left flange offset'], ['hub_flange_offset_right', 'right flange offset']];
         const hubMissing = hubKeys.filter(([key]) => !(getMeta(hub.variantId, hub.productId, key, true) > 0)).map(([, label]) => label);
+        // hub-choice launch (Jerry, 5 Nov): three more numbers that used to read as a silent default. A blank hub type changed the length with no message; a Mandatory washer with no
+        // thickness left the ERD 2 x thickness short (FR 571: 2 mm short); a blank rim hole offset was read as 0. A real zero is fine (FR 571 has offset "0.0"): only BLANK counts.
         if (hubMissing.length) missingData.push(`hub ${hubMissing.join(', ')} (${hub.title})`);
+        if (!getMeta(hub.variantId, hub.productId, 'hub_type')) missingData.push(`hub type (${hub.title})`);
+        if (getMeta(rim.variantId, rim.productId, 'rim_washer_policy') === 'Mandatory' && !(getMeta(rim.variantId, rim.productId, 'nipple_washer_thickness', true) > 0)) missingData.push(`rim washer thickness, the washer is Mandatory (${rim.title})`);
+        if (getMeta(rim.variantId, rim.productId, 'rim_spoke_hole_offset') === null) missingData.push(`rim spoke hole offset (${rim.title})`);
         if (missingData.length) {
             return { calculationSuccessful: false, error: `Missing data in Shopify, so the ${position} lengths were NOT calculated and no inventory was changed for this wheel: ${missingData.join('; ')}. Check the product's metafields, or whether the variant was retired.` };
         }

@@ -60,3 +60,34 @@ test('the guard does not touch a complete order: lengths are the same with and w
   const r = await run(preconfiguredOrder({ build: preconfiguredBuild() }));
   assert.equal(r.note.includes('CALC FAILED'), false);
 });
+
+// Hub-choice launch (5 Nov): the guard also covers a Mandatory washer with no thickness (FR 571: 2 mm short), a blank hub type and a blank rim hole offset.
+const without = (id, key) => { const m = preconfiguredMetafields(); delete m[id][key]; return m; };
+test('guard, three more numbers: Mandatory washer without thickness, blank hub type and blank rim hole offset are CALC FAILED with what is missing, nothing deducted for that wheel', async () => {
+  const cases = [
+    ['Mandatory washer, thickness blank (front rim)', without(PRE.frontRim, 'nipple_washer_thickness'), 'FRONT', 'rim washer thickness, the washer is Mandatory (Test Rim 40 GR 700c Carbon Rim)', 'Left: 12 x 276mm (Adjusted)'],
+    ['Mandatory washer, thickness 0.0 (front rim)', (() => { const m = preconfiguredMetafields(); m[PRE.frontRim].nipple_washer_thickness = '0.0'; return m; })(), 'FRONT', 'rim washer thickness, the washer is Mandatory', 'Left: 12 x 276mm (Adjusted)'],
+    ['blank rear hub type', without(PRE.rearHub, 'hub_type'), 'REAR', 'hub type (Test Hub 240 EXP SP Rear Hub - Centerlock - 12x142mm)', 'Left: 12 x 280mm (Adjusted)'],
+    ['blank rear rim hole offset', without(PRE.rearRim, 'rim_spoke_hole_offset'), 'REAR', 'rim spoke hole offset (Test Rim 44 GR 700c Carbon Rim)', 'Left: 12 x 280mm (Adjusted)']
+  ];
+  for (const [name, mf, wheel, what, kept] of cases) {
+    const r = await run(preconfiguredOrder(), mf);
+    assert.ok(r.note.includes(wheel + ' WHEEL:' + String.fromCharCode(10) + 'CALC FAILED - Missing data in Shopify, so the ' + wheel.toLowerCase() + ' lengths were NOT calculated and no inventory was changed for this wheel: ' + what), name);
+    assert.ok(r.note.includes(kept), name + ': the other wheel is still calculated and adjusted');
+    assert.equal(r.inventoryAdjustments.length, 2, name + ': only the good wheel changed inventory');
+    assert.ok(emailHtml(r).includes('NOT calculated'), name + ': the builder email says so too');
+  }
+});
+
+test('guard, real zeros and other policies are fine: hole offset "0.0" (FR 571), washer policy Optional with thickness 0.0 (Reserve), and the numbers equal a build without the new check', async () => {
+  const base = await run(preconfiguredOrder());
+  const zeroOffset = preconfiguredMetafields(); zeroOffset[PRE.frontRim].rim_spoke_hole_offset = '0.0';
+  const optionalNoWasher = preconfiguredMetafields(); optionalNoWasher[PRE.frontRim].rim_washer_policy = 'Optional'; optionalNoWasher[PRE.frontRim].nipple_washer_thickness = '0.0';
+  const notCompatible = preconfiguredMetafields(); notCompatible[PRE.frontRim].rim_washer_policy = 'Not Compatible'; delete notCompatible[PRE.frontRim].nipple_washer_thickness;
+  for (const [name, mf] of [['hole offset 0.0', zeroOffset], ['Optional policy, thickness 0.0', optionalNoWasher], ['Not Compatible policy, no thickness', notCompatible]]) {
+    const r = await run(preconfiguredOrder(), mf);
+    assert.equal(r.note.includes('CALC FAILED'), false, name);
+    assert.equal(r.inventoryAdjustments.length, 4, name);
+  }
+  assert.equal(base.note.includes('CALC FAILED'), false);
+});
