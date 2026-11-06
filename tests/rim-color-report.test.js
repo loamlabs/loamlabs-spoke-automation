@@ -50,10 +50,11 @@ test('hub-choice Silver order (rule name ends "Silver"): both rim lines, note an
 
 test('every other order is byte-identical to today: a Silver rim with an ordinary rule, no rule, or a rule that names another color prints no color', async () => {
   const base = await run(preconfiguredOrder());
+  const noRule = (t) => t.replace(/^ {2}Rule: .*\n/gm, '').replace(/\n *<tr><td>Rule<\/td><td>[^<]*<\/td><\/tr>/g, ''); // the EMAIL-LINES "Rule" line differs between these orders by design
   for (const [name, order] of [['ordinary rule + Silver rim', preconfiguredOrder({ build: withColor('Silver') })], ['no rule + Silver rim', preconfiguredOrder({ rule: null, build: withColor('Silver') })],
     ['rule names Black, rim Silver', preconfiguredOrder({ rule: 'Hub choice Black', build: withColor('Silver') })]]) {
     const r = await run(order);
-    assert.equal(r.note, base.note, name); assert.equal(html(r), html(base), name); assert.equal(/ - (Silver|Black)\b/.test(r.note), false, name);
+    assert.equal(noRule(r.note), noRule(base.note), name); assert.equal(noRule(html(r)), noRule(html(base)), name); assert.equal(/ - (Silver|Black)\b/.test(r.note), false, name);
   }
   assert.ok(base.note.includes(`Rim: ${FRONT}\n`), 'the existing line is unchanged');
 });

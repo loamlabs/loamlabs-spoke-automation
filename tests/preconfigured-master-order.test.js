@@ -24,11 +24,15 @@ test('master-variant order: the lengths come from the components named in _build
   assert.equal(r.logs.some(([k, m]) => k === 'error'), false, 'no error in the log');
 });
 
-test('_Preconfigured_Rule changes nothing: the same order without it gives the same note, inventory and email', async () => {
+test('_Preconfigured_Rule changes nothing but its own "Rule:" line (EMAIL-LINES): the same order without it gives the same note, inventory and email', async () => {
   const a = await run(preconfiguredOrder()), b = await run(preconfiguredOrder({ rule: null }));
-  assert.equal(a.note, b.note);
+  const noRuleText = (t) => t.replace(/^ {2}Rule: .*\n/gm, '');
+  const noRuleHtml = (t) => t.replace(/\n *<tr><td>Rule<\/td><td>[^<]*<\/td><\/tr>/g, '');
+  assert.ok(a.note.includes('  Rule: Test 40/44 with Test Hub 240 and CX\n') && !b.note.includes('Rule:'), 'the rule name is printed only when the order has one');
+  assert.equal(noRuleText(a.note), b.note);
   assert.deepEqual(a.inventoryAdjustments, b.inventoryAdjustments);
-  assert.equal(a.emails[0].html, b.emails[0].html);
+  assert.equal(noRuleHtml(a.emails[0].html), b.emails[0].html);
+  assert.equal(a.emails[0].subject, b.emails[0].subject);
 });
 
 test('cancelling a master-variant order restocks the spokes that were adjusted', async () => {

@@ -12,6 +12,7 @@ import {
 // I9-SYSTEM: Industry Nine System builds (Spoke Color Studio) take their own report path; Standard builds are untouched.
 import { findSystemBuildRecipe } from '../_lib/system-build.js';
 import { rimColorPolicy, rimLabel } from '../_lib/rim-color.js'; // RIM-COLOR: hub-choice orders name the rim color in the report
+import { attachOrderLines, escapeText } from '../_lib/order-lines.js'; // EMAIL-LINES: "Freehub body" and "Rule" lines in the key inputs
 import { buildSystemReport, buildFailureEmail, addNoteFailureNotice, sendSystemEmail, buildCustomerEmail, sendCustomerEmailIfEnabled } from '../_lib/system-report.js';
 import { shopifyTimeoutMs, resendTimeoutMs, timeoutSignal, withTimeout } from '../_lib/http-timeout.js';
 import { waitUntil } from '@vercel/functions';
@@ -465,6 +466,7 @@ async function handleOrderCreate(orderData) {
             
             if (componentData) {
                 let buildReport = runCalculationEngine(buildRecipe, componentData, rimColorPolicy(buildRecipe, wheelBuildLineItem.properties));
+                attachOrderLines(buildReport, buildRecipe, wheelBuildLineItem.properties); // EMAIL-LINES: display lines only; lengths and stock are decided above
                 console.log("✅ Initial Build Report:", JSON.stringify(buildReport, null, 2));
 
                 // Clear cache before starting processing
@@ -988,8 +990,10 @@ export function formatNote(report) {
         wheelNote += `${rimLine}\n` + 
                `${erdNote}\n` + 
                `  Hub: ${wheel.inputs.hub}\n` +
+               (wheel.inputs.freehubBody ? `  Freehub body: ${wheel.inputs.freehubBody}\n` : '') +
                `  Spokes: ${wheel.inputs.spokes}\n` +
                `  Target Tension: ${wheel.inputs.targetTension} kgf\n` +
+               (wheel.inputs.ruleName ? `  Rule: ${wheel.inputs.ruleName}\n` : '') +
                `  --- Calculated Lengths ---\n`;
 
         if (wheel.inputs.spokes.includes("Berd")) {
@@ -1079,6 +1083,9 @@ export async function sendEmailReport(report, orderData, buildRecipe, extra, opt
         erdBreakdownHtml += `<br/>+ (2x) ${wheel.inputs.washerThickness.toFixed(1)} mm Washers (${wheel.inputs.washerPolicy})`;
     }
     erdBreakdownHtml += `<br/><strong>Final: ${wheel.inputs.finalErd} mm</strong>`;
+    // EMAIL-LINES: two optional rows; empty strings (no characters at all) when the order has no such value
+    const freehubRowHtml = wheel.inputs.freehubBody ? `\n                <tr><td>Freehub body</td><td>${escapeText(wheel.inputs.freehubBody)}</td></tr>` : '';
+    const ruleRowHtml = wheel.inputs.ruleName ? `\n                <tr><td>Rule</td><td>${escapeText(wheel.inputs.ruleName)}</td></tr>` : '';
         
     return `
         <div class="wheel-section">
@@ -1091,10 +1098,10 @@ export async function sendEmailReport(report, orderData, buildRecipe, extra, opt
             <h4>Key Inputs</h4>
             <table class="data-table">
                 <tr><td>Rim</td><td>${rimHtml}</td></tr>
-                <tr><td>Hub</td><td>${wheel.inputs.hub}</td></tr>
+                <tr><td>Hub</td><td>${wheel.inputs.hub}</td></tr>${freehubRowHtml}
                 <tr><td>Spokes</td><td>${wheel.inputs.spokes}</td></tr>
                 <tr><td>ERD Breakdown</td><td>${erdBreakdownHtml}</td></tr>
-                <tr><td>Target Tension</td><td>${wheel.inputs.targetTension} kgf</td></tr>
+                <tr><td>Target Tension</td><td>${wheel.inputs.targetTension} kgf</td></tr>${ruleRowHtml}
             </table>
 
             ${hubDimensionsHtml}
