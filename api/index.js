@@ -10,7 +10,7 @@ import {
     calculateBerdFinalLength
 } from '../_lib/calculator.js';
 // I9-SYSTEM: Industry Nine System builds (Spoke Color Studio) take their own report path; Standard builds are untouched.
-import { findSystemBuildRecipe } from '../_lib/system-build.js';
+import { findSystemBuildRecipe, findWheelBuildLineItem } from '../_lib/system-build.js';
 import { rimColorPolicy, rimLabel } from '../_lib/rim-color.js'; // RIM-COLOR: hub-choice orders name the rim color in the report
 import { attachOrderLines, attachNippleRows, escapeText, extraBuildNotice, addAttentionNotice, reportNeedsAction } from '../_lib/order-lines.js'; // EMAIL-LINES: "Freehub body" and "Rule" lines in the key inputs; NIPPLES-ROW: the nipple product and color of a wheel without mixed nipples
 import { buildSystemReport, buildFailureEmail, addNoteFailureNotice, sendSystemEmail, buildCustomerEmail, sendCustomerEmailIfEnabled } from '../_lib/system-report.js';
@@ -374,6 +374,10 @@ function handleSystemOrderCreate(orderData, buildRecipe) {
                 return;
             }
             report.warnings.forEach(w => console.warn('I9-SYSTEM note:', w));
+            { // ORDER-CHECK-FLAGS (System path): a second build line or a quantity above 1 is not reported; say so in the note, at the top of the email and in the subject
+                const notice = extraBuildNotice(orderData, findWheelBuildLineItem(orderData));
+                if (notice) { report.note += `\n\nWARNINGS:\n- ${notice}\n`; report.html = addAttentionNotice(report.html, [notice]); report.subject = `ACTION REQUIRED: ${report.subject}`; }
+            }
             report.imageErrors.forEach(e => console.error('I9-SYSTEM image:', e));
 
             // same note preservation as the Standard path

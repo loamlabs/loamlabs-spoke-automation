@@ -14,6 +14,7 @@ import { wheelSvg } from './wheel-svg.js';
 import { loadRing } from './rim-rings.js';
 import { unknownValveColorText } from './valve-colors.js';
 import { svgToPng } from './wheel-png.js';
+import { suppliedSummary, suppliedWheelText, PARTS_MUST_ARRIVE } from './own-parts.js'; // OWN-PARTS
 import { calculateSystemSpokeLengths, SYSTEM_LENGTHS_PENDING_TEXT, SYSTEM_LENGTHS_NOT_CALCULATED_PREFIX, systemLengthsNotCalculatedText } from './system-lengths.js';
 import { SYSTEM_REPORT_MARKER } from './system-dedupe.js';
 import { resendTimeoutMs } from './http-timeout.js';
@@ -161,6 +162,8 @@ function wheelHtml(w, images, imageErrors, opts) {
   let visual = solidLine + imgs.map((i) => `<img class="wheel-img" src="cid:${i.cid}" width="${IMAGE_WIDTH_PX}" alt="${esc(i.caption)}"><p class="caption">${esc(i.caption)}</p>`).join('');
   if (internal) visual += errs.map((e) => `<p class="failed">${esc(e)}</p>`).join('');
   const warnings = internal ? w.warnings.map((t) => `<p class="alert"><strong>NOTE:</strong> ${esc(t)}</p>`).join('') : '';
+  const supRow = internal && w.supplied ? `
+                <tr><td>Customer supplies</td><td><strong>${esc(suppliedWheelText(w.supplied, w.label))}</strong></td></tr>` : ''; // OWN-PARTS: '' (no characters) for a wheel without customer parts
   const feeRow = internal ? `<tr><td>Custom color fee</td><td>${w.isMultiColor ? (w.feeLines ? `${w.feeLines} ${TIMES_HTML} ${esc(SYSTEM_FEE.name)} line on the order` : 'expected, none found on the order') : 'not applicable (one color)'}</td></tr>` : '';
   return `
         <div class="wheel-section">
@@ -168,7 +171,7 @@ function wheelHtml(w, images, imageErrors, opts) {
             <table class="data-table">
                 <tr><td>Rim</td><td>${esc(w.rimTitle)}</td></tr>
                 <tr><td>Hub</td><td>${esc(w.hubTitle)}${w.hubVariantTitle ? ` (${esc(w.hubVariantTitle)})` : ''}</td></tr>
-                <tr><td>Hub color</td><td><span class="swatch" style="background:${w.hubColorHex}"></span>${esc(w.hubColor)}</td></tr>
+                <tr><td>Hub color</td><td><span class="swatch" style="background:${w.hubColorHex}"></span>${esc(w.hubColor)}</td></tr>${supRow}
                 ${w.position === 'rear' ? `<tr><td>Freehub</td><td>${esc(w.freehub || 'n/a')}</td></tr>` : ''}${!internal && w.standard && w.spokeProduct ? `<tr><td>Spokes</td><td>${esc(w.spokeProduct)}</td></tr>` : ''}
                 <tr><td>Spoke count</td><td>${esc(w.spokeCountLabel)}</td></tr>
                 ${feeRow}
@@ -190,12 +193,14 @@ function noteText(wheels, lengthsByPos, imageErrors) {
   let note = `${SYSTEM_REPORT_MARKER} (Industry Nine SYSTEM spokes)\n`; // the marker doubles as the "already processed" record (see _lib/system-dedupe.js)
   note += '--------------------------------------------------\n';
   note += 'System spokes are one bundle per wheel; no length-variant inventory is deducted.\n';
+  { const own = suppliedSummary(wheels); if (own) note += `CUSTOMER-SUPPLIED PARTS: ${own}.\n${PARTS_MUST_ARRIVE}\n`; } // OWN-PARTS
   wheels.forEach((w) => {
     const l = lengthsByPos[w.position];
     note += `\n${w.label.toUpperCase()} WHEEL (${w.hubModel}, ${w.spokeCountLabel})\n`;
     note += `  Rim: ${w.rimTitle}\n`;
     note += `  Hub: ${w.hubTitle}${w.hubVariantTitle ? ` (${w.hubVariantTitle})` : ''}\n`;
     note += `  Hub color: ${w.hubColor}\n`;
+    if (w.supplied) note += `  Customer supplies: ${suppliedWheelText(w.supplied, w.label)}\n`; // OWN-PARTS
     if (w.position === 'rear') note += `  Freehub: ${w.freehub || 'n/a'}\n`;
     note += `  Drive side (${w.config.drive.n}): ${countsText(w.counts.drive)}\n`;
     note += `  Rotor side (${w.config.rotor.n}): ${countsText(w.counts.rotor)}\n`;
@@ -230,6 +235,9 @@ export async function buildSystemReport(o) {
   const orderAdminUrl = orderData.id ? `https://${process.env.SHOPIFY_STORE_DOMAIN}/admin/orders/${orderData.id}` : null;
   const hubModels = [...new Set(wheels.map((w) => w.hubModel))].join(' / ');
   const multi = wheels.filter((w) => w.isMultiColor).length;
+  const ownText = suppliedSummary(wheels); // OWN-PARTS
+  const ownBox = ownText ? `
+                    <p style="color:#7a4b00;background-color:#FFF1D6;padding:10px;border-radius:3px"><strong>CUSTOMER-SUPPLIED PARTS:</strong> ${esc(ownText)}. ${esc(PARTS_MUST_ARRIVE)}</p>` : '';
   const summary = wheels.map((w) => `<p><strong>${esc(w.label)} wheel (${esc(w.hubModel)}, ${esc(w.spokeCountLabel)}):</strong> ${w.counts.all.map((c) => `${esc(c.color)} ${TIMES_HTML}${c.n}`).join(', ')}${w.isMultiColor ? '' : ' (one color)'}</p>`).join('');
   const html = `
         <!DOCTYPE html>
@@ -245,7 +253,7 @@ export async function buildSystemReport(o) {
 
                 <div class="summary-box">
                     <h3>Industry Nine SYSTEM build (${esc(hubModels)})</h3>
-                    ${summary}
+                    ${summary}${ownBox}
                     <p>Wheels with custom colors: ${multi} of ${wheels.length}. System spokes are one bundle per wheel; no length-variant inventory is deducted.</p>
                     <p><em>${esc(SYSTEM_LENGTHS_PENDING_TEXT.split(':')[0])}: ${Object.values(lengthsByPos).every((l) => l.pending) ? 'NOT CALCULATED, see each wheel for the reason' : 'see each wheel'}</em></p>
                 </div>

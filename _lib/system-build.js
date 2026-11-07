@@ -19,6 +19,7 @@
 //   Spoke index k in value.spokes[wheel][side] is the index as drawn in the Studio's drive-side view (see _lib/studio-geometry.js).
 
 import { ringKeyForRim } from './rim-rings.js'; // round 12: which photo rim ring a wheel's pictures get
+import { suppliedPartsOf } from './own-parts.js'; // OWN-PARTS: customer-supplied rims / hubs on a System build (display + cross-checks only)
 import { valveFieldsFor } from './valve-colors.js'; // round 15: the valve stem color the customer chose
 
 /* ------------------------------------------------------------------ constants vendored from the dev theme (assets/i9-system.js CFG) */
@@ -296,6 +297,8 @@ export function systemWheels(recipe, componentData, orderData) {
     const cfg = wheelConfigFor(recipe, pos, componentData);
     const colors = spokeColorsFor(recipe, pos, cfg);
     const warnings = colors.warnings.slice();
+    const supplied = suppliedPartsOf(recipe, orderData, pos); // OWN-PARTS: null for a wheel without customer parts (then nothing below changes)
+    if (supplied) warnings.push(...supplied.warnings);
     const rawCount = recipe?.specs?.[pos + 'SpokeCount'];
     if (rawCount != null && rawCount !== '' && !spokeCountOf(recipe, pos)) warnings.push(`${cap(pos)} wheel: spoke count "${clip(rawCount, 20)}" in the recipe is not usable (1 to ${MAX_SPOKES}); drawn as ${cfg.rimHoles}h.`);
     // the hub color the customer bought (the hub variant) wins over the Studio's copy of it; a difference is reported
@@ -328,11 +331,13 @@ export function systemWheels(recipe, componentData, orderData) {
       spokeCountLabel: `${cfg.rimHoles}h${ratioLabel} (${cfg.drive.n} drive / ${cfg.rotor.n} rotor)`,
       total: cfg.rimHoles,
       config: cfg, colors, counts, isMultiColor, warnings, feeLines, cartCounts,
+      ...(supplied ? { supplied } : {}), // OWN-PARTS: absent (not null) for a wheel without customer parts, so existing wheel objects are unchanged
       // I9-SYSTEM: LENGTH-CALC HOOK input (left = rotor side, right = drive side, as in _lib/calculator.js). Nulls where Shopify has no value yet.
       geometryInput: {
         position: pos, hubModel: model ? model.label : null,
         rimVariantId: rim && rim.variantId != null ? String(rim.variantId).replace(/^.*\//, '') : null, // round 10: the key into the I9 chart map
         holes: cfg.rimHoles, orderNumber: orderData && orderData.order_number != null ? orderData.order_number : null, // round 10: hole count check and the log line
+        ...(supplied && supplied.rim ? { rimSupplied: true, rimText: supplied.rimText } : {}), // OWN-PARTS: only the wording of "NOT CALCULATED" changes
         erd: metaNumber(metaFor(componentData, rim), 'rim_erd'),
         spokeHoleDiameter: metaNumber(hubMeta, 'hub_spoke_hole_diameter'),
         flangeDiameter: { left: metaNumber(hubMeta, 'hub_flange_diameter_left'), right: metaNumber(hubMeta, 'hub_flange_diameter_right') },

@@ -17,6 +17,7 @@
 //   3. keep the signature: calculateSystemSpokeLengths(wheel) -> null | { left, right, note? }   (tests/system-lengths.test.js guards it).
 
 import { chartLengthsForRim, CHART_SOURCE } from './i9-system-chart.js';
+import { suppliedRimNotCalculated } from './own-parts.js'; // OWN-PARTS: wording for a customer-supplied rim
 
 /**
  * Input: one wheel. Left = rotor (non-drive) side, right = drive side, the same convention as _lib/calculator.js.
@@ -84,14 +85,14 @@ const r1 = (n) => Math.round(n * 10) / 10;
 export function resolveSystemLengths(wheel) {
   const w = wheel || {};
   const hit = chartLengthsForRim(w.rimVariantId);
-  if (!hit) return { lengths: null, reason: 'rim variant is not in the I9 chart map', plain: "This rim is not in I9's spoke length chart, so check the lengths with I9 before ordering spokes." };   // (b)
+  if (!hit) return { lengths: null, reason: 'rim variant is not in the I9 chart map', plain: w.rimSupplied ? suppliedRimNotCalculated(w.rimText) : "This rim is not in I9's spoke length chart, so check the lengths with I9 before ordering spokes." };   // (b)
   const row = hit.row, need = CHART_HUBS[row.hub];
   const holes = Number.isFinite(w.holes) && w.holes > 0 ? w.holes : ((w.spokes && Number(w.spokes.left) + Number(w.spokes.right)) || null);
   if (!need) return { lengths: null, reason: `chart row hub "${row.hub}" is not known`, plain: "The chart row for this rim lists a hub we do not recognize, so check the lengths with I9 before ordering spokes." };
   if (!w.hubModel) return { lengths: null, reason: 'hub model unknown (Solix or Hydra2 not recognized)', plain: "The hub model (Solix or Hydra2) was not recognized on this wheel, so check the lengths with I9 before ordering spokes." };   // (c)
   if (w.hubModel !== need.model || holes !== need.holes) {                                                                  // (c)
     return { lengths: null, reason: `hub ${w.hubModel} ${holes}h does not match the chart row (${row.model} ${row.partNumber} is ${row.hub})`,
-      plain: `The hub on this wheel (${w.hubModel} ${holes}h) does not match the hub in I9's chart row for this rim (${row.hub}), so check the lengths with I9 before ordering spokes.` };
+      plain: w.rimSupplied ? `The customer-supplied rim (${w.rimText || 'not described'}) does not match the hub on this wheel (${w.hubModel} ${holes}h): I9's chart row for this rim is for ${row.hub}. Check the hole count of the rim and hub, and the lengths with I9, before ordering spokes.` : `The hub on this wheel (${w.hubModel} ${holes}h) does not match the hub in I9's chart row for this rim (${row.hub}), so check the lengths with I9 before ordering spokes.` };
   }
   if (w.position !== 'front' && w.position !== 'rear') return { lengths: null, reason: 'wheel position unknown', plain: "The wheel position (front or rear) was not recognized, so check the lengths with I9 before ordering spokes." };
   // Hydra2 32h FRONT (was "not calculated" until Thomas Ward, I9, wrote on 2026-10-30 that the chart lengths apply to the various hubshells / axle widths and that
