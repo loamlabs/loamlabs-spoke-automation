@@ -43,7 +43,7 @@ const wheelResult = (order, pos) => resolveSystemLengths(systemWheels(recipeOf(o
 test('data: 31 chart rows and the map are in the generated file; they equal the CSV files (re-read when the project folder is there), else the stored checksum', () => {
   assert.equal(CHART_ROWS.length, 31);
   assert.equal(CHART_SOURCE.date, '2026-10-28');
-  assert.equal(Object.keys(RIM_VARIANT_MAP).length, 25);
+  assert.equal(Object.keys(RIM_VARIANT_MAP).length, 27, '25 from the allowed list and the Coup, plus Stans Arch MK4 and Flow MK4 29 inch 32h (borrowed from the Wanderer row, Nov 7)');
   if (HAVE_CSV) {
     const csv = parseCsv(fs.readFileSync(path.join(CSV_DIR, 'i9_system_length_chart.csv'), 'utf8'));
     assert.equal(csv.length, 31);
@@ -56,7 +56,7 @@ test('data: 31 chart rows and the map are in the generated file; they equal the 
     assert.equal(CHART_SOURCE.allowedListSha256, crypto.createHash('sha256').update(fs.readFileSync(path.join(CSV_DIR, 'I9_SYSTEM_ALLOWED_LIST.csv'))).digest('hex'), 'and this allowed list');
   } else {
     assert.equal(sha(CHART_ROWS), 'd60f092ac9c20cc2ffdab8c842c51f08ffbf6e1f14d04b7c2ea258dec0760ac4');
-    assert.equal(sha(RIM_VARIANT_MAP), '7c4286b34c330e1edcdb0d7d5b534d3bc7edefccc507cfefbe0c64c9962398b2');
+    assert.equal(sha(RIM_VARIANT_MAP), '4537133052d1a3ad06f6436ea728dbf506e147d8c223717d3462355c669227c3');
   }
 });
 

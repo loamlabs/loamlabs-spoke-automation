@@ -120,13 +120,13 @@ export function resolveSystemLengths(wheel) {
   const lengths = {
     left: side.left, right: side.right, source: 'i9-chart', confidence: flags.length ? flags.join(' + ') : 'chart',
     chart: { section: row.section, model: row.model, partNumber: row.partNumber, erd: row.erd, hub: row.hub },
-    sourceText: `source: ${SOURCE_LABEL}, row ${row.model} ${row.partNumber}`
+    sourceText: `source: ${SOURCE_LABEL}, row ${row.model} ${row.partNumber}${hit.borrowedFrom ? ` (${hit.borrowedFrom})` : ''}`
   };
   if (notes.length) lengths.note = notes.join('; ');
   if (front32) {
     // plain side words on the front so the sides cannot be misread; the source line names I9's statement; the internal-email-only line carries the geometry caveat
     lengths.sideLabels = { left: 'Disc side', right: 'Non-disc side' };
-    lengths.sourceText = `Source: ${SOURCE_LABEL}, row ${row.model} ${row.partNumber}, 32h pair (Thomas Ward, I9, 2026-10-30: same lengths front and rear)`;
+    lengths.sourceText = `Source: ${SOURCE_LABEL}, row ${row.model} ${row.partNumber}${hit.borrowedFrom ? ` (${hit.borrowedFrom})` : ''}, 32h pair (Thomas Ward, I9, 2026-10-30: same lengths front and rear)`;
     lengths.internalText = "Front uses the rear 32h pair per I9. Jerry's geometry check differs by up to about 4 mm on one side; if the first real front build looks off, tell Claude.";
   }
   return { lengths, reason: null };

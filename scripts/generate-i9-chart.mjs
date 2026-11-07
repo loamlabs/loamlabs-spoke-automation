@@ -17,11 +17,16 @@ const CHART_DATE = '2026-10-28';
 
 // Variants Jerry asked for in the round 10 prompt that the allowed-list file does not contain yet.
 const EXTRA_VARIANTS = [
-  { variantId: '67819688788275', title: 'Industry Nine Coup Carbon Rim 26" / 32h', part: 'TR175', hub: 'H2 32h', modelPrefix: 'Coup 26', comment: 'Industry Nine Coup Carbon 26" 32h = chart "Coup 26" (Hydra2 Carbon section) TR175, ERD 536, H2 32h, 268/270 (Jerry, round 10 prompt)' }
+  { variantId: '67819688788275', title: 'Industry Nine Coup Carbon Rim 26" / 32h', part: 'TR175', hub: 'H2 32h', modelPrefix: 'Coup 26', comment: 'Industry Nine Coup Carbon 26" 32h = chart "Coup 26" (Hydra2 Carbon section) TR175, ERD 536, H2 32h, 268/270 (Jerry, round 10 prompt)' },
+  // Jerry, Nov 7 2026 (rim fix addendum): the two Stan's 29" 32h rims borrow the Wanderer 29" row (TR309, H2 32h, ERD 600, 299/300)
+  { variantId: '51797701067059', title: "Stan's Arch MK4 Alloy Rim 29\" / 32h / Black", part: 'TR309', hub: 'H2 32h', modelPrefix: 'Wanderer 29', comment: "Stan's Arch MK4 29\" 32h borrows the Wanderer 29\" row TR309 (ERD 600, H2 32h, 299/300): same ERD and hole count; the store offset is 2.5, the chart row's 2" },
+  { variantId: '51797701263667', title: "Stan's Flow MK4 Alloy Rim 29\" / 32h / Black", part: 'TR309', hub: 'H2 32h', modelPrefix: 'Wanderer 29', comment: "Stan's Flow MK4 29\" 32h borrows the Wanderer 29\" row TR309 (ERD 600, H2 32h, 299/300): same ERD and hole count; the store offset is 3.0, the chart row's 2" }
 ];
 // Facts from the round 10 prompt about single variants.
 const VARIANT_NOTES = {
   '51901428400435': { borrowed: true, comment: 'WAO Whisp 29" 28h borrows the chart row Sector 2.0 29" 28h TR314 (ERD 600, H2 28h, 303/305): same ERD and hole count, NOT an I9-listed Whisp combination' },
+  '51797701067059': { borrowed: true, borrowedFrom: 'borrowed from Wanderer row, same ERD and offset' },
+  '51797701263667': { borrowed: true, borrowedFrom: 'borrowed from Wanderer row, same ERD and offset' },
   '53871010939187': { storeErd: 652, comment: 'WAO Hush 24h 2:1 = chart Hush 24h TR316 (ERD 655, SM, 328/325); the store says ERD 652: confirm with I9 when ordering parts' }
 };
 
@@ -111,7 +116,7 @@ lines.push(`export function chartLengthsForRim(rimVariantId) {`);
 lines.push(`  const id = String(rimVariantId == null ? '' : rimVariantId).replace(/^.*\\//, '');`);
 lines.push(`  if (!Object.prototype.hasOwnProperty.call(RIM_VARIANT_MAP, id)) return null;`);
 lines.push(`  const e = RIM_VARIANT_MAP[id], row = CHART_ROWS[e.row];`);
-lines.push(`  return { source: 'i9-chart', row, driveColumn: row.driveColumn, nonDriveColumn: row.nonDriveColumn, variantTitle: e.title, ...(e.borrowed ? { borrowed: true } : {}), ...(e.storeErd ? { storeErd: e.storeErd } : {}) };`);
+lines.push(`  return { source: 'i9-chart', row, driveColumn: row.driveColumn, nonDriveColumn: row.nonDriveColumn, variantTitle: e.title, ...(e.borrowed ? { borrowed: true } : {}), ...(e.borrowedFrom ? { borrowedFrom: e.borrowedFrom } : {}), ...(e.storeErd ? { storeErd: e.storeErd } : {}) };`);
 lines.push(`}`);
 lines.push('');
 fs.writeFileSync(path.join(root, '_lib', 'i9-system-chart.js'), lines.join('\n'));

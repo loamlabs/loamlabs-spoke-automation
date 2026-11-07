@@ -41,8 +41,12 @@ export const CHART_ROWS = [
   {"section":"Solix Carbon Rims","model":"Wide Gravel 32\"","partNumber":"TR403","erd":593,"rimOffset":0,"hub":"SM/G","driveColumn":297,"nonDriveColumn":293} // 30
 ];
 
-// Rim variant id (digits) -> chart row index. 25 variants: Jerry's allowed list plus the Coup Carbon 26" 32h. storeErd = the ERD the store holds when it differs from the chart.
+// Rim variant id (digits) -> chart row index. 27 variants: Jerry's allowed list plus the Coup Carbon 26" 32h. storeErd = the ERD the store holds when it differs from the chart.
 export const RIM_VARIANT_MAP = {
+  // Stan's Arch MK4 29" 32h borrows the Wanderer 29" row TR309 (ERD 600, H2 32h, 299/300): same ERD and hole count; the store offset is 2.5, the chart row's 2
+  "51797701067059": {"row":10,"title":"Stan's Arch MK4 Alloy Rim 29\" / 32h / Black","borrowed":true,"borrowedFrom":"borrowed from Wanderer row, same ERD and offset"},
+  // Stan's Flow MK4 29" 32h borrows the Wanderer 29" row TR309 (ERD 600, H2 32h, 299/300): same ERD and hole count; the store offset is 3.0, the chart row's 2
+  "51797701263667": {"row":10,"title":"Stan's Flow MK4 Alloy Rim 29\" / 32h / Black","borrowed":true,"borrowedFrom":"borrowed from Wanderer row, same ERD and offset"},
   "51797702934835": {"row":17,"title":"We Are One FUSE Carbon Rim (Enduro) 29\" / 28h / Black"},
   "51797702967603": {"row":18,"title":"We Are One FUSE Carbon Rim (Enduro) 29\" / 32h / Black"},
   "51797703098675": {"row":14,"title":"We Are One TRIAD Carbon Rim (Enduro) 29\" / 28h / Black"},
@@ -82,5 +86,5 @@ export function chartLengthsForRim(rimVariantId) {
   const id = String(rimVariantId == null ? '' : rimVariantId).replace(/^.*\//, '');
   if (!Object.prototype.hasOwnProperty.call(RIM_VARIANT_MAP, id)) return null;
   const e = RIM_VARIANT_MAP[id], row = CHART_ROWS[e.row];
-  return { source: 'i9-chart', row, driveColumn: row.driveColumn, nonDriveColumn: row.nonDriveColumn, variantTitle: e.title, ...(e.borrowed ? { borrowed: true } : {}), ...(e.storeErd ? { storeErd: e.storeErd } : {}) };
+  return { source: 'i9-chart', row, driveColumn: row.driveColumn, nonDriveColumn: row.nonDriveColumn, variantTitle: e.title, ...(e.borrowed ? { borrowed: true } : {}), ...(e.borrowedFrom ? { borrowedFrom: e.borrowedFrom } : {}), ...(e.storeErd ? { storeErd: e.storeErd } : {}) };
 }
