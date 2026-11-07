@@ -49,3 +49,29 @@ export function attachNippleRows(report, buildRecipe, studioWheels) {
   }
   return report;
 }
+
+// ORDER-CHECK-FLAGS (1): the report covers ONE wheel build. When the order has more (a second build line, or a build line with quantity above 1) the webhook calculates and deducts
+// the first build once and says nothing about the rest; this returns the sentence that now goes into the note's WARNINGS, the top of the builder email and the subject.
+export function extraBuildNotice(orderData, buildLine) {
+  const lines = (Array.isArray(orderData && orderData.line_items) ? orderData.line_items : []).filter((li) => Array.isArray(li && li.properties)
+    && li.properties.some((p) => p && p.name === '_is_custom_wheel_build' && p.value === 'true') && li.properties.some((p) => p && p.name === '_build'));
+  const parts = [];
+  if (lines.length > 1) parts.push(`This order has ${lines.length} wheel build lines. Only the FIRST was calculated and only its spokes were deducted; calculate and deduct the other ${lines.length - 1} by hand`);
+  const q = Number(buildLine && buildLine.quantity);
+  if (Number.isFinite(q) && q > 1) parts.push(`The wheel build line has quantity ${q}. The report and the spoke deduction cover ONE wheelset; deduct the spokes for the other ${q - 1} by hand`);
+  return parts.length ? `${parts.join('. ')}.` : null;
+}
+
+// ORDER-CHECK-FLAGS (2): a red notice at the top of the builder email (same look as the "order note could not be written" notice).
+export function addAttentionNotice(html, texts) {
+  const list = (Array.isArray(texts) ? texts : []).filter(Boolean);
+  if (!list.length) return html;
+  const notice = `<p style="color:#D8000C;background-color:#FFD2D2;padding:10px;border-radius:3px"><strong>Check this order by hand:</strong> ${list.map(escapeText).join(' ')}</p>`;
+  return String(html).replace('<div class="container">', () => '<div class="container">' + notice);
+}
+
+// ORDER-CHECK-FLAGS (3): the subject says ACTION REQUIRED when a calculated wheel's stock was not deducted (stockFlag = anySideNotDeducted) or when the report carries an attention text.
+// A wheel that could not be calculated (CALC FAILED) still does NOT flag the subject: that is the earlier, tested decision (tests/not-deducted-flag.test.js); its red box in the email and the note say so.
+export function reportNeedsAction(report, stockFlag) {
+  return !!(stockFlag || (report && Array.isArray(report.attention) && report.attention.length));
+}

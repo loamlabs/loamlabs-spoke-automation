@@ -12,7 +12,7 @@ import {
 // I9-SYSTEM: Industry Nine System builds (Spoke Color Studio) take their own report path; Standard builds are untouched.
 import { findSystemBuildRecipe } from '../_lib/system-build.js';
 import { rimColorPolicy, rimLabel } from '../_lib/rim-color.js'; // RIM-COLOR: hub-choice orders name the rim color in the report
-import { attachOrderLines, attachNippleRows, escapeText } from '../_lib/order-lines.js'; // EMAIL-LINES: "Freehub body" and "Rule" lines in the key inputs; NIPPLES-ROW: the nipple product and color of a wheel without mixed nipples
+import { attachOrderLines, attachNippleRows, escapeText, extraBuildNotice, addAttentionNotice, reportNeedsAction } from '../_lib/order-lines.js'; // EMAIL-LINES: "Freehub body" and "Rule" lines in the key inputs; NIPPLES-ROW: the nipple product and color of a wheel without mixed nipples
 import { buildSystemReport, buildFailureEmail, addNoteFailureNotice, sendSystemEmail, buildCustomerEmail, sendCustomerEmailIfEnabled } from '../_lib/system-report.js';
 import { shopifyTimeoutMs, resendTimeoutMs, timeoutSignal, withTimeout } from '../_lib/http-timeout.js';
 import { waitUntil } from '@vercel/functions';
@@ -467,6 +467,10 @@ async function handleOrderCreate(orderData) {
             if (componentData) {
                 let buildReport = runCalculationEngine(buildRecipe, componentData, rimColorPolicy(buildRecipe, wheelBuildLineItem.properties));
                 attachOrderLines(buildReport, buildRecipe, wheelBuildLineItem.properties); // EMAIL-LINES: display lines only; lengths and stock are decided above
+                { // ORDER-CHECK-FLAGS: a second build line or a quantity above 1 is not calculated; say so (note WARNINGS, email top, subject). Nothing else changes.
+                    const notice = extraBuildNotice(orderData, wheelBuildLineItem);
+                    if (notice) { buildReport.attention = [notice]; buildReport.errors = [...(buildReport.errors || []), notice]; }
+                }
                 console.log("✅ Initial Build Report:", JSON.stringify(buildReport, null, 2));
 
                 // Clear cache before starting processing
@@ -1187,7 +1191,8 @@ export async function sendEmailReport(report, orderData, buildRecipe, extra, opt
         </html>
     `;
     if (options && options.noteFailure) emailHtml = addNoteFailureNotice(emailHtml, options.noteFailure);
-    const emailSubject = `${anySideNotDeducted(report) ? 'ACTION REQUIRED: ' : ''}Spoke Calculation Complete for Order #${orderNumber}`;
+    emailHtml = addAttentionNotice(emailHtml, report.attention); // ORDER-CHECK-FLAGS
+    const emailSubject = `${reportNeedsAction(report, anySideNotDeducted(report)) ? 'ACTION REQUIRED: ' : ''}Spoke Calculation Complete for Order #${orderNumber}`;
 
     // STANDARD-STUDIO: with images the email goes through the Resend REST API so the wheel images can be inline attachments (content ids), like System;
     // the sender, reply-to and subject are exactly today's. If that fails the normal SDK send below still runs (without images).
