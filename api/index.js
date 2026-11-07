@@ -12,7 +12,7 @@ import {
 // I9-SYSTEM: Industry Nine System builds (Spoke Color Studio) take their own report path; Standard builds are untouched.
 import { findSystemBuildRecipe } from '../_lib/system-build.js';
 import { rimColorPolicy, rimLabel } from '../_lib/rim-color.js'; // RIM-COLOR: hub-choice orders name the rim color in the report
-import { attachOrderLines, escapeText } from '../_lib/order-lines.js'; // EMAIL-LINES: "Freehub body" and "Rule" lines in the key inputs
+import { attachOrderLines, attachNippleRows, escapeText } from '../_lib/order-lines.js'; // EMAIL-LINES: "Freehub body" and "Rule" lines in the key inputs; NIPPLES-ROW: the nipple product and color of a wheel without mixed nipples
 import { buildSystemReport, buildFailureEmail, addNoteFailureNotice, sendSystemEmail, buildCustomerEmail, sendCustomerEmailIfEnabled } from '../_lib/system-report.js';
 import { shopifyTimeoutMs, resendTimeoutMs, timeoutSignal, withTimeout } from '../_lib/http-timeout.js';
 import { waitUntil } from '@vercel/functions';
@@ -537,6 +537,8 @@ async function handleOrderCreate(orderData) {
                     try { standardExtra = await buildStandardAdditions({ recipe: buildRecipe, orderData, componentData, buildReport }); }
                     catch (error) { console.error("🚨 STANDARD-STUDIO: could not build the color report additions:", error); }
                 }
+                // NIPPLES-ROW: display only (a "Nipples" row in the key inputs of a studio build's wheel whose nipples are one color); mixed wheels have their own nipple section
+                if (standardExtra) { try { attachNippleRows(buildReport, buildRecipe, standardExtra.wheels); } catch (error) { console.error("🚨 NIPPLES-ROW: could not add the nipple rows:", error); } }
 
                 // --- NOTE PRESERVATION LOGIC ---
                 let finalNote = formatNote(buildReport);
@@ -1001,6 +1003,7 @@ export function formatNote(report) {
                `  Hub: ${wheel.inputs.hub}\n` +
                (wheel.inputs.freehubBody ? `  Freehub body: ${wheel.inputs.freehubBody}\n` : '') +
                `  Spokes: ${wheel.inputs.spokes}\n` +
+               (wheel.inputs.nipplesRow ? `  Nipples: ${wheel.inputs.nipplesRow}\n` : '') +
                `  Target Tension: ${wheel.inputs.targetTension} kgf\n` +
                (wheel.inputs.ruleName ? `  Rule: ${wheel.inputs.ruleName}\n` : '') +
                `  --- Calculated Lengths ---\n`;
@@ -1094,6 +1097,7 @@ export async function sendEmailReport(report, orderData, buildRecipe, extra, opt
     erdBreakdownHtml += `<br/><strong>Final: ${wheel.inputs.finalErd} mm</strong>`;
     // EMAIL-LINES: two optional rows; empty strings (no characters at all) when the order has no such value
     const freehubRowHtml = wheel.inputs.freehubBody ? `\n                <tr><td>Freehub body</td><td>${escapeText(wheel.inputs.freehubBody)}</td></tr>` : '';
+    const nipplesRowHtml = wheel.inputs.nipplesRow ? `\n                <tr><td>Nipples</td><td>${escapeText(wheel.inputs.nipplesRow)}</td></tr>` : ''; // NIPPLES-ROW
     const ruleRowHtml = wheel.inputs.ruleName ? `\n                <tr><td>Rule</td><td>${escapeText(wheel.inputs.ruleName)}</td></tr>` : '';
         
     return `
@@ -1108,7 +1112,7 @@ export async function sendEmailReport(report, orderData, buildRecipe, extra, opt
             <table class="data-table">
                 <tr><td>Rim</td><td>${rimHtml}</td></tr>
                 <tr><td>Hub</td><td>${wheel.inputs.hub}</td></tr>${freehubRowHtml}
-                <tr><td>Spokes</td><td>${wheel.inputs.spokes}</td></tr>
+                <tr><td>Spokes</td><td>${wheel.inputs.spokes}</td></tr>${nipplesRowHtml}
                 <tr><td>ERD Breakdown</td><td>${erdBreakdownHtml}</td></tr>
                 <tr><td>Target Tension</td><td>${wheel.inputs.targetTension} kgf</td></tr>${ruleRowHtml}
             </table>

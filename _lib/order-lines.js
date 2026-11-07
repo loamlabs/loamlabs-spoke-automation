@@ -1,5 +1,6 @@
 // EMAIL-LINES: two extra lines in the key inputs of the builder email and the order note: "Freehub body: SRAM XD" (rear wheel) and "Rule: <preconfigured rule name>".
 // Printed only when the value exists, so every order without them is byte-identical to before. Pure functions, no network.
+import { cartNippleOf } from './nipple-build.js'; // NIPPLES-ROW
 
 // The bodies in the store (XD, XD-R, HG, HG-R, MS) by name. Anything else is printed as the store has it.
 const FREEHUB_NAMES = { XD: 'SRAM XD', 'XD-R': 'SRAM XD-R', HG: 'Shimano HG', 'HG-R': 'Shimano HG-R', MS: 'Shimano MicroSpline' };
@@ -33,3 +34,18 @@ export function attachOrderLines(report, buildRecipe, lineProperties) {
 }
 
 export const escapeText = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+// NIPPLES-ROW: "Nipples: Sapim Brass Nipples (Silver)" in the key inputs of a wheel of a Standard studio build (the theme's standardStudio key) whose nipples are ONE color.
+// A wheel with mixed colors already has its own nipple section and pull list (wheel.nipples), so it gets no row; builds without the studio key are untouched.
+export function attachNippleRows(report, buildRecipe, studioWheels) {
+  if (!report || !Array.isArray(studioWheels)) return report;
+  for (const sw of studioWheels) {
+    if (!sw || sw.nipples) continue;
+    const wheel = report[sw.position];
+    if (!wheel || !wheel.calculationSuccessful || !wheel.inputs) continue;
+    const cart = cartNippleOf(buildRecipe, sw.position);
+    if (!cart) continue;
+    wheel.inputs.nipplesRow = cart.color ? `${cart.product} (${cart.color})` : cart.product;
+  }
+  return report;
+}
