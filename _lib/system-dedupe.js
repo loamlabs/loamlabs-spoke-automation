@@ -13,8 +13,12 @@
 // Not covered: two duplicates landing at the same moment on two different cold instances (both would pass layers 1 to 3 before either has
 // written the note). Closing that gap needs a shared store (for example Redis); see the report.
 
-// First words of every System order note (see noteText in _lib/system-report.js). Used to recognize an already processed order.
+// The record that a System order was processed is in its note. Two shapes, both recognised:
+//  - the header "AUTOMATED SYSTEM BUILD REPORT" that notes had before the note was made short for the packing slip (orders processed earlier keep it);
+//  - the wheel line that starts each wheel block of the clean note (noteText in _lib/system-report.js): "FRONT  <rim>  /  <hub>, <hub color>" and "REAR   <rim>  /  <hub>, <hub color>".
+//    The clean note has no header on purpose (the customer reads it); a wheel line is the first line of every block and every System note has at least one.
 export const SYSTEM_REPORT_MARKER = 'AUTOMATED SYSTEM BUILD REPORT';
+export const SYSTEM_NOTE_WHEEL_LINE = /^(?:FRONT {2}|REAR {3}).+ {2}\/ {2}.+, .+$/gm;
 // First words of every Standard order note (formatNote in api/index.js). The same guard protects Standard orders that carry the standardStudio key.
 export const STANDARD_REPORT_MARKER = 'AUTOMATED SPOKE CALCULATION & INVENTORY';
 
@@ -45,12 +49,14 @@ export function resetSystemDedupe() {
 }
 
 export function noteHasSystemReport(note) {
-  return typeof note === 'string' && note.includes(SYSTEM_REPORT_MARKER);
+  return markerCount(note) > 0;
 }
 
 function markerCount(note, marker = SYSTEM_REPORT_MARKER) {
   if (typeof note !== 'string') return 0;
-  return note.split(marker).length - 1;
+  const n = note.split(marker).length - 1;
+  if (marker !== SYSTEM_REPORT_MARKER) return n;
+  return n + (note.match(SYSTEM_NOTE_WHEEL_LINE) || []).length; // System: old header plus wheel lines of the clean note
 }
 
 // REVIEW: the delivered payload's note is the customer's checkout note (or, for an order duplicated in the admin, a copy of an old

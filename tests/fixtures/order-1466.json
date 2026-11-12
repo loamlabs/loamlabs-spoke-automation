@@ -1,0 +1,397 @@
+{
+ "id": 19016029339955,
+ "admin_graphql_api_id": "gid://shopify/Order/19016029339955",
+ "order_number": 1466,
+ "name": "#1466",
+ "email": "customer@example.com",
+ "customer": {
+  "first_name": "Test",
+  "last_name": "Customer",
+  "email": "customer@example.com"
+ },
+ "note": null,
+ "location_id": null,
+ "financial_status": "authorized",
+ "line_items": [
+  {
+   "id": 15011,
+   "title": "LoamLabs Custom Wheel Build",
+   "name": "LoamLabs Custom Wheel Build",
+   "variant_title": null,
+   "quantity": 1,
+   "price": "0.0",
+   "sku": "",
+   "vendor": "LoamLabs",
+   "product_id": 9742207582515,
+   "variant_id": 51500432228659,
+   "properties": [
+    {
+     "name": "_BuildID",
+     "value": "777152"
+    },
+    {
+     "name": "_bundle_id",
+     "value": "777152"
+    },
+    {
+     "name": "_is_custom_wheel_build",
+     "value": "true"
+    },
+    {
+     "name": "_EstLeadTime",
+     "value": "Approx. 2-3 Weeks"
+    },
+    {
+     "name": "_build",
+     "value": "{\"step\":3,\"buildType\":\"Wheel Set\",\"ridingStyle\":\"hybrid\",\"ridingStyleDisplay\":\"Hybrid: Gr/Rd/Mtb\",\"spokeInterface\":\"system\",\"system\":{\"v\":1,\"studioOpened\":true,\"studio\":{\"v\":1,\"hubColor\":{\"front\":\"Bronze\",\"rear\":\"Bronze\"},\"base\":{\"front\":{\"drive\":\"Black\",\"rotor\":\"Black\"},\"rear\":{\"drive\":\"Black\",\"rotor\":\"Black\"}},\"spokes\":{\"front\":{\"drive\":[\"Black\",\"Bronze\",\"Black\",\"Bronze\",\"Black\",\"Bronze\",\"Black\",\"Bronze\",\"Black\",\"Bronze\",\"Black\",\"Bronze\",\"Black\",\"Bronze\"],\"rotor\":[\"Bronze\",\"Black\",\"Bronze\",\"Black\",\"Bronze\",\"Black\",\"Bronze\",\"Black\",\"Bronze\",\"Black\",\"Bronze\",\"Black\",\"Bronze\",\"Black\"]},\"rear\":{\"drive\":[\"Black\",\"Bronze\",\"Black\",\"Bronze\",\"Black\",\"Bronze\",\"Black\",\"Bronze\",\"Black\",\"Bronze\",\"Black\",\"Bronze\",\"Black\",\"Bronze\",\"Black\",\"Bronze\"],\"rotor\":[\"Bronze\",\"Black\",\"Bronze\",\"Black\",\"Bronze\",\"Black\",\"Bronze\",\"Black\",\"Bronze\",\"Black\",\"Bronze\",\"Black\",\"Bronze\",\"Black\",\"Bronze\",\"Black\"]}},\"accent\":\"Bronze\"},\"wheels\":{\"front\":{\"hubName\":\"Hydra2\",\"hubColor\":\"Bronze\",\"erd\":604,\"rimHoles\":28,\"drive\":{\"n\":14,\"pcd\":46,\"cross\":2},\"rotor\":{\"n\":14,\"pcd\":46,\"cross\":2}},\"rear\":{\"hubName\":\"Hydra2\",\"hubColor\":\"Bronze\",\"erd\":564,\"rimHoles\":32,\"drive\":{\"n\":16,\"pcd\":54,\"cross\":3},\"rotor\":{\"n\":16,\"pcd\":54,\"cross\":3}}},\"colors\":{\"Bronze\":\"#8d6a3e\",\"Black\":\"#1d1f23\"}},\"customerSupplied\":{\"front\":{\"rim\":false,\"hub\":false},\"rear\":{\"rim\":false,\"hub\":false}},\"ownParts\":{\"front\":{\"rim\":null,\"hub\":null},\"rear\":{\"rim\":null,\"hub\":null}},\"specs\":{\"frontWheelSize\":\"29\\\"\",\"rearWheelSize\":\"27.5\\\"\",\"frontSpokeCount\":\"28h\",\"rearSpokeCount\":\"32h\",\"brakeStyle\":\"6-Bolt\",\"frontHubSpacing\":\"15x110mm\",\"rearHubSpacing\":\"12x148mm (Boost)\",\"freehubType\":\"XD\",\"systemHub\":\"Hydra2\"},\"components\":{\"frontRim\":{\"variantId\":\"gid://shopify/ProductVariant/51797703098675\",\"title\":\"We Are One TRIAD Carbon Rim (Enduro)\",\"variantTitle\":\"29\\\" / 28h / Black\",\"sku\":null,\"price\":49900,\"vendor\":\"Industry Nine\",\"spokeCount\":\"28h\",\"wheelSize\":\"29\\\"\",\"selectedOptions\":[{\"name\":\"Size\",\"value\":\"29\\\"\"},{\"name\":\"Spoke Count\",\"value\":\"28h\"},{\"name\":\"Color\",\"value\":\"Black\"}],\"rimDepth\":18,\"internal_width_mm\":30,\"quantityAvailable\":0,\"leadTimeDays\":7,\"wheelModel\":\"Carbon\",\"weight_g\":527,\"rim_erd\":\"604.0\",\"freehubVariantMap\":{},\"availableFreehubs\":[],\"_reval_action\":\"kept\"},\"rearRim\":{\"variantId\":\"gid://shopify/ProductVariant/51797703164211\",\"title\":\"We Are One TRIAD Carbon Rim (Enduro)\",\"variantTitle\":\"27.5\\\" / 32h / Black\",\"sku\":null,\"price\":49900,\"vendor\":\"Industry Nine\",\"selectedOptions\":[{\"name\":\"Size\",\"value\":\"27.5\\\"\"},{\"name\":\"Spoke Count\",\"value\":\"32h\"},{\"name\":\"Color\",\"value\":\"Black\"}],\"quantityAvailable\":0,\"leadTimeDays\":7,\"wheelModel\":\"Carbon\",\"weight_g\":506,\"spokeCount\":\"32h\",\"wheelSize\":\"27.5\\\"\",\"rimDepth\":18,\"internal_width_mm\":30,\"rim_erd\":\"564.0\",\"_reval_action\":\"kept\"},\"frontHub\":{\"variantId\":\"gid://shopify/ProductVariant/53547314807091\",\"title\":\"Industry Nine Hydra2 SYSTEM Front Hub - 6-Bolt\",\"variantTitle\":\"28h / Bronze / 15x110mm\",\"sku\":null,\"price\":24000,\"vendor\":\"Industry Nine\",\"spec_spoke_count\":\"28h\",\"spec_brake_interface\":[\"6-Bolt\"],\"spec_hub_spacing\":\"15x110mm\",\"spec_freehub\":null,\"selectedOptions\":[{\"name\":\"Spoke Count\",\"value\":\"28h\"},{\"name\":\"Color\",\"value\":\"Bronze\"},{\"name\":\"Hub Spacing\",\"value\":\"15x110mm\"}],\"leadTimeDays\":7,\"wheelModel\":\"Industry Nine Hydra2 SYSTEM\",\"quantityAvailable\":0,\"weight_g\":157},\"rearHub\":{\"variantId\":\"gid://shopify/ProductVariant/53547341938995\",\"title\":\"Industry Nine Hydra2 SYSTEM Rear Hub - 6-Bolt\",\"variantTitle\":\"32h / Bronze / 12x148mm\",\"sku\":null,\"price\":51000,\"vendor\":\"Industry Nine\",\"selectedOptions\":[{\"name\":\"Spoke Count\",\"value\":\"32h\"},{\"name\":\"Color\",\"value\":\"Bronze\"},{\"name\":\"Hub Spacing\",\"value\":\"12x148mm\"}],\"quantityAvailable\":0,\"leadTimeDays\":7,\"wheelModel\":\"Industry Nine Hydra2 SYSTEM\",\"weight_g\":292,\"spec_spoke_count\":\"32h\",\"spec_brake_interface\":[\"6-Bolt\"],\"spec_hub_spacing\":\"12x148mm (Boost)\",\"spec_freehub\":\"XD\"},\"frontSpokes\":{\"variantId\":\"gid://shopify/ProductVariant/67792145776947\",\"title\":\"Industry Nine SYSTEM Spokes\",\"variantTitle\":\"Black / -\",\"sku\":null,\"price\":28500,\"vendor\":\"Industry Nine\",\"selectedOptions\":[{\"name\":\"Color\",\"value\":\"Black\"},{\"name\":\"Length\",\"value\":\"-\"}],\"quantityAvailable\":0,\"leadTimeDays\":7,\"wheelModel\":\"Industry Nine System Spokes\",\"selectedColor\":\"Black\",\"weight_g\":5.95,\"i9\":true},\"rearSpokes\":{\"variantId\":\"gid://shopify/ProductVariant/67792145776947\",\"title\":\"Industry Nine SYSTEM Spokes\",\"variantTitle\":\"Black / -\",\"sku\":null,\"price\":28500,\"vendor\":\"Industry Nine\",\"selectedOptions\":[{\"name\":\"Color\",\"value\":\"Black\"},{\"name\":\"Length\",\"value\":\"-\"}],\"quantityAvailable\":0,\"leadTimeDays\":7,\"wheelModel\":\"Industry Nine System Spokes\",\"selectedColor\":\"Black\",\"weight_g\":5.95,\"i9\":true},\"frontNipples\":null,\"rearNipples\":null,\"frontValveStem\":{\"variantId\":\"gid://shopify/ProductVariant/47228020195635\",\"title\":\"Reserve Fillmore Valve Stem\",\"variantTitle\":\"Black / 50mm\",\"sku\":null,\"price\":3099,\"vendor\":\"Reserve\",\"selectedOptions\":[{\"name\":\"Color\",\"value\":\"Black\"},{\"name\":\"Length\",\"value\":\"50mm\"}],\"selectedWithRimDepth\":18,\"valveMinDepth\":14,\"valveMaxDepth\":32,\"quantityAvailable\":-4,\"leadTimeDays\":4,\"weight_g\":9},\"rearValveStem\":{\"variantId\":\"gid://shopify/ProductVariant/47228020195635\",\"title\":\"Reserve Fillmore Valve Stem\",\"variantTitle\":\"Black / 50mm\",\"sku\":null,\"price\":3099,\"vendor\":\"Reserve\",\"selectedOptions\":[{\"name\":\"Color\",\"value\":\"Black\"},{\"name\":\"Length\",\"value\":\"50mm\"}],\"selectedWithRimDepth\":18,\"valveMinDepth\":14,\"valveMaxDepth\":32,\"quantityAvailable\":-4,\"leadTimeDays\":4,\"weight_g\":9},\"rearComponentFreehub\":{\"variantId\":\"gid://shopify/ProductVariant/51752447443251\",\"title\":\"Industry Nine Hydra2 Freehub\",\"variantTitle\":\"XD\",\"price\":0,\"name\":\"Industry Nine Hydra2 Freehub - XD\",\"weight_g\":null},\"frontRequiredAddons\":[{\"name\":\"Custom Spoke Color Configuration\",\"price\":25,\"variantGid\":\"gid://shopify/ProductVariant/67791816196403\",\"costInCents\":2500,\"i9Fee\":true}],\"rearRequiredAddons\":[{\"name\":\"Custom Spoke Color Configuration\",\"price\":25,\"variantGid\":\"gid://shopify/ProductVariant/67791816196403\",\"costInCents\":2500,\"i9Fee\":true}],\"frontAssemblyService\":{\"variantGid\":\"gid://shopify/ProductVariant/51504906535219\",\"name\":\"Assembly Service\",\"price\":40,\"costInCents\":4000},\"frontTubelessTape\":{\"variantGid\":\"gid://shopify/ProductVariant/51561220669747\",\"name\":\"Tubeless Tape (Installed)\",\"price\":0,\"costInCents\":0},\"rearAssemblyService\":{\"variantGid\":\"gid://shopify/ProductVariant/51504906535219\",\"name\":\"Assembly Service\",\"price\":40,\"costInCents\":4000},\"rearTubelessTape\":{\"variantGid\":\"gid://shopify/ProductVariant/51561220669747\",\"name\":\"Tubeless Tape (Installed)\",\"price\":0,\"costInCents\":0}},\"selectedOptionalAddons\":{},\"buildId\":\"777152\",\"_ui\":{\"activeVendor\":{\"frontRim\":\"Industry Nine\",\"rearRim\":\"Industry Nine\",\"frontHub\":\"Industry Nine\",\"rearHub\":\"Industry Nine\",\"frontSpokes\":\"Industry Nine\",\"rearSpokes\":\"Industry Nine\",\"frontNipples\":null,\"rearNipples\":null,\"frontValveStem\":\"Reserve\",\"rearValveStem\":\"Reserve\"},\"valveStemExplicitlyRemoved\":{\"front\":false,\"rear\":false},\"step2AutoSelected\":{\"rearSpokeCount\":\"32h\"}}}"
+    },
+    {
+     "name": "Front Spoke Colors",
+     "value": "Black ×14, Bronze ×14"
+    },
+    {
+     "name": "Front Drive Side",
+     "value": "1 Black, 2 Bronze, 3 Black, 4 Bronze, 5 Black, 6 Bronze, 7 Black, 8 Bronze, 9 Black, 10 Bronze, 11 Black, 12 Bronze, 13 Black, 14 Bronze"
+    },
+    {
+     "name": "Front Rotor Side",
+     "value": "1 Bronze, 2 Black, 3 Bronze, 4 Black, 5 Bronze, 6 Black, 7 Bronze, 8 Black, 9 Bronze, 10 Black, 11 Bronze, 12 Black, 13 Bronze, 14 Black"
+    },
+    {
+     "name": "Rear Spoke Colors",
+     "value": "Black ×16, Bronze ×16"
+    },
+    {
+     "name": "Rear Drive Side",
+     "value": "1 Black, 2 Bronze, 3 Black, 4 Bronze, 5 Black, 6 Bronze, 7 Black, 8 Bronze, 9 Black, 10 Bronze, 11 Black, 12 Bronze, 13 Black, 14 Bronze, 15 Black, 16 Bronze"
+    },
+    {
+     "name": "Rear Rotor Side",
+     "value": "1 Bronze, 2 Black, 3 Bronze, 4 Black, 5 Bronze, 6 Black, 7 Bronze, 8 Black, 9 Bronze, 10 Black, 11 Bronze, 12 Black, 13 Bronze, 14 Black, 15 Bronze, 16 Black"
+    },
+    {
+     "name": "System Hub",
+     "value": "Hydra2"
+    },
+    {
+     "name": "Freehub",
+     "value": "XD"
+    }
+   ]
+  },
+  {
+   "id": 15000,
+   "title": "Industry Nine Hydra2 Freehub",
+   "name": "Industry Nine Hydra2 Freehub - XD",
+   "variant_title": "XD",
+   "quantity": 1,
+   "price": "0.0",
+   "sku": null,
+   "vendor": "Industry Nine",
+   "product_id": 9799031128371,
+   "variant_id": 51752447443251,
+   "properties": [
+    {
+     "name": "_BuildID",
+     "value": "777152"
+    },
+    {
+     "name": "_bundle_id",
+     "value": "777152"
+    },
+    {
+     "name": "Wheel",
+     "value": "Rear"
+    },
+    {
+     "name": "Component",
+     "value": "Freehub"
+    }
+   ]
+  },
+  {
+   "id": 15001,
+   "title": "Industry Nine SYSTEM Spokes",
+   "name": "Industry Nine SYSTEM Spokes - Black / -",
+   "variant_title": "Black / -",
+   "quantity": 1,
+   "price": "285.0",
+   "sku": null,
+   "vendor": "Industry Nine",
+   "product_id": 15442698666291,
+   "variant_id": 67792145776947,
+   "properties": [
+    {
+     "name": "_BuildID",
+     "value": "777152"
+    },
+    {
+     "name": "_bundle_id",
+     "value": "777152"
+    },
+    {
+     "name": "Wheel",
+     "value": "Rear"
+    },
+    {
+     "name": "Spoke Colors",
+     "value": "Black ×16, Bronze ×16"
+    },
+    {
+     "name": "_spoke_bundle",
+     "value": "1"
+    }
+   ]
+  },
+  {
+   "id": 15002,
+   "title": "Industry Nine Hydra2 SYSTEM Rear Hub - 6-Bolt",
+   "name": "Industry Nine Hydra2 SYSTEM Rear Hub - 6-Bolt - 32h / Bronze / 12x148mm",
+   "variant_title": "32h / Bronze / 12x148mm",
+   "quantity": 1,
+   "price": "510.0",
+   "sku": null,
+   "vendor": "Industry Nine",
+   "product_id": 10262112010547,
+   "variant_id": 53547341938995,
+   "properties": [
+    {
+     "name": "_BuildID",
+     "value": "777152"
+    },
+    {
+     "name": "_bundle_id",
+     "value": "777152"
+    },
+    {
+     "name": "Wheel",
+     "value": "Rear"
+    },
+    {
+     "name": "_Freehub_Type",
+     "value": "XD"
+    }
+   ]
+  },
+  {
+   "id": 15003,
+   "title": "We Are One TRIAD Carbon Rim (Enduro)",
+   "name": "We Are One TRIAD Carbon Rim (Enduro) - 27.5\" / 32h / Black",
+   "variant_title": "27.5\" / 32h / Black",
+   "quantity": 1,
+   "price": "499.0",
+   "sku": null,
+   "vendor": "We Are One",
+   "product_id": 8764684206387,
+   "variant_id": 51797703164211,
+   "properties": [
+    {
+     "name": "_BuildID",
+     "value": "777152"
+    },
+    {
+     "name": "_bundle_id",
+     "value": "777152"
+    },
+    {
+     "name": "Wheel",
+     "value": "Rear"
+    }
+   ]
+  },
+  {
+   "id": 15004,
+   "title": "Custom Spoke Color Configuration",
+   "name": "Custom Spoke Color Configuration - Mixed colors",
+   "variant_title": "Mixed colors",
+   "quantity": 2,
+   "price": "25.0",
+   "sku": null,
+   "vendor": "LoamLabs",
+   "product_id": 15442584404275,
+   "variant_id": 67791816196403,
+   "properties": [
+    {
+     "name": "_BuildID",
+     "value": "777152"
+    },
+    {
+     "name": "_bundle_id",
+     "value": "777152"
+    },
+    {
+     "name": "Wheel",
+     "value": "Front/Rear"
+    }
+   ]
+  },
+  {
+   "id": 15005,
+   "title": "Tubeless Tape (Installed)",
+   "name": "Tubeless Tape (Installed)",
+   "variant_title": null,
+   "quantity": 2,
+   "price": "0.0",
+   "sku": "",
+   "vendor": "LoamLabs",
+   "product_id": 9751873782067,
+   "variant_id": 51561220669747,
+   "properties": [
+    {
+     "name": "_BuildID",
+     "value": "777152"
+    },
+    {
+     "name": "_bundle_id",
+     "value": "777152"
+    },
+    {
+     "name": "Wheel",
+     "value": "Front/Rear"
+    }
+   ]
+  },
+  {
+   "id": 15006,
+   "title": "Assembly Service",
+   "name": "Assembly Service - 40.00",
+   "variant_title": "40.00",
+   "quantity": 2,
+   "price": "40.0",
+   "sku": "",
+   "vendor": "LoamLabs",
+   "product_id": 9742784004403,
+   "variant_id": 51504906535219,
+   "properties": [
+    {
+     "name": "_BuildID",
+     "value": "777152"
+    },
+    {
+     "name": "_bundle_id",
+     "value": "777152"
+    },
+    {
+     "name": "Wheel",
+     "value": "Front/Rear"
+    }
+   ]
+  },
+  {
+   "id": 15007,
+   "title": "Reserve Fillmore Valve Stem",
+   "name": "Reserve Fillmore Valve Stem - Black / 50mm",
+   "variant_title": "Black / 50mm",
+   "quantity": 2,
+   "price": "30.99",
+   "sku": null,
+   "vendor": "Reserve",
+   "product_id": 8762384023859,
+   "variant_id": 47228020195635,
+   "properties": [
+    {
+     "name": "_BuildID",
+     "value": "777152"
+    },
+    {
+     "name": "_bundle_id",
+     "value": "777152"
+    },
+    {
+     "name": "Wheel",
+     "value": "Front/Rear"
+    }
+   ]
+  },
+  {
+   "id": 15008,
+   "title": "Industry Nine SYSTEM Spokes",
+   "name": "Industry Nine SYSTEM Spokes - Black / -",
+   "variant_title": "Black / -",
+   "quantity": 1,
+   "price": "285.0",
+   "sku": null,
+   "vendor": "Industry Nine",
+   "product_id": 15442698666291,
+   "variant_id": 67792145776947,
+   "properties": [
+    {
+     "name": "_BuildID",
+     "value": "777152"
+    },
+    {
+     "name": "_bundle_id",
+     "value": "777152"
+    },
+    {
+     "name": "Wheel",
+     "value": "Front"
+    },
+    {
+     "name": "Spoke Colors",
+     "value": "Black ×14, Bronze ×14"
+    },
+    {
+     "name": "_spoke_bundle",
+     "value": "1"
+    }
+   ]
+  },
+  {
+   "id": 15009,
+   "title": "Industry Nine Hydra2 SYSTEM Front Hub - 6-Bolt",
+   "name": "Industry Nine Hydra2 SYSTEM Front Hub - 6-Bolt - 28h / Bronze / 15x110mm",
+   "variant_title": "28h / Bronze / 15x110mm",
+   "quantity": 1,
+   "price": "240.0",
+   "sku": null,
+   "vendor": "Industry Nine",
+   "product_id": 10262087991603,
+   "variant_id": 53547314807091,
+   "properties": [
+    {
+     "name": "_BuildID",
+     "value": "777152"
+    },
+    {
+     "name": "_bundle_id",
+     "value": "777152"
+    },
+    {
+     "name": "Wheel",
+     "value": "Front"
+    }
+   ]
+  },
+  {
+   "id": 15010,
+   "title": "We Are One TRIAD Carbon Rim (Enduro)",
+   "name": "We Are One TRIAD Carbon Rim (Enduro) - 29\" / 28h / Black",
+   "variant_title": "29\" / 28h / Black",
+   "quantity": 1,
+   "price": "499.0",
+   "sku": null,
+   "vendor": "We Are One",
+   "product_id": 8764684206387,
+   "variant_id": 51797703098675,
+   "properties": [
+    {
+     "name": "_BuildID",
+     "value": "777152"
+    },
+    {
+     "name": "_bundle_id",
+     "value": "777152"
+    },
+    {
+     "name": "Wheel",
+     "value": "Front"
+    }
+   ]
+  }
+ ],
+ "_sample": {
+  "name": "order-1466",
+  "description": "Real order #1466 (Nov 12 2026), customer details removed: Industry Nine SYSTEM wheel set, both wheels Black/Bronze, one merged Custom Spoke Color Configuration line (quantity 2, Wheel Front/Rear)"
+ }
+}

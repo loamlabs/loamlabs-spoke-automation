@@ -21,16 +21,17 @@ test('a Hydra2 32h FRONT hub no longer says NOT CALCULATED when its rim has a ch
 test('the order #1459 case end to end: front gets the rear 32h pair labelled by disc / non-disc side, rear unchanged, the geometry line only in the internal email', async () => {
   const order = chartOrder({ front: { rim: '51797703131443', holes: 32 }, rear: { rim: '51797703131443', holes: 32 }, orderNumber: 91401 });
   const r = await noteOf(order);
-  const front = r.note.split('REAR WHEEL')[0], rear = r.note.split('REAR WHEEL')[1];
-  assert.ok(front.includes('  Spoke lengths (System): Disc side 300 mm, Non-disc side 303 mm\n'));
-  assert.ok(front.includes('  Source: I9 System chart 2026, row Triad 29" 32h TR304, 32h pair (Thomas Ward, I9, 2026-10-30: same lengths front and rear)\n'));
-  assert.ok(rear.includes('  Spoke lengths (System): Left/Rotor 303 mm, Right/Drive 300 mm\n'));
-  assert.ok(rear.includes('  source: I9 System chart 2026, row Triad 29" 32h TR304\n'));
+  const [front, rear] = r.note.split('\n\nREAR   ');
+  assert.ok(front.includes('  Rotor side  300 mm:  ') && front.includes('  Drive side  303 mm:  '), 'front: the disc side is the rotor side and gets the shorter number');
+  assert.ok(rear.includes('  Rotor side  303 mm:  ') && rear.includes('  Drive side  300 mm:  '));
+  assert.equal(/Source|source:|Disc side|chart 2026|Thomas Ward/.test(r.note), false, 'the chart source and the I9 remarks are email-only');
+  assert.ok(r.html.includes('Source: I9 System chart 2026, row Triad 29&quot; 32h TR304, 32h pair (Thomas Ward, I9, 2026-10-30: same lengths front and rear)'));
+  assert.ok(r.html.includes('source: I9 System chart 2026, row Triad 29&quot; 32h TR304'));
   assert.equal(/NOT CALCULATED|method pending/.test(r.note), false);
   assert.equal(r.note.includes('geometry check') || r.note.includes('Front uses the rear'), false, 'the caveat is NOT in the order note');
   assert.equal(r.html.split('Front uses the rear 32h pair per I9. Jerry').length - 1, 1, 'the caveat is in the internal email exactly once (front wheel only)');
   assert.ok(r.html.includes('geometry check differs by up to about 4 mm on one side; if the first real front build looks off, tell Claude.'));
-  assert.ok(r.html.includes('Disc side 300 mm, Non-disc side 303 mm'));
+  assert.ok(r.html.includes('Rotor side 300 mm:') && r.html.includes('Drive side 303 mm:'));
   assert.ok(r.html.includes('<em>Spoke lengths for System hubs: see each wheel</em>'));
 });
 
@@ -38,14 +39,14 @@ test('front 32h on I9 and We Are One rims; a rim with no chart row still says NO
   // I9 rim: Sector alloy 29" 32h (TR256) 299 / 300; We Are One rim: Fuse carbon 29" 32h (TR307) 300 / 303
   for (const [rim, disc, nonDisc, row] of [['53530701168947', 299, 300, 'Sector 29" 32h TR256'], ['51797702967603', 300, 303, 'Fuse 29" 32h TR307']]) {
     const r = await noteOf(chartOrder({ front: { rim, holes: 32 }, rear: { rim, holes: 32 }, orderNumber: 91408 }));
-    const front = r.note.split('REAR WHEEL')[0];
-    assert.ok(front.includes(`Disc side ${disc} mm, Non-disc side ${nonDisc} mm`), row);
-    assert.ok(front.includes(`row ${row}, 32h pair`), row);
+    const front = r.note.split('\n\nREAR   ')[0];
+    assert.ok(front.includes(`Rotor side  ${disc} mm:  `) && front.includes(`Drive side  ${nonDisc} mm:  `), row);
+    assert.ok(r.html.includes(`row ${row.replace('"', '&quot;')}, 32h pair`), row);
     assert.equal(r.lengths.front.pending, false);
   }
   const miss = await noteOf(chartOrder({ front: { rim: '12345', holes: 32 }, rear: { rim: '12345', holes: 32 }, orderNumber: 91409 }));
-  assert.ok(miss.note.split('REAR WHEEL')[0].includes("Spoke lengths for System hubs: NOT CALCULATED. This rim is not in I9's spoke length chart"));
-  assert.equal(miss.note.includes('Disc side'), false);
+  assert.ok(miss.html.includes('NOT CALCULATED. This rim is not in I9') && miss.html.includes('spoke length chart'), 'the reason is in the internal email');
+  assert.equal(miss.note.includes('Disc side') || miss.note.includes('NOT CALCULATED'), false);
   // the lookup has no axle-spacing input at all (15x110, 20x110, 15x100 ... all give the same pair): the wheel geometry it reads has no such field
   const w = input(chartOrder({ front: { rim: '51797703131443', holes: 32 }, orderNumber: 91410 }), 'front');
   assert.equal(Object.keys(w).some((k) => /spacing|axle/i.test(k)), false);

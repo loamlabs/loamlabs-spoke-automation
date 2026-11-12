@@ -16,11 +16,9 @@ import { unknownValveColorText } from './valve-colors.js';
 import { svgToPng } from './wheel-png.js';
 import { suppliedSummary, suppliedWheelText, PARTS_MUST_ARRIVE } from './own-parts.js'; // OWN-PARTS
 import { calculateSystemSpokeLengths, SYSTEM_LENGTHS_PENDING_TEXT, SYSTEM_LENGTHS_NOT_CALCULATED_PREFIX, systemLengthsNotCalculatedText } from './system-lengths.js';
-import { SYSTEM_REPORT_MARKER } from './system-dedupe.js';
 import { resendTimeoutMs } from './http-timeout.js';
 
 export const IMAGE_WIDTH_PX = 600;
-const TIMES = '×';          // plain text (order note)
 const TIMES_HTML = '&times;';    // email HTML (entity: safe whatever charset the client assumes)
 
 export const CUSTOMER_FROM = 'LoamLabs <info@loamlabsusa.com>';
@@ -29,7 +27,6 @@ export const CUSTOMER_EMAIL_FLAG = 'SYSTEM_CUSTOMER_EMAIL'; // sending to custom
 
 function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
-function countsText(list, times = TIMES) { return list.map((c) => `${c.color} ${times}${c.n}`).join(', '); }
 
 /* ------------------------------------------------------------------ images */
 
@@ -101,7 +98,7 @@ function lengthsFor(wheel, lengthCalculator) {
     if (r && typeof r === 'object' && isFinite(r.left) && isFinite(r.right)) {
       // round 10: a result from I9's chart also says where it came from (r.sourceText), in the internal email and the order note only
       const sides = r.sideLabels && r.sideLabels.left && r.sideLabels.right ? `${r.sideLabels.left} ${r.left} mm, ${r.sideLabels.right} ${r.right} mm` : `Left/Rotor ${r.left} mm, Right/Drive ${r.right} mm`;
-      return { pending: false, text: `Spoke lengths (System): ${sides}${r.note ? ` (${r.note})` : ''}`, sourceText: typeof r.sourceText === 'string' ? r.sourceText : null, internalText: typeof r.internalText === 'string' ? r.internalText : null };
+      return { pending: false, left: r.left, right: r.right, extra: typeof r.note === 'string' && r.note ? r.note : null, text: `Spoke lengths (System): ${sides}${r.note ? ` (${r.note})` : ''}`, sourceText: typeof r.sourceText === 'string' ? r.sourceText : null, internalText: typeof r.internalText === 'string' ? r.internalText : null };
     }
     // the chart lookup says why in plain words; an injected calculator (tests) keeps the old text
     const why = lengthCalculator === calculateSystemSpokeLengths ? systemLengthsNotCalculatedText(wheel.geometryInput) : null;
@@ -152,6 +149,24 @@ function nippleTables(w) {
             </table>`;
 }
 
+// "7 Black, 7 Bronze": the one way colors are counted in the order note and the internal email (count first, then the color name).
+export function countsLine(list) { return list.map((c) => `${c.n} ${c.color}`).join(', '); }
+// The two sides of a wheel as the note and the internal email print them: rotor side first, then drive side. The length lookup says left = rotor side, right = drive side
+// (geometryInput), whatever words the chart used for them ("Disc side" is the rotor side). A wheel without chart lengths prints the colors only; why is in the email.
+export function sideEntries(w, l) {
+  const mm = (v) => (l && !l.pending && isFinite(v) ? v : null);
+  return [
+    { side: 'rotor', label: 'Rotor side', mm: mm(l && l.left), counts: w.counts.rotor },
+    { side: 'drive', label: 'Drive side', mm: mm(l && l.right), counts: w.counts.drive }
+  ];
+}
+// "Rotor side  305 mm:  7 Black, 7 Bronze" (note) / without the length when there is none: "Rotor side:  7 Black, 7 Bronze"
+function sideLine(e) { return `${e.label}${e.mm != null ? `  ${e.mm} mm` : ''}:  ${countsLine(e.counts)}`; }
+function colorSideRow(e, hexOf = hexFor) {
+  const cells = e.counts.map((c) => `<span class="swatch" style="background:${hexOf(c.color)}"></span>${c.n} ${esc(c.color)}`).join(', ');
+  return `<tr><td>${esc(e.label)}${e.mm != null ? ` ${e.mm} mm` : ''}:</td><td>${cells}</td></tr>`;
+}
+
 // One wheel section. internal: lengths, fee check, warnings, image-failure lines. customer: component details, color tables and images only.
 function wheelHtml(w, images, imageErrors, opts) {
   const internal = !!(opts && opts.internal), lengths = opts && opts.lengths;
@@ -164,7 +179,15 @@ function wheelHtml(w, images, imageErrors, opts) {
   const warnings = internal ? w.warnings.map((t) => `<p class="alert"><strong>NOTE:</strong> ${esc(t)}</p>`).join('') : '';
   const supRow = internal && w.supplied ? `
                 <tr><td>Customer supplies</td><td><strong>${esc(suppliedWheelText(w.supplied, w.label))}</strong></td></tr>` : ''; // OWN-PARTS: '' (no characters) for a wheel without customer parts
-  const feeRow = internal ? `<tr><td>Custom color fee</td><td>${w.isMultiColor ? (w.feeLines ? `${w.feeLines} ${TIMES_HTML} ${esc(SYSTEM_FEE.name)} line on the order` : 'expected, none found on the order') : 'not applicable (one color)'}</td></tr>` : '';
+  const feeRow = internal ? `<tr><td>Custom color fee</td><td>${w.isMultiColor ? (w.feeLines ? `${w.feeLines} ${TIMES_HTML} ${esc(SYSTEM_FEE.name)} on the order (covers this wheel)` : 'expected, not found on the order for this wheel') : (w.feeLines ? `one color, but ${w.feeLines} ${TIMES_HTML} ${esc(SYSTEM_FEE.name)} on the order` : 'not applicable (one color)')}</td></tr>` : '';
+  // internal: each side with its spoke length and colors together (no "Whole wheel" row); customer: the three count rows exactly as before
+  const colorRows = internal
+    ? sideEntries(w, lengths).map((e) => colorSideRow(e, w.hexOf)).join('')
+    : [
+      colorRow(`${(w.sideLabels && w.sideLabels.drive) || 'Drive side'} (${w.colors.drive.length})`, w.counts.drive, w.hexOf),
+      colorRow(`${(w.sideLabels && w.sideLabels.rotor) || 'Rotor side'} (${w.colors.rotor.length})`, w.counts.rotor, w.hexOf),
+      colorRow(`Whole wheel (${w.total})`, w.counts.all, w.hexOf)
+    ].join('\n                ');
   return `
         <div class="wheel-section">
             <h3>${w.label.toUpperCase()} WHEEL</h3>
@@ -176,41 +199,29 @@ function wheelHtml(w, images, imageErrors, opts) {
                 <tr><td>Spoke count</td><td>${esc(w.spokeCountLabel)}</td></tr>
                 ${feeRow}
             </table>
-            <h4>Spoke Colors</h4>
+            <h4>Spoke Colors${internal ? ' and Lengths' : ''}</h4>
             <table class="data-table">
-                ${colorRow(`${(w.sideLabels && w.sideLabels.drive) || 'Drive side'} (${w.colors.drive.length})`, w.counts.drive, w.hexOf)}
-                ${colorRow(`${(w.sideLabels && w.sideLabels.rotor) || 'Rotor side'} (${w.colors.rotor.length})`, w.counts.rotor, w.hexOf)}
-                ${colorRow(`Whole wheel (${w.total})`, w.counts.all, w.hexOf)}
+                ${colorRows}
             </table>${nippleTables(w)}
             ${visual}
-            ${internal ? `<p><em>${esc(lengths.text)}</em>${lengths.sourceText ? `<br><span class="caption">${esc(lengths.sourceText)}</span>` : ''}${lengths.internalText ? `<br><span class="caption">${esc(lengths.internalText)}</span>` : ''}</p>` : ''}
+            ${internal ? `<p>${lengths.pending ? `<em>${esc(lengths.text)}</em>` : (lengths.extra ? `<em>Length note: ${esc(lengths.extra)}</em>` : '')}${lengths.sourceText ? `<br><span class="caption">${esc(lengths.sourceText)}</span>` : ''}${lengths.internalText ? `<br><span class="caption">${esc(lengths.internalText)}</span>` : ''}</p>` : ''}
             ${warnings}
         </div>`;
 }
 
-// The order note (Shopify order, packing slip). Text only: the length line lives here, never images or customer wording.
-function noteText(wheels, lengthsByPos, imageErrors) {
-  let note = `${SYSTEM_REPORT_MARKER} (Industry Nine SYSTEM spokes)\n`; // the marker doubles as the "already processed" record (see _lib/system-dedupe.js)
-  note += '--------------------------------------------------\n';
-  note += 'System spokes are one bundle per wheel; no length-variant inventory is deducted.\n';
-  { const own = suppliedSummary(wheels); if (own) note += `CUSTOMER-SUPPLIED PARTS: ${own}.\n${PARTS_MUST_ARRIVE}\n`; } // OWN-PARTS
-  wheels.forEach((w) => {
-    const l = lengthsByPos[w.position];
-    note += `\n${w.label.toUpperCase()} WHEEL (${w.hubModel}, ${w.spokeCountLabel})\n`;
-    note += `  Rim: ${w.rimTitle}\n`;
-    note += `  Hub: ${w.hubTitle}${w.hubVariantTitle ? ` (${w.hubVariantTitle})` : ''}\n`;
-    note += `  Hub color: ${w.hubColor}\n`;
-    if (w.supplied) note += `  Customer supplies: ${suppliedWheelText(w.supplied, w.label)}\n`; // OWN-PARTS
-    if (w.position === 'rear') note += `  Freehub: ${w.freehub || 'n/a'}\n`;
-    note += `  Drive side (${w.config.drive.n}): ${countsText(w.counts.drive)}\n`;
-    note += `  Rotor side (${w.config.rotor.n}): ${countsText(w.counts.rotor)}\n`;
-    note += `  Whole wheel (${w.total}): ${countsText(w.counts.all)}${w.isMultiColor ? '' : ' (one color)'}\n`;
-    note += `  ${l.text}\n`;
-    if (l.sourceText) note += `  ${l.sourceText}\n`;
-    w.warnings.forEach((t) => { note += `  NOTE: ${t}\n`; });
-  });
-  if (imageErrors.length) note += `\nIMAGES:\n- ${imageErrors.join('\n- ')}\n`;
-  return note;
+// The order note (Shopify order, packing slip): the customer reads it, so it is short and calm. One block per wheel: the wheel, then each side with its spoke length and
+// its colors together (rotor side first). Nothing else: no header, hub color line, whole-wheel line, chart source, warnings or image errors; those are in the internal
+// email only. A wheel without chart lengths prints its colors without a length (the email says why). Plain text, short lines.
+// The old header ("AUTOMATED SYSTEM BUILD REPORT") doubled as the "already processed" record; each wheel's first line is that record now (see _lib/system-dedupe.js).
+// OWN-PARTS (kept, it is a requirement of the own-parts contract and it is not a warning): an order with customer-supplied parts starts with two plain lines saying what the
+// customer supplies and that the parts must arrive first. Orders without own parts have nothing above the wheel blocks.
+function noteText(wheels, lengthsByPos) {
+  const own = suppliedSummary(wheels);
+  const head = own ? `CUSTOMER-SUPPLIED PARTS: ${own}.\n${PARTS_MUST_ARRIVE}\n\n` : '';
+  return head + wheels.map((w) => [
+    `${w.label.toUpperCase().padEnd(5)}  ${w.rimTitle}  /  ${w.hubModel}, ${w.hubColor}`,
+    ...sideEntries(w, lengthsByPos[w.position]).map((e) => `  ${sideLine(e)}`)
+  ].join('\n')).join('\n\n') + '\n';
 }
 
 function orderNumberOf(orderData) { return orderData.order_number != null ? orderData.order_number : (orderData.name || 'n/a'); }
@@ -267,7 +278,7 @@ export async function buildSystemReport(o) {
   return {
     subject: `I9 System Build Report for Order #${orderNumber} (spoke colors)`,
     html,
-    note: noteText(wheels, lengthsByPos, imageErrors),
+    note: noteText(wheels, lengthsByPos),
     wheels, images, imageErrors,
     warnings: wheels.flatMap((w) => w.warnings),
     lengths: lengthsByPos

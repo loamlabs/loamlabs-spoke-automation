@@ -41,8 +41,9 @@ test('claim: expires after the TTL', () => {
 test('marker: the note the System path writes contains it; plain and Standard notes do not', async () => {
   const order = loadSample('system', 'hydra2-front-28h-only');
   const report = await buildSystemReport({ recipe: findSystemBuildRecipe(order).recipe, orderData: order, renderPng: async () => Buffer.from('x') });
-  assert.ok(report.note.startsWith(SYSTEM_REPORT_MARKER));
+  assert.ok(report.note.startsWith('FRONT  ') && !report.note.includes(SYSTEM_REPORT_MARKER), 'the short note has no header; its first wheel line is the record');
   assert.equal(noteHasSystemReport(report.note), true);
+  assert.equal(noteHasSystemReport(`${SYSTEM_REPORT_MARKER} (Industry Nine SYSTEM spokes)\nFRONT WHEEL ...`), true, 'a note written before the short note is still recognised');
   assert.equal(noteHasSystemReport(`Please ship Friday.\n\n----\n\n${report.note}`), true, 'still found after the customer note is prepended');
   for (const n of [null, undefined, '', 'Customer note only', 'AUTOMATED SPOKE CALCULATION & INVENTORY\nFRONT WHEEL']) assert.equal(noteHasSystemReport(n), false);
 });

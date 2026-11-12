@@ -18,6 +18,7 @@ function order(rim) {
 }
 const withErd = (rim, erd) => createMock({ ...loadMockShopify(), metafields: { [rim.variantId]: { rim_erd: erd, rim_spoke_hole_offset: '2.5', _parent_product_id: 'gid://shopify/Product/8482354168115' } } });
 const run = (o, mock) => runWebhook(INDEX, 'orders/create', o, mock ? { mock } : undefined);
+const mail = (r) => r.emails.map((e) => e.html).join(' ').replace(/<[^>]+>/g, ' ').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&').replace(/\s+/g, ' '); // the internal email as text
 
 test('data: both rims map to the Wanderer 29" row TR309 (ERD 600, H2 32h, 299/300) and say they are borrowed', () => {
   const wanderer = CHART_ROWS.findIndex((r) => r.partNumber === 'TR309' && r.hub === 'H2 32h');
@@ -34,9 +35,11 @@ test('orders: Arch MK4 and Flow MK4 29" 32h on a Hydra2 32h wheel set give the W
   for (const [id, title] of [[ARCH, "Stan's Arch MK4 Alloy Rim"], [FLOW, "Stan's Flow MK4 Alloy Rim"]]) {
     const rim = rimComp(id, title); const r = await run(order(rim), withErd(rim, '600.0'));
     assert.equal(r.status, 200); assert.equal(r.inventoryAdjustments.length, 0);
-    assert.ok(r.note.includes('Spoke lengths (System): Disc side 299 mm, Non-disc side 300 mm'), `${title} front`); assert.ok(r.note.includes('Spoke lengths (System): Left/Rotor 300 mm, Right/Drive 299 mm'), `${title} rear`);
-    assert.ok(r.note.includes(`Source: I9 System chart 2026, row Wanderer 29" TR309 (${SRC}), 32h pair`), 'front source line');
-    assert.ok(r.note.includes(`source: I9 System chart 2026, row Wanderer 29" TR309 (${SRC})`), 'rear source line');
+    const [front, rear] = r.note.split('\n\nREAR   ');
+    assert.ok(front.includes('  Rotor side  299 mm:  ') && front.includes('  Drive side  300 mm:  '), `${title} front`); assert.ok(rear.includes('  Rotor side  300 mm:  ') && rear.includes('  Drive side  299 mm:  '), `${title} rear`);
+    assert.ok(mail(r).includes(`Source: I9 System chart 2026, row Wanderer 29" TR309 (${SRC}), 32h pair`), 'front source line (internal email)');
+    assert.ok(mail(r).includes(`source: I9 System chart 2026, row Wanderer 29" TR309 (${SRC})`), 'rear source line (internal email)');
+    assert.equal(r.note.includes(SRC), false, 'the source is not in the order note');
     assert.equal(/check ERD|store ERD/.test(r.note), false, 'the ERD compare is quiet at 600');
     assert.ok(r.emails.map((e) => e.html).join('').includes(`(${SRC})`), 'internal email too');
   }
@@ -44,12 +47,12 @@ test('orders: Arch MK4 and Flow MK4 29" 32h on a Hydra2 32h wheel set give the W
 
 test('the ERD compare still works for these rims: a store ERD of 604 is flagged', async () => {
   const rim = rimComp(ARCH, "Stan's Arch MK4 Alloy Rim"); const r = await run(order(rim), withErd(rim, '604.0'));
-  assert.ok(/check ERD|store ERD 604/.test(r.note));
+  assert.ok(/check ERD|store ERD 604/.test(mail(r)) && !/check ERD|store ERD/.test(r.note), 'flagged in the internal email only');
 });
 
 test('ENVE M630, WTB i30 and Light Bicycle AM928 (no I9 data) and the other Stan\'s variants stay NOT CALCULATED', async () => {
   for (const [id, title] of [['51000000000001', 'ENVE M630 Rim'], ['51000000000002', 'WTB ST i30 Rim'], ['51000000000003', 'Light Bicycle AM928 Rim'], ['51797701034291', "Stan's Arch MK4 Alloy Rim (28h variant)"]]) {
-    const r = await run(order(rimComp(id, title))); assert.ok(r.note.includes('NOT CALCULATED'), title);
+    const r = await run(order(rimComp(id, title))); assert.ok(mail(r).includes('NOT CALCULATED'), title); assert.equal(r.note.includes('NOT CALCULATED'), false, title);
   }
 });
 
@@ -57,6 +60,6 @@ test('Arch MK4 as a customer-supplied rim: the same lengths and the Source line,
   const o = order({ ...rimComp(ARCH, "Stan's Arch MK4 Alloy Rim"), supplied: true });
   const p = o.line_items.flatMap((l) => l.properties || []).find((x) => x.name === '_build'); const b = JSON.parse(p.value); b.customerSupplied = { front: { rim: true, hub: false }, rear: { rim: true, hub: false } }; p.value = JSON.stringify(b);
   const r = await run(o);
-  assert.ok(r.note.includes('CUSTOMER-SUPPLIED PARTS: front rim')); assert.ok(r.note.includes('Disc side 299 mm, Non-disc side 300 mm')); assert.ok(r.note.includes(SRC));
+  assert.ok(r.note.includes('CUSTOMER-SUPPLIED PARTS: front rim')); assert.ok(r.note.includes('  Rotor side  299 mm:  ')); assert.ok(mail(r).includes(SRC));
   void FUSE;
 });

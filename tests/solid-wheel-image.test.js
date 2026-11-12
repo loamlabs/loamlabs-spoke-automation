@@ -122,5 +122,5 @@ test('through the webhook: same sends as before (internal always; customer only 
   assert.deepEqual(on.restEmails[1].to, ['customer@example.com']);
   assert.deepEqual(on.restEmails[1].attachments.map((a) => a.content_id), ['front-all-spokes', 'front-rotor-only', 'front-drive-only', 'rear-all-spokes']);
   assert.ok(on.restEmails[1].subject.startsWith('Your custom spoke colors'));
-  assert.ok(on.note.includes('Whole wheel (24): Black ×24 (one color)'), 'the order note is unchanged');
+  assert.ok(/\n\nREAR {3}[^\n]*\n {2}Rotor side[^\n]*:  \d+ Black\n {2}Drive side[^\n]*:  \d+ Black\n/.test(on.note), 'the solid rear wheel prints one Black entry per side'); assert.equal(on.note.includes('Whole wheel'), false);
 });

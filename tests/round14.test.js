@@ -107,12 +107,12 @@ test('no spoke touches the stem or the nut: gap from every spoke edge (halo incl
   assert.ok(spokes > 1500);
 });
 
-test('internal email summary line: "System spokes are one bundle per wheel; no length-variant inventory is deducted." (same wording as the order note); the old sentence is gone', async () => {
+test('internal email summary line: "System spokes are one bundle per wheel; no length-variant inventory is deducted." (the order note no longer carries it); the old sentence is gone', async () => {
   const { buildSystemReport } = await import('../_lib/system-report.js');
   const order = chartOrder({ front: { rim: '51797702934835', holes: 28, rimTitle: I9_TITLE }, rear: { rim: '51797702967603', holes: 32, rimTitle: I9_TITLE }, orderNumber: 91650 });
   const rep = await buildSystemReport({ recipe: recipeOf(order), orderData: order, renderPng: async () => Buffer.from('PNG') });
   const text = rep.html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
   assert.ok(text.includes('System spokes are one bundle per wheel; no length-variant inventory is deducted.'));
   assert.ok(!/No Length Variant inventory was deducted/.test(rep.html + rep.note));
-  assert.ok(rep.note.includes('System spokes are one bundle per wheel; no length-variant inventory is deducted.'));
+  assert.equal(rep.note.includes('System spokes are one bundle per wheel'), false, 'the short order note no longer carries the line (it is in the internal email)');
 });

@@ -20,9 +20,10 @@ test('System wheel set: 200, no inventory adjustment, no variant lookup, note wr
   assert.equal(r.metafieldQueries.length, 1, 'one metafield fetch (hub flange / rim ERD)');
   assert.equal(r.notes.length, 1);
   assert.ok(r.note.includes('Customer note: please match the purple hubs'), 'customer note preserved');
-  assert.ok(r.note.includes('AUTOMATED SYSTEM BUILD REPORT'));
-  assert.ok(r.note.includes('FRONT WHEEL (Solix, 24h 2:1 (8 drive / 16 rotor))'));
-  assert.ok(r.note.includes('Spoke lengths for System hubs: NOT CALCULATED.'), 'the length line is in the order note');
+  assert.equal(r.note.includes('AUTOMATED'), false, 'the order note has no header');
+  assert.ok(/FRONT {2}[^\n]* {2}\/ {2}Solix, Purple\n {2}Rotor side:  /.test(r.note), 'the front block: the wheel, then each side with its colors');
+  assert.equal(r.note.includes('NOT CALCULATED'), false, 'the reason a length is missing is in the internal email, not the order note');
+  assert.ok(r.restEmails[0].html.includes('Spoke lengths for System hubs: NOT CALCULATED.'), 'the length line is in the internal email');
   assert.equal(r.sdkEmails.length, 0, 'the Standard email path was not used');
   assert.equal(r.restEmails.length, 1, 'flag off: only the internal email');
   const email = r.restEmails[0];

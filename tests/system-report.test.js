@@ -150,14 +150,18 @@ test('LENGTH-CALC HOOK wiring: numbers from the hook show up in the email and th
   const { order, recipe } = recipeOf('hydra2-wheelset-32f-32r');
   const fakeCalc = (wheel) => ({ left: wheel.position === 'front' ? 288 : 286, right: wheel.position === 'front' ? 288 : 284, note: 'stub' });
   const report = await buildSystemReport({ recipe, orderData: order, renderPng: fakePng, lengthCalculator: fakeCalc });
-  assert.ok(report.html.includes('Left/Rotor 288 mm, Right/Drive 288 mm (stub)'));
-  assert.ok(report.note.includes('Left/Rotor 286 mm, Right/Drive 284 mm (stub)'));
+  // the numbers sit with the colors of their side ("Rotor side 288 mm: ..."), in the email and in the order note; the stub's own note is an email-only line
+  assert.ok(report.html.includes('Rotor side 288 mm:') && report.html.includes('Drive side 288 mm:') && report.html.includes('Length note: stub'));
+  assert.ok(report.note.includes('  Rotor side  286 mm:  ') && report.note.includes('  Drive side  284 mm:  '));
+  assert.equal(report.note.includes('stub'), false, 'the length note is not in the order note');
   assert.equal(report.html.includes(SYSTEM_LENGTHS_PENDING_TEXT), false);
   const pending = await buildSystemReport({ recipe, orderData: order, renderPng: fakePng, lengthCalculator: () => null });
-  assert.ok(pending.html.includes(SYSTEM_LENGTHS_PENDING_TEXT));
-  assert.ok(pending.note.includes(SYSTEM_LENGTHS_PENDING_TEXT));
+  assert.ok(pending.html.includes(SYSTEM_LENGTHS_PENDING_TEXT), 'the email says the lengths are pending');
+  assert.equal(pending.note.includes(SYSTEM_LENGTHS_PENDING_TEXT), false, 'the order note does not carry the pending text');
+  assert.ok(pending.note.includes('  Rotor side:  ') && !/ mm:/.test(pending.note), 'colors only, no length');
   const throwing = await buildSystemReport({ recipe, orderData: order, renderPng: fakePng, lengthCalculator: () => { throw new Error('boom'); } });
-  assert.ok(throwing.note.includes('The length lookup failed (boom)'));
+  assert.ok(throwing.html.includes('The length lookup failed (boom)'));
+  assert.equal(throwing.note.includes('boom'), false);
 });
 
 test('a failing renderer never fails the report: text stays, an "image failed" line appears per image (3 per wheel)', async () => {
@@ -168,7 +172,7 @@ test('a failing renderer never fails the report: text stays, an "image failed" l
   assert.ok(report.imageErrors[0].startsWith('Front wheel, all spokes (rotor side view): image failed: native binary missing'));
   assert.ok(report.html.includes('image failed: native binary missing'));
   assert.ok(report.html.includes('Green'));
-  assert.ok(report.note.includes('IMAGES:'));
+  assert.equal(report.note.includes('IMAGES:') || report.note.includes('image failed'), false, 'image errors are email-only; the order note stays clean');
 });
 
 test('hub metafields from Shopify override the sample geometry; the Studio value length mismatch is repaired like the Studio does', async () => {
@@ -190,17 +194,19 @@ test('hub metafields from Shopify override the sample geometry; the Studio value
 
 /* ------------------------------------------------------------------ the order note */
 
-test('order note: text only, carries the length line (pending text, or the numbers once the hook returns them), no images, no customer wording', async () => {
+test('order note: short plain text, one block per wheel with each side length and its colors together, no images, no customer wording, no header', async () => {
   const { order, recipe } = recipeOf('hydra2-wheelset-28f-32r');
   const pending = await buildSystemReport({ recipe, orderData: order, renderPng: fakePng });
-  assert.equal((pending.note.match(/Spoke lengths for System hubs: NOT CALCULATED\./g) || []).length, 2, 'one length line per wheel');
+  assert.equal((pending.note.match(/^(?:FRONT|REAR) +/gm) || []).length, 2, 'one block per wheel');
+  assert.equal(/NOT CALCULATED/.test(pending.note), false, 'the reason a length is missing is in the email, not the note');
+  assert.ok(pending.html.includes('Spoke lengths for System hubs: NOT CALCULATED'));
   const numbers = await buildSystemReport({ recipe, orderData: order, renderPng: fakePng, lengthCalculator: () => ({ left: 280, right: 282 }) });
-  assert.equal((numbers.note.match(/Left\/Rotor 280 mm, Right\/Drive 282 mm/g) || []).length, 2);
+  assert.equal((numbers.note.match(/Rotor side {2}280 mm:/g) || []).length, 2);
+  assert.equal((numbers.note.match(/Drive side {2}282 mm:/g) || []).length, 2);
   for (const note of [pending.note, numbers.note]) {
-    assert.ok(note.startsWith('AUTOMATED SYSTEM BUILD REPORT'));
-    assert.ok(note.includes('Drive side (14): ') && note.includes('Rotor side (16): '));
+    assert.ok(note.startsWith('FRONT  ') && note.includes('\n\nREAR   '), 'front block, blank line, rear block');
     assert.equal(/cid:|<img|\.png|Hi |Here are the spoke colors/i.test(note), false, 'no images or customer wording in the note');
-    assert.equal(note.includes('AUTOMATED SPOKE CALCULATION'), false, 'must not look like a Standard note');
+    assert.equal(note.includes('AUTOMATED'), false, 'no header of any kind');
     assert.equal(/\(Adjusted\)/.test(note), false, 'must not carry restock markers');
   }
 });

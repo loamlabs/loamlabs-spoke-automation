@@ -376,7 +376,8 @@ function handleSystemOrderCreate(orderData, buildRecipe) {
             report.warnings.forEach(w => console.warn('I9-SYSTEM note:', w));
             { // ORDER-CHECK-FLAGS (System path): a second build line or a quantity above 1 is not reported; say so in the note, at the top of the email and in the subject
                 const notice = extraBuildNotice(orderData, findWheelBuildLineItem(orderData));
-                if (notice) { report.note += `\n\nWARNINGS:\n- ${notice}\n`; report.html = addAttentionNotice(report.html, [notice]); report.subject = `ACTION REQUIRED: ${report.subject}`; }
+                // NOT in the order note: the customer reads the note (packing slip), so every warning lives in the internal email and the subject only
+                if (notice) { report.html = addAttentionNotice(report.html, [notice]); report.subject = `ACTION REQUIRED: ${report.subject}`; }
             }
             report.imageErrors.forEach(e => console.error('I9-SYSTEM image:', e));
 

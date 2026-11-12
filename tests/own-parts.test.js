@@ -39,7 +39,8 @@ function make({ front, rear, hubs = {}, fees, confirmed = true, quantity, extraL
   o.line_items.push(...extraLines);
   return o;
 }
-const lens = (note) => (note.match(/^ {2}Spoke lengths \(System\): .*$/gm) || []).map((s) => s.trim());
+const lens = (note) => (note.match(/^ {2}(?:Rotor|Drive) side {2}\d+ mm:.*$/gm) || []).map((s) => s.trim()); // the numbered side lines of the short note
+const mail = (r) => text(html(r)).replace(/&#39;/g, "'"); // the internal email as text
 const run = (o, env) => runWebhook(INDEX, 'orders/create', o, env ? { env } : undefined);
 
 test('helpers: suppliedPartsOf reads the flags and the lines; summary and wording', () => {
@@ -56,9 +57,8 @@ test('front own approved rim only: same chart lengths as the rim we sell, note a
   const base = await run(make({})); // no own parts, the sample as is
   const r = await run(make({ front: FUSE32 }));
   assert.equal(r.status, 200); assert.equal(r.inventoryAdjustments.length, 0, 'a System order never deducts stock');
-  assert.ok(r.note.includes(`CUSTOMER-SUPPLIED PARTS: front rim ${RIMTEXT} (approved list); rear: ours.\nParts must arrive before the build starts.\n`));
-  assert.ok(r.note.includes(`FRONT WHEEL (Hydra2, 32h (16 drive / 16 rotor))`)); assert.ok(r.note.includes(`  Customer supplies: front rim ${RIMTEXT} (approved list)\n`));
-  assert.equal((r.note.match(/Customer supplies:/g) || []).length, 1, 'only the front wheel');
+  assert.ok(r.note.startsWith(`CUSTOMER-SUPPLIED PARTS: front rim ${RIMTEXT} (approved list); rear: ours.\nParts must arrive before the build starts.\n\nFRONT  `), 'the two own-parts lines, a blank line, then the wheel blocks');
+  assert.equal((r.note.match(/Customer supplies:/g) || []).length, 0, 'the per-wheel line is email-only (the two lines at the top say it)');
   const t = text(html(r)); assert.ok(t.includes(`CUSTOMER-SUPPLIED PARTS: front rim ${RIMTEXT} (approved list); rear: ours. Parts must arrive before the build starts.`)); assert.ok(t.includes('Customer supplies front rim'));
   assert.equal(r.emails[0].subject, base.emails[0].subject, 'subject unchanged');
   assert.equal(r.logs.some(([k]) => k === 'error'), false);
@@ -75,44 +75,45 @@ test('lengths: an approved own rim in the chart (front, rear, both) gives the nu
     assert.ok(own.length >= 1, `${name}: lengths printed`);
     if (name === 'both') assert.deepEqual(own, all, 'both wheels: identical lines to the sold rim');
     assert.equal(r.inventoryAdjustments.length, 0, name);
-    assert.ok(r.note.includes('Source: I9 System chart 2026, row Fuse 29" 32h TR307') || r.note.includes('source: I9 System chart 2026, row Fuse 29" 32h TR307'), name);
+    assert.ok(/ource: I9 System chart 2026, row Fuse 29" 32h TR307/.test(mail(r)) && !/ource: I9 System chart/.test(r.note), `${name}: the chart source is in the internal email, not in the order note`);
   }
 });
 
 test('own approved rim + own hub on one wheel, one fee: still the chart lengths (the hub model and holes pick the columns); the hub is named', async () => {
   const r = await run(make({ front: FUSE32, rear: FUSE32, hubs: { front: true } }));
   assert.ok(r.note.includes(`CUSTOMER-SUPPLIED PARTS: front rim ${RIMTEXT} (approved list), hub Industry Nine Hydra2 32h front 15x110 (approved list); rear rim ${RIMTEXT} (approved list).`));
-  assert.ok(lens(r.note).length === 2); assert.equal(r.inventoryAdjustments.length, 0);
+  assert.ok(lens(r.note).length === 4, 'two side lines per wheel'); assert.equal(r.inventoryAdjustments.length, 0);
   assert.equal(/NOT CALCULATED/.test(r.note), false);
 });
 
 test('mixed set: one wheel own, the other ours (its rim has no chart row here): each wheel reported on its own; the own wheel never blocks the other', async () => {
   const r = await run(make({ front: FUSE32 }));
-  assert.ok(lens(r.note).length >= 1 && r.note.includes('NOT CALCULATED'), 'front has lengths, rear (sample rim) says not calculated');
+  assert.ok(lens(r.note).length >= 1 && mail(r).includes('NOT CALCULATED') && !r.note.includes('NOT CALCULATED'), 'front has lengths, rear (sample rim) says not calculated in the email');
   assert.ok(r.note.includes('rear: ours'));
 });
 
 test('a customer rim with NO chart row (approved list but no row yet) and the generic "Your Own Rim": plain NOT CALCULATED wording, nothing else breaks', async () => {
   const r = await run(make({ front: OTHER, rear: OTHER }));
-  assert.ok(r.note.includes(`Spoke lengths for System hubs: NOT CALCULATED. The customer-supplied rim (${RIMTEXT}) is not in I9's spoke length chart. Ask I9 for the spoke lengths for this rim before ordering spokes.`));
+  assert.ok(mail(r).includes(`Spoke lengths for System hubs: NOT CALCULATED. The customer-supplied rim (${RIMTEXT}) is not in I9's spoke length chart. Ask I9 for the spoke lengths for this rim before ordering spokes.`));
+  assert.equal(r.note.includes('NOT CALCULATED'), false, 'not in the order note');
   assert.equal(r.status, 200); assert.equal(r.inventoryAdjustments.length, 0); assert.equal(r.logs.some(([k]) => k === 'error'), false);
   const g = await run(make({ front: GENERIC }));
   assert.ok(g.note.includes('front rim') && g.note.includes('(NOT on the approved list)'), 'a generic Your Own Rim is not on the approved list');
-  assert.ok(g.note.includes('NOT CALCULATED'));
+  assert.ok(mail(g).includes('NOT CALCULATED'));
   assert.ok(text(html(r)).includes('NOT CALCULATED'));
 });
 
 test('cross-checks are warnings only: missing fee line, two fee lines, missing confirmation flag, id mismatch, missing Your Own line', async () => {
   const none = await run(make({ front: FUSE32, fees: 'none', confirmed: false }));
-  assert.ok(none.note.includes('NOTE: Front wheel: it has customer parts but the order has no own-parts Assembly Service fee line'));
-  assert.ok(none.note.includes('missing _Customer_Parts_Confirmed')); assert.equal(none.status, 200);
+  assert.ok(mail(none).includes('NOTE: Front wheel: it has customer parts but the order has no own-parts Assembly Service fee line'));
+  assert.ok(mail(none).includes('missing _Customer_Parts_Confirmed')); assert.equal(none.status, 200); assert.equal(/NOTE|_Customer_Parts_Confirmed/.test(none.note), false, 'warnings are not in the order note');
   const two = await run(make({ front: FUSE32, fees: 'double' }));
-  assert.ok(two.note.includes('2 own-parts Assembly Service fee lines for this wheel (one expected)'));
+  assert.ok(mail(two).includes('2 own-parts Assembly Service fee lines for this wheel (one expected)'));
   const mism = make({ front: FUSE32 }); mism.line_items.find((l) => l.title === 'Your Own Rim').properties.find((p) => p.name === '_Own_Rim_Variant_ID').value = '999';
-  const m = await run(mism); assert.ok(m.note.includes('says variant 999 but the build uses 51797702967603')); assert.ok(lens(m.note).length >= 1, 'lengths still from the build\'s part');
+  const m = await run(mism); assert.ok(mail(m).includes('says variant 999 but the build uses 51797702967603')); assert.ok(lens(m.note).length >= 1, 'lengths still from the build\'s part');
   const noLine = make({ front: FUSE32 }); noLine.line_items = noLine.line_items.filter((l) => l.title !== 'Your Own Rim');
-  const nl = await run(noLine); assert.ok(nl.note.includes('has no "Your Own Rim" line for it'));
-  const ok = await run(make({ front: FUSE32 })); assert.equal(/NOTE: Front wheel: it has customer parts|_Customer_Parts_Confirmed|variant \d+ but/.test(ok.note), false, 'a correct order has no such warning');
+  const nl = await run(noLine); assert.ok(mail(nl).includes('has no "Your Own Rim" line for it'));
+  const ok = await run(make({ front: FUSE32 })); assert.equal(/NOTE: Front wheel: it has customer parts|_Customer_Parts_Confirmed|variant \d+ but/.test(mail(ok)), false, 'a correct order has no such warning');
 });
 
 test('the customer email never shows lengths or the internal parts lines (flag on)', async () => {
@@ -125,10 +126,10 @@ test('quantity 2 on a System build line, and a second build line: warned in the 
   const one = await run(make({ front: FUSE32, rear: FUSE32 }));
   const q = await run(make({ front: FUSE32, rear: FUSE32, quantity: 2 }));
   const Q = 'The wheel build line has quantity 2. The report and the spoke deduction cover ONE wheelset; deduct the spokes for the other 1 by hand.';
-  assert.ok(q.note.includes(`WARNINGS:\n- ${Q}`)); assert.ok(html(q).includes(`<strong>Check this order by hand:</strong> ${Q}</p>`));
+  assert.equal(q.note.includes('WARNINGS'), false, 'the warning is email and subject only, never the order note'); assert.ok(html(q).includes(`<strong>Check this order by hand:</strong> ${Q}</p>`));
   assert.equal(q.emails[0].subject, `ACTION REQUIRED: ${one.emails[0].subject}`); assert.deepEqual(lens(q.note), lens(one.note));
   const two = make({ front: FUSE32, rear: FUSE32 }); const second = clone(two.line_items.find((l) => (l.properties || []).some((p) => p.name === '_build'))); second.id = 99999; two.line_items.push(second);
-  const t = await run(two); assert.ok(t.note.includes('This order has 2 wheel build lines. Only the FIRST was calculated')); assert.match(t.emails[0].subject, /^ACTION REQUIRED: /);
+  const t = await run(two); assert.ok(html(t).includes('This order has 2 wheel build lines. Only the FIRST was calculated') && !t.note.includes('wheel build lines')); assert.match(t.emails[0].subject, /^ACTION REQUIRED: /);
   assert.equal(/WARNINGS|Check this order by hand/.test(one.note + html(one)), false, 'quantity 1 has no warning');
 });
 

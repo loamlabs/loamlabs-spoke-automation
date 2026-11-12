@@ -100,10 +100,11 @@ test('Hydra2 28h front + 32h rear on a 29" Sector alloy: front 302/303 (rotor/ri
   const order = chartOrder({ front: { rim: '53530701136179', holes: 28 }, rear: { rim: '53530701168947', holes: 32 }, orderNumber: 91101 });
   const { report } = await lengthsOf(order);
   assert.deepEqual([report.lengths.front.pending, report.lengths.rear.pending], [false, false]);
-  assert.ok(report.note.includes('Spoke lengths (System): Left/Rotor 302 mm, Right/Drive 303 mm'), report.note);
-  assert.ok(report.note.includes('Spoke lengths (System): Left/Rotor 300 mm, Right/Drive 299 mm'), report.note);
-  assert.ok(report.note.includes('source: I9 System chart 2026, row Sector 29" 28h TR255'));
-  assert.ok(report.note.includes('source: I9 System chart 2026, row Sector 29" 32h TR256'));
+  assert.ok(report.note.includes('  Rotor side  302 mm:  ') && report.note.includes('  Drive side  303 mm:  '), report.note);
+  assert.ok(report.note.includes('  Rotor side  300 mm:  ') && report.note.includes('  Drive side  299 mm:  '), report.note);
+  assert.ok(!/source:|chart 2026/i.test(report.note), 'the chart source is email-only');
+  assert.ok(report.html.includes('source: I9 System chart 2026, row Sector 29&quot; 28h TR255'));
+  assert.ok(report.html.includes('source: I9 System chart 2026, row Sector 29&quot; 32h TR256'));
   assert.ok(!/NOT CALCULATED/.test(report.note));
   assert.ok(report.html.includes('source: I9 System chart 2026, row Sector 29&quot; 32h TR256'));
   const front = wheelResult(order, 'front').lengths, rear = wheelResult(order, 'rear').lengths;
@@ -119,8 +120,8 @@ test('Fuse 29" carbon 32h/32h: the rear gets 303 (rotor) / 300 (drive); the FRON
   const { report } = await lengthsOf(order);
   assert.equal(report.lengths.front.pending, false); assert.equal(report.lengths.front.text, 'Spoke lengths (System): Disc side 300 mm, Non-disc side 303 mm');
   assert.equal(report.lengths.rear.pending, false);
-  assert.ok(report.note.includes('  Spoke lengths (System): Disc side 300 mm, Non-disc side 303 mm\n'));
-  assert.ok(!report.note.includes('method pending') && !report.note.includes('NOT CALCULATED'));
+  assert.ok(report.note.includes('  Rotor side  300 mm:  ') && report.note.includes('  Drive side  303 mm:  '), 'the disc side is the rotor side');
+  assert.ok(!report.note.includes('Disc side') && !report.note.includes('method pending') && !report.note.includes('NOT CALCULATED'));
 });
 
 test('Solix 24h Whisp, front and rear: the same pair 300/297 mirrored between the sides, the longer on the 16-spoke side; the front is marked inferred', async () => {
@@ -137,8 +138,9 @@ test('Solix 24h Whisp, front and rear: the same pair 300/297 mirrored between th
   assert.equal(front.confidence, 'inferred'); assert.match(front.note, /front side mapping inferred from geometry, verify against I9/);
   assert.equal(rear.confidence, 'chart'); assert.equal(rear.note, undefined);
   const { report } = await lengthsOf(order);
-  assert.ok(report.note.includes('(front side mapping inferred from geometry, verify against I9)'));
-  assert.ok(report.note.includes('source: I9 System chart 2026, row Whisp 24h TR312'));
+  assert.ok(report.html.includes('front side mapping inferred from geometry, verify against I9'), 'the caveat is in the internal email');
+  assert.ok(!/inferred|verify against I9|source:/.test(report.note), 'and not in the order note');
+  assert.ok(report.html.includes('source: I9 System chart 2026, row Whisp 24h TR312'));
 });
 
 test('Hush 24h on Solix: chart 328/325 with the ERD note, from the known store ERD and also when the order carries ERD 652; not flagged when the order carries 655', async () => {
@@ -151,7 +153,8 @@ test('Hush 24h on Solix: chart 328/325 with the ERD note, from the known store E
   assert.equal(resolveSystemLengths({ ...input, erd: 655 }).lengths.confidence, 'chart', 'ERD of the order equals the chart: nothing to check');
   assert.equal(resolveSystemLengths({ ...input, erd: 655.4 }).lengths.confidence, 'chart', 'within 0.5 mm');
   const { report } = await lengthsOf(order);
-  assert.ok(report.note.includes('Hush: store ERD 652 vs I9 chart 655, confirm with I9 when ordering parts'));
+  assert.ok(report.html.includes('Hush: store ERD 652 vs I9 chart 655, confirm with I9 when ordering parts'), 'the ERD note is in the internal email');
+  assert.ok(!/store ERD|confirm with I9/.test(report.note), 'and not in the order note');
 });
 
 test('generic ERD check: any mapped rim whose order ERD differs from the chart by more than 0.5 mm is marked check ERD', () => {
@@ -201,7 +204,8 @@ test('null cases: unmapped rim, hub that does not match the chart row, unknown h
 
 test('a miss says NOT CALCULATED and why in the note, no source line, and the internal email summary says NOT CALCULATED', async () => {
   const { report } = await lengthsOf(chartOrder({ rear: { rim: '12345', holes: 32 }, orderNumber: 91207 }));
-  assert.ok(report.note.includes("  Spoke lengths for System hubs: NOT CALCULATED. This rim is not in I9's spoke length chart, so check the lengths with I9 before ordering spokes.\n"));
+  assert.ok(report.html.includes("Spoke lengths for System hubs: NOT CALCULATED. This rim is not in I9&#39;s spoke length chart, so check the lengths with I9 before ordering spokes.") || report.html.includes("Spoke lengths for System hubs: NOT CALCULATED. This rim is not in I9's spoke length chart, so check the lengths with I9 before ordering spokes."), 'the reason is in the internal email');
+  assert.ok(!/NOT CALCULATED|I9/.test(report.note), 'the order note says nothing about it: the side lines carry colors only');
   assert.ok(!/I9 System chart 2026/.test(report.note) && !/I9 System chart 2026/.test(report.html));
   assert.ok(report.html.includes('NOT CALCULATED, see each wheel for the reason'));
   assert.ok(!report.html.includes('method pending') && !report.note.includes('method pending'));
@@ -224,9 +228,9 @@ test('whole webhook, System order with a chart hit: the order note has the numbe
   const order = chartOrder({ front: { rim: '53530701136179', holes: 28 }, rear: { rim: '53530701168947', holes: 32 }, orderNumber: 91301 });
   const r = await runWebhook(INDEX, 'orders/create', order, { env: { SYSTEM_CUSTOMER_EMAIL: 'on' } });
   assert.equal(r.status, 200);
-  assert.ok(r.note.includes('Spoke lengths (System): Left/Rotor 302 mm, Right/Drive 303 mm') && r.note.includes('source: I9 System chart 2026, row Sector 29" 32h TR256'));
+  assert.ok(r.note.includes('  Rotor side  302 mm:  ') && r.note.includes('  Drive side  303 mm:  ') && !/source:/.test(r.note), 'the note has the numbers, not the source');
   const internal = r.restEmails.find((e) => /^I9 System Build Report/.test(e.subject)), customer = r.restEmails.find((e) => /^Your custom spoke colors/.test(e.subject));
-  assert.ok(internal.html.includes('Left/Rotor 300 mm, Right/Drive 299 mm'));
+  assert.ok(internal.html.includes('Rotor side 300 mm:') && internal.html.includes('Drive side 299 mm:') && internal.html.includes('source: I9 System chart 2026, row Sector 29&quot; 32h TR256'), 'the email has the numbers and the source');
   assert.ok(customer && !/Left\/Rotor|Spoke lengths|I9 System chart/.test(customer.html));
 });
 

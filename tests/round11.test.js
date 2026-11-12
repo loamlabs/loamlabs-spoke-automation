@@ -8,16 +8,17 @@ const MISS_LINE = "Spoke lengths for System hubs: NOT CALCULATED. This rim is no
 
 const png = async () => Buffer.from('PNG');
 const NEW_LINE = 'System spokes are one bundle per wheel; no length-variant inventory is deducted.';
-const noteOf = async (order) => (await buildSystemReport({ recipe: recipeOf(order), orderData: order, renderPng: png })).note;
+const reportOf = async (order) => buildSystemReport({ recipe: recipeOf(order), orderData: order, renderPng: png });
 
-test('note: a chart hit and a miss both carry the new inventory line, and the old wording is gone', async () => {
-  const hit = await noteOf(chartOrder({ rear: { rim: '51797702967603', holes: 32 }, orderNumber: 91301 }));
-  const miss = await noteOf(chartOrder({ rear: { rim: '12345', holes: 32 }, orderNumber: 91302 }));
-  for (const note of [hit, miss]) {
-    assert.equal(note.split('\n').filter((l) => l === NEW_LINE).length, 1, 'the new line appears once');
-    assert.ok(!/No Length Variant inventory was deducted|have no length yet/.test(note), 'the old wording is gone');
+test('inventory line: in the internal email once (the order note is short and does not carry it), the old wording is gone; a hit shows lengths in the note, a miss says why in the email', async () => {
+  const hit = await reportOf(chartOrder({ rear: { rim: '51797702967603', holes: 32 }, orderNumber: 91301 }));
+  const miss = await reportOf(chartOrder({ rear: { rim: '12345', holes: 32 }, orderNumber: 91302 }));
+  for (const r of [hit, miss]) {
+    assert.equal(r.html.replace(/<[^>]+>/g, ' ').split(NEW_LINE).length - 1, 1, 'the line appears once in the email');
+    assert.equal(r.note.includes(NEW_LINE), false, 'and not in the order note');
+    assert.ok(!/No Length Variant inventory was deducted|have no length yet/.test(r.note + r.html), 'the old wording is gone');
   }
-  assert.ok(/Spoke lengths \(System\): Left\/Rotor \d+ mm, Right\/Drive \d+ mm/.test(hit), 'a hit shows the lengths');
-  assert.ok(miss.includes(`  ${MISS_LINE}\n`), 'a miss says NOT CALCULATED and why');
-  assert.ok(!hit.includes('method pending') && !hit.includes('NOT CALCULATED'), 'a hit says neither');
+  assert.ok(/Rotor side {2}\d+ mm:/.test(hit.note) && /Drive side {2}\d+ mm:/.test(hit.note), 'a hit shows the lengths');
+  assert.ok(miss.html.includes('NOT CALCULATED') && !/ mm:/.test(miss.note), 'a miss says why in the email and prints no length in the note');
+  assert.ok(!hit.html.includes('method pending') && !hit.html.includes('NOT CALCULATED'), 'a hit says neither');
 });

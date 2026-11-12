@@ -275,9 +275,34 @@ export function cartSpokeCounts(orderData, pos, wheelTotal) {
   });
   return out;
 }
-export function feeLinesFor(orderData, pos) {
+// Which wheels a fee line names in its Wheel property: "Front" -> [front], "Rear" -> [rear], and a merged line -> [front, rear]. The real cart makes ONE line with
+// quantity 2 for a wheel set whose two wheels both have custom colors, like its other shared lines (tape, assembly). Any case, spacing and order: "Front/Rear",
+// "rear / front", "Front, Rear".
+export function feeWheelsOf(li) {
+  const raw = String(propValue(li, 'Wheel') || '').toLowerCase();
+  return POSITIONS.filter((p) => new RegExp(`\\b${p}\\b`).test(raw));
+}
+// Fee UNITS per wheel, pooled over every fee line of the order (a line's quantity is its number of units).
+//  - a Front or Rear line adds its quantity to that wheel;
+//  - a merged Front/Rear line has quantity units to give: they go first to the multi-color wheels that have no unit of their own (front first), then one each to the
+//    other wheels of the order (a fee for a wheel that needs none). So quantity 2 covers two wheels, and quantity 1 covers only one of them: the wheel left without
+//    a unit is the one reported (the order does not say which wheel a quantity-1 merged line was meant for, so it is "not verified", never guessed as covered).
+// multiByPos: { front?: boolean, rear?: boolean }, the wheels of the order, true = more than one color.
+// Returns { units: { front?: n, rear?: n }, shared: { lines, quantity } }.
+export function feeCoverage(orderData, multiByPos) {
   const items = Array.isArray(orderData?.line_items) ? orderData.line_items : [];
-  return items.filter((li) => isSystemFeeLineItem(li) && String(propValue(li, 'Wheel') || '').toLowerCase() === pos);
+  const positions = POSITIONS.filter((p) => own(multiByPos, p));
+  const units = Object.fromEntries(positions.map((p) => [p, 0]));
+  let pool = 0, sharedLines = 0;
+  for (const li of items.filter(isSystemFeeLineItem)) {
+    const q = Math.max(0, Math.floor(Number(li.quantity) || 0)), named = feeWheelsOf(li);
+    if (named.length === 1) { if (own(units, named[0])) units[named[0]] += q; }
+    else if (named.length === 2) { pool += q; sharedLines += 1; }
+  }
+  const shared = { lines: sharedLines, quantity: pool };
+  for (const p of positions) if (pool > 0 && multiByPos[p] && units[p] === 0) { units[p] += 1; pool -= 1; }
+  for (const p of positions) if (pool > 0 && !multiByPos[p]) { units[p] += 1; pool -= 1; }
+  return { units, shared };
 }
 
 /**
@@ -290,7 +315,7 @@ export function feeLinesFor(orderData, pos) {
  * }>}
  */
 export function systemWheels(recipe, componentData, orderData) {
-  return systemPositions(recipe).map((pos) => {
+  const wheels = systemPositions(recipe).map((pos) => {
     const comps = recipe.components || {};
     const hub = comps[pos + 'Hub'], rim = comps[pos + 'Rim'];
     const model = hubModelOf(recipe, pos);
@@ -315,9 +340,6 @@ export function systemWheels(recipe, componentData, orderData) {
       if (mismatch.length || extra.length) warnings.push(`${cap(pos)} wheel: cart spoke lines do not match the Studio colors: ${[...mismatch, ...extra].join(', ')}.`);
     }
     const isMultiColor = counts.all.length > 1;
-    const feeLines = orderData ? feeLinesFor(orderData, pos).length : 0;
-    if (orderData && isMultiColor && feeLines === 0) warnings.push(`${cap(pos)} wheel uses ${counts.all.length} colors but the order has no "${SYSTEM_FEE.name}" line for it.`);
-    if (orderData && !isMultiColor && feeLines > 0) warnings.push(`${cap(pos)} wheel is one color but the order has a "${SYSTEM_FEE.name}" line for it.`);
     const hubMeta = metaFor(componentData, hub);
     const ratioLabel = cfg.drive.n === cfg.rotor.n ? '' : ' 2:1';
     return {
@@ -330,7 +352,7 @@ export function systemWheels(recipe, componentData, orderData) {
       ...valveFieldsFor(comps[pos + 'ValveStem']), // round 15: valveColor / valveLight / valveColorText / valveColorUnknown, from the build's valve stem component
       spokeCountLabel: `${cfg.rimHoles}h${ratioLabel} (${cfg.drive.n} drive / ${cfg.rotor.n} rotor)`,
       total: cfg.rimHoles,
-      config: cfg, colors, counts, isMultiColor, warnings, feeLines, cartCounts,
+      config: cfg, colors, counts, isMultiColor, warnings, feeLines: 0, cartCounts, // feeLines (fee units covering the wheel) is set below, pooled over the whole order
       ...(supplied ? { supplied } : {}), // OWN-PARTS: absent (not null) for a wheel without customer parts, so existing wheel objects are unchanged
       // I9-SYSTEM: LENGTH-CALC HOOK input (left = rotor side, right = drive side, as in _lib/calculator.js). Nulls where Shopify has no value yet.
       geometryInput: {
@@ -346,5 +368,23 @@ export function systemWheels(recipe, componentData, orderData) {
         spokes: { left: cfg.rotor.n, right: cfg.drive.n }
       }
     };
+  });
+  if (orderData) applyFeeCoverage(wheels, orderData);
+  return wheels;
+}
+
+// The "Custom Spoke Color Configuration" check, pooled over the whole order (see feeCoverage). Sets wheel.feeLines (fee units covering the wheel) and adds the warnings:
+// a multi-color wheel with no unit, or a one-color wheel with one (this second direction was silent for a merged line before).
+function applyFeeCoverage(wheels, orderData) {
+  const { units, shared } = feeCoverage(orderData, Object.fromEntries(wheels.map((w) => [w.position, w.isMultiColor])));
+  const multi = wheels.filter((w) => w.isMultiColor).length;
+  wheels.forEach((w) => {
+    w.feeLines = units[w.position] || 0;
+    if (w.isMultiColor && w.feeLines === 0) {
+      w.warnings.push(shared.quantity > 0 && multi > shared.quantity
+        ? `${w.label} wheel uses ${w.counts.all.length} colors but the "${SYSTEM_FEE.name}" line on the order is one shared Front/Rear line with quantity ${shared.quantity}, which covers only ${shared.quantity} of the ${multi} wheels with custom colors. The ${w.label} wheel's fee is not verified.`
+        : `${w.label} wheel uses ${w.counts.all.length} colors but the order has no "${SYSTEM_FEE.name}" line for it.`);
+    }
+    if (!w.isMultiColor && w.feeLines > 0) w.warnings.push(`${w.label} wheel is one color but the order has a "${SYSTEM_FEE.name}" line for it.`);
   });
 }
