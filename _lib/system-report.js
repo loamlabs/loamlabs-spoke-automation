@@ -17,6 +17,7 @@ import { svgToPng } from './wheel-png.js';
 import { suppliedSummary, suppliedWheelText, PARTS_MUST_ARRIVE } from './own-parts.js'; // OWN-PARTS
 import { calculateSystemSpokeLengths, SYSTEM_LENGTHS_PENDING_TEXT, SYSTEM_LENGTHS_NOT_CALCULATED_PREFIX, systemLengthsNotCalculatedText } from './system-lengths.js';
 import { resendTimeoutMs } from './http-timeout.js';
+import { buildI9OrderList } from './i9-order-list.js'; // I9 ORDER LIST (internal email only, never the order note)
 
 export const IMAGE_WIDTH_PX = 600;
 const TIMES_HTML = '&times;';    // email HTML (entity: safe whatever charset the client assumes)
@@ -98,7 +99,7 @@ function lengthsFor(wheel, lengthCalculator) {
     if (r && typeof r === 'object' && isFinite(r.left) && isFinite(r.right)) {
       // round 10: a result from I9's chart also says where it came from (r.sourceText), in the internal email and the order note only
       const sides = r.sideLabels && r.sideLabels.left && r.sideLabels.right ? `${r.sideLabels.left} ${r.left} mm, ${r.sideLabels.right} ${r.right} mm` : `Left/Rotor ${r.left} mm, Right/Drive ${r.right} mm`;
-      return { pending: false, left: r.left, right: r.right, extra: typeof r.note === 'string' && r.note ? r.note : null, text: `Spoke lengths (System): ${sides}${r.note ? ` (${r.note})` : ''}`, sourceText: typeof r.sourceText === 'string' ? r.sourceText : null, internalText: typeof r.internalText === 'string' ? r.internalText : null };
+      return { pending: false, left: r.left, right: r.right, chart: r.chart || null, extra: typeof r.note === 'string' && r.note ? r.note : null, text: `Spoke lengths (System): ${sides}${r.note ? ` (${r.note})` : ''}`, sourceText: typeof r.sourceText === 'string' ? r.sourceText : null, internalText: typeof r.internalText === 'string' ? r.internalText : null };
     }
     // the chart lookup says why in plain words; an injected calculator (tests) keeps the old text
     const why = lengthCalculator === calculateSystemSpokeLengths ? systemLengthsNotCalculatedText(wheel.geometryInput) : null;
@@ -243,6 +244,10 @@ export async function buildSystemReport(o) {
     images.push(...r.images); imageErrors.push(...r.errors);
   }
   const orderNumber = orderNumberOf(orderData);
+  // I9 ORDER LIST: what to buy from I9 for this order, with the cart link. Internal email only; a problem building it shows as a red line, never stops the report.
+  let i9 = null, i9Html = '';
+  try { i9 = buildI9OrderList({ wheels, lengthsByPos, orderNumber, recipe }); i9Html = i9.html; }
+  catch (e) { console.error(`I9-SYSTEM: the I9 order list could not be built for order #${orderNumber}:`, e); i9Html = `<div class="wheel-section"><p class="failed">The I9 ORDER LIST could not be built (${esc(e && e.message)}). The rest of the report is complete.</p></div>`; }
   const orderAdminUrl = orderData.id ? `https://${process.env.SHOPIFY_STORE_DOMAIN}/admin/orders/${orderData.id}` : null;
   const hubModels = [...new Set(wheels.map((w) => w.hubModel))].join(' / ');
   const multi = wheels.filter((w) => w.isMultiColor).length;
@@ -268,7 +273,7 @@ export async function buildSystemReport(o) {
                     <p>Wheels with custom colors: ${multi} of ${wheels.length}. System spokes are one bundle per wheel; no length-variant inventory is deducted.</p>
                     <p><em>${esc(SYSTEM_LENGTHS_PENDING_TEXT.split(':')[0])}: ${Object.values(lengthsByPos).every((l) => l.pending) ? 'NOT CALCULATED, see each wheel for the reason' : 'see each wheel'}</em></p>
                 </div>
-
+${i9Html}
                 ${wheels.map((w) => wheelHtml(w, images, imageErrors, { internal: true, lengths: lengthsByPos[w.position] })).join('')}
                 <p class="caption">Images: every spoke is drawn at full color; geometry and lacing are the Spoke Color Studio's own.</p>
             </div>
@@ -280,6 +285,7 @@ export async function buildSystemReport(o) {
     html,
     note: noteText(wheels, lengthsByPos),
     wheels, images, imageErrors,
+    i9OrderList: i9, // { text, html, linkUrl, link, linkAdds, thomasText, ... } or null
     warnings: wheels.flatMap((w) => w.warnings),
     lengths: lengthsByPos
   };
