@@ -1,18 +1,17 @@
 // NIPPLE-REPORT: the backend's vendored nipple drawing (_lib/studio-nipples.js + the nipple layer of _lib/wheel-svg.js) must equal what the theme's Spoke Color Studio draws.
 // The theme's Studio is read from a git REF of the theme repo (default: commit 9fdb48f, Agent A's nipple layer; see tests/helpers/theme-studio.mjs for LOAM_THEME_DIR / LOAM_THEME_REF).
-// When the theme is not there the live tests FAIL on purpose (set LOAM_THEME_DIR=skip to run only the fixture-free checks), so a drift can never pass unnoticed.
+// When the theme folder is not there the live tests are SKIPPED with a visible reason ("# SKIP theme folder not found: <path>"), counted as skipped and never as passed.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { geometry } from '../_lib/studio-geometry.js';
 import { wheelSvg } from '../_lib/wheel-svg.js';
 import { NIPPLE, NIPPLE_COLORS, NIPPLE_MATCH, REPORT_NIPPLE_SCALE } from '../_lib/studio-nipples.js';
-import { themeSource, loadStudio } from './helpers/theme-studio.mjs';
+import { themeSource, loadStudio, themeSkipReason } from './helpers/theme-studio.mjs';
 
-const skipLive = process.env.LOAM_THEME_DIR === 'skip';
 const plain = (o) => JSON.parse(JSON.stringify(o));
 
 test('the vendored nipple numbers, colors and match table equal the theme Studio (LoamStudio.nipple, nippleColors, nippleMatch)', (t) => {
-  if (skipLive) { t.skip('LOAM_THEME_DIR=skip'); return; }
+  { const why = themeSkipReason(); if (why) { t.skip(why); return; } }
   const src = themeSource(), Studio = loadStudio(src);
   assert.deepEqual(plain(NIPPLE), plain(Studio.nipple), `nipple numbers drifted from the theme (${src.origin})`);
   assert.deepEqual(plain(NIPPLE_COLORS), plain(Studio.nippleColors), `nipple colors drifted from the theme (${src.origin})`);
@@ -56,7 +55,7 @@ function mixedValue(Studio, wheel) {
 }
 
 test('the nipple shapes of wheelSvg equal the theme preview() shapes for 4 wheels (front and rear, 12 to 16 holes per side, both views), every nipple color, at 300 px', (t) => {
-  if (skipLive) { t.skip('LOAM_THEME_DIR=skip'); return; }
+  { const why = themeSkipReason(); if (why) { t.skip(why); return; } }
   const src = themeSource(), Studio = loadStudio(src);
   for (const wheel of WHEELS) {
     const value = mixedValue(Studio, wheel);
@@ -68,7 +67,7 @@ test('the nipple shapes of wheelSvg equal the theme preview() shapes for 4 wheel
 });
 
 test('the 140 px rule is the theme\'s: no nipples at 139 px, nipples at 140 px, in the theme and in wheelSvg', (t) => {
-  if (skipLive) { t.skip('LOAM_THEME_DIR=skip'); return; }
+  { const why = themeSkipReason(); if (why) { t.skip(why); return; } }
   const src = themeSource(), Studio = loadStudio(src), wheel = WHEELS[0], value = mixedValue(Studio, wheel);
   for (const [size, drawn] of [[96, false], [139, false], [140, true], [240, true]]) {
     assert.equal(themeNipples(Studio, wheel, value, size).shapes.length > 0, drawn, `theme at ${size} px (${src.origin})`);
@@ -78,7 +77,7 @@ test('the 140 px rule is the theme\'s: no nipples at 139 px, nipples at 140 px, 
 });
 
 test('report pictures: nipples are 1.5 times wider and 1.2 times longer than the Studio size (Jerry: 1/5 shorter than 1.5), rim-side end unchanged; the Studio size (scale 1) and the default are what the tests above pin', (t) => {
-  if (skipLive) { t.skip('LOAM_THEME_DIR=skip'); return; }
+  { const why = themeSkipReason(); if (why) { t.skip(why); return; } }
   assert.deepEqual(REPORT_NIPPLE_SCALE, { width: 1.5, length: 1.2 });
   const src = themeSource(), Studio = loadStudio(src), wheel = WHEELS[0], value = mixedValue(Studio, wheel);
   const rects = (shapes) => [...shapes.matchAll(/<rect x="([-\d.]+)" y="([-\d.]+)" width="([-\d.]+)" height="([-\d.]+)" transform="rotate\(([-\d.]+) ([-\d.]+) ([-\d.]+)\)"/g)].map((m) => m.slice(1).map(Number));

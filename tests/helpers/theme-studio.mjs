@@ -22,6 +22,16 @@ export function themeDir() {
   return path.resolve(process.env.LOAM_THEME_DIR || path.resolve(here, '..', '..', '..', 'loamlabs-system-builder', 'theme-dev'));
 }
 
+// null when the theme is there; otherwise the reason the LIVE theme tests cannot run. A test that gets a reason calls t.skip(reason), so the run prints
+//   ok N - <name> # SKIP theme folder not found: <path>
+// and counts it as skipped (never as passed, never as failed). On a machine with the theme folder next to the repo these tests run and compare for real.
+export function themeSkipReason() {
+  if (process.env.LOAM_THEME_DIR === 'skip') return 'LOAM_THEME_DIR=skip';
+  const dir = themeDir();
+  if (!fs.existsSync(path.join(dir, 'assets', 'spoke-studio.js'))) return `theme folder not found: ${dir} (set LOAM_THEME_DIR to the theme-dev folder to run this check)`;
+  return null;
+}
+
 function git(dir, args) { return execFileSync('git', ['-C', dir, ...args], { stdio: ['ignore', 'pipe', 'ignore'], maxBuffer: 64 * 1024 * 1024 }).toString(); }
 
 // { dir, ref, commit, origin, read(relPath) -> string } or null when the theme is skipped. Throws when the theme folder is missing.
