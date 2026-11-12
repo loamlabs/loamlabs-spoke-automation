@@ -14,7 +14,7 @@
 // Like the "Custom Spoke Color Configuration" fee line it is not a component, not in the spoke-length input and not in any inventory step: the webhook reads components only from
 // _build, and the only place a fee line is looked at is the cross-check in standardWheels, which this module extends to the nipple fee.
 
-import { SIDES, MAX_NAME_CHARS, cap, clip, countColors, propValue, optionValue } from './system-build.js';
+import { SIDES, MAX_NAME_CHARS, cap, clip, countColors, propValue, optionValue, feeCoverage } from './system-build.js';
 import { nippleTableHex, isHex6 } from './studio-nipples.js';
 
 export const NIPPLE_FEE = { name: 'Custom Nipple Color Configuration', variantId: 67928782668083, variantTitle: 'Mixed nipple colors', price: 15 };
@@ -32,6 +32,23 @@ export function isNippleFeeLine(li) {
 export function nippleFeeLinesOf(orderData, pos) {
   const items = Array.isArray(orderData?.line_items) ? orderData.line_items : [];
   return items.filter((li) => isNippleFeeLine(li) && String(propValue(li, 'Wheel') || '').toLowerCase() === pos);
+}
+// The same fee check pooled over the whole order, for the Standard report: a merged line (Wheel = Front/Rear, quantity 2: the cart merges identical lines of the two wheels) covers
+// both wheels, quantity 1 only one of them. mixedByPos: { front?: boolean, rear?: boolean } = the wheels of the order, true = mixed nipple colors.
+// Returns { units: { front?: n, rear?: n }, shared: { lines, quantity } } (see feeCoverage in system-build.js).
+export function nippleFeeCoverage(orderData, mixedByPos) { return feeCoverage(orderData, mixedByPos, isNippleFeeLine); }
+// The fee warnings of one wheel from its pooled units; the same words as the per-wheel check in nippleInfoFor, plus a clearer one when a shared line is too small.
+// mixedCount = how many wheels of the order have mixed nipples.
+export function nippleFeeWarnings(pos, mixed, units, shared, mixedCount) {
+  if (mixed) {
+    if (units === 0) {
+      if (shared.quantity > 0 && mixedCount > shared.quantity) return [`${cap(pos)} wheel: the nipples use more than one color, but the "${NIPPLE_FEE.name}" line on the order is one shared Front/Rear line with quantity ${shared.quantity}, which covers only ${shared.quantity} of the ${mixedCount} wheels with mixed nipples. The ${cap(pos)} wheel's fee is not verified.`];
+      return [`${cap(pos)} wheel: the nipples use more than one color, so the order should have a "${NIPPLE_FEE.name}" line ($${NIPPLE_FEE.price}) for it, but has none.`];
+    }
+    if (units > 1) return [`${cap(pos)} wheel: the order has ${units} "${NIPPLE_FEE.name}" lines for this wheel (one expected).`];
+    return [];
+  }
+  return units > 0 ? [`${cap(pos)} wheel: the order has a "${NIPPLE_FEE.name}" line but the nipples are one color.`] : [];
 }
 
 /* ------------------------------------------------------------------ colors */
@@ -67,7 +84,8 @@ export function cartNippleOf(recipe, pos) {
  * @param {{drive:{n:number}, rotor:{n:number}}} cfg  the wheel's drawn config (spoke count per side)
  * @param {object} [orderData]
  */
-export function nippleInfoFor(recipe, pos, cfg, orderData) {
+// opts.deferFee: the Standard report checks the nipple fee itself, pooled over both wheels (nippleFeeCoverage + nippleFeeWarnings), so this call leaves the fee out.
+export function nippleInfoFor(recipe, pos, cfg, orderData, opts = {}) {
   const warnings = [];
   const value = recipe?.standardStudio?.studio;
   const saved = value && typeof value === 'object' && value.nipples && typeof value.nipples === 'object' ? value.nipples[pos] : null;
@@ -102,7 +120,7 @@ export function nippleInfoFor(recipe, pos, cfg, orderData) {
       if (cartColor && !counts.all.some((c) => c.color === cartColor)) warnings.push(`${cap(pos)} wheel: the cart nipple line is ${cartColor} but no nipple on the wheel is ${cartColor}.`);
     }
   }
-  if (orderData) {
+  if (orderData && !opts.deferFee) {
     const fee = nippleFeeLinesOf(orderData, pos);
     if (nipples) {
       nipples.feeLines = fee.length;

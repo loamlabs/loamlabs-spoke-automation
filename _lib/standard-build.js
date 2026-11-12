@@ -19,12 +19,12 @@
 import {
   POSITIONS, SIDES, NEUTRAL_HEX, MAX_SPOKES, ERD_RANGE_MM, PCD_RANGE_MM, MAX_NAME_CHARS, MAX_TITLE_CHARS,
   cap, clip, countColors, rimTitleOf, propValue, optionValue, metaNumber, metaFor, spokeCountOf,
-  findWheelBuildLineItem, parseBuildRecipe, isSystemBuildRecipe, SYSTEM_FEE
+  findWheelBuildLineItem, parseBuildRecipe, isSystemBuildRecipe, SYSTEM_FEE, feeWheelsOf
 } from './system-build.js';
 
 import { ringKeyForRim } from './rim-rings.js'; // round 12: which photo rim ring a wheel's pictures get
 import { valveFieldsFor } from './valve-colors.js'; // round 15: the valve stem color the customer chose
-import { nippleInfoFor } from './nipple-build.js'; // NIPPLE-REPORT: nipple colors (Release 15)
+import { nippleInfoFor, nippleFeeCoverage, nippleFeeWarnings } from './nipple-build.js'; // NIPPLE-REPORT: nipple colors (Release 15)
 
 export const STANDARD_FEE_NAME = SYSTEM_FEE.name;                // the existing fee product, "Custom Spoke Color Configuration"
 export const STANDARD_FEE_VARIANTS = { mixed: 'Mixed colors', painted: 'Berd painted color', multi: 'Berd multi-color' };
@@ -169,9 +169,24 @@ export function expectedFeeVariant({ berdType, paintColors, colorNames }) {
 }
 
 const isFeeLine = (li) => !!li && (Number(li.variant_id) === SYSTEM_FEE.variantId || String(li.title || li.name || '').includes(STANDARD_FEE_NAME));
-function feeLinesOf(orderData, pos) {
+// The spoke fee lines of the order, pooled over the wheels. The cart merges identical lines of the two wheels into ONE line with Wheel = Front/Rear and quantity 2 (order #1466:
+// both wheels with the same fee variant), so a line is not matched to one wheel any more: a Front or Rear line gives its quantity to that wheel; a merged line gives its units to the
+// wheels that need a fee and have none (a unit whose variant is the one the rule expects first, front first), then one each to the other wheels (a fee for a wheel that needs none).
+// expectedByPos: { front?: 'Mixed colors' | ... | null, rear?: ... }. Returns { units: { pos: [{ variant }] }, shared: { lines, quantity } }.
+function standardFeeUnits(orderData, expectedByPos) {
   const items = Array.isArray(orderData?.line_items) ? orderData.line_items : [];
-  return items.filter((li) => isFeeLine(li) && String(propValue(li, 'Wheel') || '').toLowerCase() === pos);
+  const positions = POSITIONS.filter((p) => own(expectedByPos, p));
+  const units = Object.fromEntries(positions.map((p) => [p, []]));
+  const pool = []; let sharedLines = 0;
+  for (const li of items.filter(isFeeLine)) {
+    const q = Math.max(0, Math.floor(Number(li.quantity) || 0)), named = feeWheelsOf(li), variant = String(li.variant_title || '');
+    if (named.length === 1) { if (own(units, named[0])) for (let i = 0; i < q; i++) units[named[0]].push({ variant }); }
+    else if (named.length === 2) { sharedLines += 1; for (let i = 0; i < q; i++) pool.push({ variant }); }
+  }
+  const shared = { lines: sharedLines, quantity: pool.length };
+  for (const p of positions) if (pool.length && expectedByPos[p] && units[p].length === 0) { let k = pool.findIndex((u) => u.variant.includes(expectedByPos[p])); if (k < 0) k = 0; units[p].push(pool.splice(k, 1)[0]); }
+  for (const p of positions) if (pool.length && !expectedByPos[p]) units[p].push(pool.shift());
+  return { units, shared };
 }
 // Spoke lines of the wheel in the order: { color: quantity } (null when no line of the wheel's spoke product is found, so nothing is compared)
 function cartSpokeCountsStandard(orderData, recipe, pos, knownColors) {
@@ -200,7 +215,8 @@ function cartSpokeCountsStandard(orderData, recipe, pos, knownColors) {
  */
 export function standardWheels(recipe, componentData, orderData) {
   const blank = blankColorOf(recipe);
-  return standardPositions(recipe).map((pos) => {
+  const slots = []; // per wheel: where its spoke-fee warnings go in its warnings list (after the color warnings, before the nipple ones)
+  const wheels = standardPositions(recipe).map((pos) => {
     const comps = recipe.components || {};
     const hub = comps[pos + 'Hub'], rim = comps[pos + 'Rim'], spokes = comps[pos + 'Spokes'];
     const wc = standardWheelConfig(recipe, pos, componentData);
@@ -231,15 +247,9 @@ export function standardWheels(recipe, componentData, orderData) {
     }
     const isMultiColor = counts.all.length > 1;
     const expectedFee = expectedFeeVariant({ berdType, paintColors: paintColors || [], colorNames: knownColors });
-    const feeLines = orderData ? feeLinesOf(orderData, pos) : [];
-    if (orderData) {
-      if (expectedFee && feeLines.length === 0) warnings.push(`${cap(pos)} wheel: the fee rule expects a "${STANDARD_FEE_NAME}" line (${expectedFee}) but the order has none.`);
-      else if (!expectedFee && feeLines.length > 0) warnings.push(`${cap(pos)} wheel: the order has a "${STANDARD_FEE_NAME}" line (${clip(feeLines[0].variant_title, 40)}) but the fee rule expects none.`);
-      else if (expectedFee && feeLines.length > 0 && !feeLines.some((li) => String(li.variant_title || '').includes(expectedFee))) warnings.push(`${cap(pos)} wheel: the fee line is "${clip(feeLines[0].variant_title, 40)}" but the fee rule expects "${expectedFee}".`);
-      if (feeLines.length > 1) warnings.push(`${cap(pos)} wheel: the order has ${feeLines.length} fee lines for this wheel (one expected).`);
-    }
+    slots.push(warnings.length); // the spoke-fee check is pooled over both wheels and runs after this map (applyFeeChecks); its warnings are inserted here
     // NIPPLE-REPORT: mixed nipple colors and the nipple fee cross-check (null / no warning for every build without nipple data, so older orders read exactly as before)
-    const nip = nippleInfoFor(recipe, pos, cfg, orderData);
+    const nip = nippleInfoFor(recipe, pos, cfg, orderData, { deferFee: true }); // the nipple fee is checked pooled too (applyFeeChecks)
     warnings.push(...nip.warnings);
     const total = cfg.rimHoles;
     return {
@@ -254,9 +264,35 @@ export function standardWheels(recipe, componentData, orderData) {
       spokeCountLabel: `${total}h`,
       total, config: wc.cfg ? cfg : null, drawConfig: cfg, sideLabels: wc.sideLabels,
       colors, counts, isMultiColor, warnings,
-      feeLines: feeLines.length, cartCounts: cartCounts || {}, expectedFee, berdType,
+      feeLines: 0, cartCounts: cartCounts || {}, expectedFee, berdType, // feeLines (fee units covering the wheel) is set by applyFeeChecks
       paintColors: paintColors || [], blank,
       nipples: nip.nipples // NIPPLE-REPORT: null unless the wheel has mixed nipples
     };
+  });
+  if (orderData) applyFeeChecks(wheels, slots, orderData);
+  return wheels;
+}
+
+// The spoke-fee and nipple-fee cross-checks, pooled over the order (see standardFeeUnits). Sets wheel.feeLines and wheel.nipples.feeLines, and adds the warnings: the spoke-fee ones
+// at the wheel's slot (so the order of the warnings is as before), the nipple-fee ones at the end.
+function applyFeeChecks(wheels, slots, orderData) {
+  const { units, shared } = standardFeeUnits(orderData, Object.fromEntries(wheels.map((w) => [w.position, w.expectedFee])));
+  const needing = wheels.filter((w) => w.expectedFee).length;
+  const nip = nippleFeeCoverage(orderData, Object.fromEntries(wheels.map((w) => [w.position, !!w.nipples])));
+  const mixedCount = wheels.filter((w) => w.nipples).length;
+  wheels.forEach((w, i) => {
+    const mine = units[w.position] || [], pos = w.position, expected = w.expectedFee, ws = [];
+    if (expected && mine.length === 0) {
+      ws.push(shared.quantity > 0 && needing > shared.quantity
+        ? `${cap(pos)} wheel: the fee rule expects a "${STANDARD_FEE_NAME}" line (${expected}), but the order has one shared Front/Rear fee line with quantity ${shared.quantity}, which covers only ${shared.quantity} of the ${needing} wheels that need one. The ${cap(pos)} wheel's fee is not verified.`
+        : `${cap(pos)} wheel: the fee rule expects a "${STANDARD_FEE_NAME}" line (${expected}) but the order has none.`);
+    } else if (!expected && mine.length > 0) ws.push(`${cap(pos)} wheel: the order has a "${STANDARD_FEE_NAME}" line (${clip(mine[0].variant, 40)}) but the fee rule expects none.`);
+    else if (expected && mine.length > 0 && !mine.some((u) => u.variant.includes(expected))) ws.push(`${cap(pos)} wheel: the fee line is "${clip(mine[0].variant, 40)}" but the fee rule expects "${expected}".`);
+    if (mine.length > 1) ws.push(`${cap(pos)} wheel: the order has ${mine.length} fee lines for this wheel (one expected).`);
+    w.feeLines = mine.length;
+    w.warnings.splice(slots[i], 0, ...ws);
+    const nUnits = nip.units[pos] || 0;
+    if (w.nipples) w.nipples.feeLines = nUnits;
+    w.warnings.push(...nippleFeeWarnings(pos, !!w.nipples, nUnits, nip.shared, mixedCount, w.nipples ? w.nipples.counts.all.length : 0));
   });
 }

@@ -289,12 +289,13 @@ export function feeWheelsOf(li) {
 //    a unit is the one reported (the order does not say which wheel a quantity-1 merged line was meant for, so it is "not verified", never guessed as covered).
 // multiByPos: { front?: boolean, rear?: boolean }, the wheels of the order, true = more than one color.
 // Returns { units: { front?: n, rear?: n }, shared: { lines, quantity } }.
-export function feeCoverage(orderData, multiByPos) {
+// isFee: which lines are fee lines (the spoke fee by default; the Standard nipple fee passes its own test).
+export function feeCoverage(orderData, multiByPos, isFee = isSystemFeeLineItem) {
   const items = Array.isArray(orderData?.line_items) ? orderData.line_items : [];
   const positions = POSITIONS.filter((p) => own(multiByPos, p));
   const units = Object.fromEntries(positions.map((p) => [p, 0]));
   let pool = 0, sharedLines = 0;
-  for (const li of items.filter(isSystemFeeLineItem)) {
+  for (const li of items.filter(isFee)) {
     const q = Math.max(0, Math.floor(Number(li.quantity) || 0)), named = feeWheelsOf(li);
     if (named.length === 1) { if (own(units, named[0])) units[named[0]] += q; }
     else if (named.length === 2) { pool += q; sharedLines += 1; }
