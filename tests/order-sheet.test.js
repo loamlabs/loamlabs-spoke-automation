@@ -208,3 +208,56 @@ test('PRIVACY: the order queries ask for no customer field at all', async () => 
   const { ORDER_QUERY, COMPONENT_QUERY } = await import('../_lib/order-sheet-api.js');
   for (const q of [ORDER_QUERY, COMPONENT_QUERY]) assert.equal(/email|phone|customer\b|customerJourney|address|shipping|billing|\bnote\b|displayAddress|client/i.test(q.replace(/customAttributes/g, '')), false, q);
 });
+
+/* ------------------------------------------------------------------ spoke counts on Standard sheets */
+
+import { runWebhook } from './helpers/webhook-harness.mjs';
+const INDEX = path.resolve(here, '..', 'api', 'index.js');
+const buildOf = (o) => JSON.parse(o.line_items.flatMap((l) => l.properties || []).find((p) => p.name === '_build').value);
+const setBuild = (o, fn) => { const prop = o.line_items.flatMap((l) => l.properties || []).find((p) => p.name === '_build'); const b = JSON.parse(prop.value); fn(b); prop.value = JSON.stringify(b); return o; };
+
+test('Standard sheet (no Studio key, like order #1377): total, label, per-side count and ratio come from the build and are the numbers the calculation and the stock step used', async () => {
+  const o = loadSample('standard', 'steel-jbend-wheelset');
+  const { sheet, buildReport } = standardSheet(o);
+  assert.equal(sheet.studio, false);
+  const specs = buildOf(o).specs;
+  for (const w of sheet.wheels) {
+    const n = parseInt(specs[`${w.position}SpokeCount`], 10);
+    assert.deepEqual([w.total, w.spokeCountLabel, w.ratio, w.sides.drive.count, w.sides.rotor.count], [n, `${n}h`, '1:1', n / 2, n / 2], w.position);
+    assert.match(w.countsNote, /half of the spokes for each side/); assert.match(w.countsNote, /no lacing ratio for Standard hubs/);
+    assert.equal(buildReport[w.position].calculationSuccessful, true);
+  }
+  // the webhook's own stock step deducts exactly this many spokes per side
+  const hook = await runWebhook(INDEX, 'orders/create', clone(o));
+  const deltas = hook.inventoryAdjustments.map((a) => Math.abs(a.changes[0].delta));
+  assert.ok(deltas.length >= 4 && deltas.every((d) => d === sheet.wheels[0].sides.drive.count), `stock deltas ${deltas}`);
+});
+
+test('Standard sheet: an odd spoke count keeps the total and the label but no per-side count and no ratio; a missing count leaves everything null; a failed wheel keeps its count', () => {
+  const odd = setBuild(loadSample('standard', 'steel-jbend-wheelset'), (b) => { b.specs.frontSpokeCount = '25h'; });
+  const sOdd = standardSheet(odd).sheet, f = sOdd.wheels.find((w) => w.position === 'front');
+  assert.deepEqual([f.total, f.spokeCountLabel, f.ratio, f.sides.drive.count, f.sides.rotor.count], [25, '25h', null, null, null]);
+  const rear = sOdd.wheels.find((w) => w.position === 'rear'); assert.equal(rear.total, 32);
+  const gone = setBuild(loadSample('standard', 'steel-jbend-wheelset'), (b) => { delete b.specs.frontSpokeCount; b.specs.rearSpokeCount = ''; });
+  const sGone = standardSheet(gone).sheet;
+  for (const w of sGone.wheels) assert.deepEqual([w.total, w.spokeCountLabel, w.ratio, w.sides.drive.count, w.sides.rotor.count, w.countsNote], [null, null, null, null, null, null], w.position);
+});
+
+test('Standard sheet WITH the Studio key: the counts and the ratio come from the Studio wheel; a 2:1 split (16 drive / 8 rotor) is reported as 2:1', () => {
+  const o = clone(STANDARD_STUDIO_SAMPLES['std-berd-rear-custom-two-painted']);
+  const base = standardSheet(clone(o)).sheet.wheels[0];
+  assert.deepEqual([base.total, base.spokeCountLabel, base.ratio], [base.sides.drive.count + base.sides.rotor.count, `${base.total}h`, base.sides.drive.count === base.sides.rotor.count ? '1:1' : '2:1']);
+  const two = setBuild(clone(o), (b) => { const w = b.standardStudio.wheels.rear; w.drive.n = 16; w.rotor.n = 8; b.specs.rearSpokeCount = '24h'; if (b.standardStudio.studio && b.standardStudio.studio.spokes) delete b.standardStudio.studio.spokes; });
+  const r = standardSheet(two).sheet.wheels.find((w) => w.position === 'rear');
+  assert.deepEqual([r.total, r.spokeCountLabel, r.ratio, r.sides.drive.count, r.sides.rotor.count], [24, '24h', '2:1', 16, 8]);
+  assert.equal(r.highSide, null, 'unequal sides have no high-tension side in the numbering');
+  assert.equal('countsNote' in r, false, 'the note only belongs to the Studio-less Standard builds');
+});
+
+test('System sheets are unchanged by this: the same keys on the sheet and on every wheel, no countsNote, ratio and counts as before', () => {
+  const WHEEL_KEYS = ['position', 'label', 'hubModel', 'hubTitle', 'hubVariantTitle', 'hubColor', 'freehub', 'rimTitle', 'spokeCountLabel', 'total', 'ratio', 'highSide', 'lowSide', 'sides', 'lengths', 'counts', 'isMultiColor', 'spokes', 'lists', 'images', 'redraw', 'supplied', 'warnings'];
+  const s = buildOrderSheet({ orderData: order1466(), calculatedAt: AT });
+  for (const w of s.wheels) { assert.deepEqual(Object.keys(w), WHEEL_KEYS); assert.equal('countsNote' in w, false); }
+  assert.deepEqual(s.wheels.map((w) => [w.total, w.spokeCountLabel, w.ratio, w.sides.drive.count, w.sides.rotor.count]), [[28, '28h (14 drive / 14 rotor)', '1:1', 14, 14], [32, '32h (16 drive / 16 rotor)', '1:1', 16, 16]]);
+  for (const [name, sample] of Object.entries(SYSTEM_SAMPLES)) for (const w of buildOrderSheet({ orderData: clone(sample), calculatedAt: AT }).wheels) assert.equal('countsNote' in w, false, name);
+});
