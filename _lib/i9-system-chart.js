@@ -4,7 +4,7 @@
 // for a real calculator. Columns are as I9 prints them: driveColumn = "drive side", nonDriveColumn = "non-drive side"; which wheel side each belongs to for a
 // front or a rear hub is decided in _lib/system-lengths.js (side mapping), not here.
 
-export const CHART_SOURCE = {"chartFile":"i9_system_length_chart.csv","allowedListFile":"I9_SYSTEM_ALLOWED_LIST.csv","date":"2026-10-28","label":"I9 System chart 2026","chartSha256":"74125b936ba3ad8271224d63c06320395749a9e9a454abffe370b636765ef31a","allowedListSha256":"1f08caaed25dbc1cf73662912d91067e8912864f84430dfd06e7536b0d7f4599"};
+export const CHART_SOURCE = {"chartFile":"i9_system_length_chart.csv","allowedListFile":"I9_SYSTEM_ALLOWED_LIST.csv","date":"2026-10-28","label":"I9 System chart 2026","chartSha256":"74125b936ba3ad8271224d63c06320395749a9e9a454abffe370b636765ef31a","allowedListSha256":"2fdb73ae1158dd6ace5f5ade92290e9356275f477fe30e4d58e8c886e8f52bda"};
 
 // 31 chart rows, in file order.
 export const CHART_ROWS = [
@@ -41,7 +41,7 @@ export const CHART_ROWS = [
   {"section":"Solix Carbon Rims","model":"Wide Gravel 32\"","partNumber":"TR403","erd":593,"rimOffset":0,"hub":"SM/G","driveColumn":297,"nonDriveColumn":293} // 30
 ];
 
-// Rim variant id (digits) -> chart row index. 27 variants: Jerry's allowed list plus the Coup Carbon 26" 32h. storeErd = the ERD the store holds when it differs from the chart.
+// Rim variant id (digits) -> chart row index. 28 variants: Jerry's allowed list plus the Coup Carbon 26" 32h. storeErd = the ERD the store holds when it differs from the chart.
 export const RIM_VARIANT_MAP = {
   // Stan's Arch MK4 29" 32h borrows the Wanderer 29" row TR309 (ERD 600, H2 32h, 299/300): same ERD and hole count; the store offset is 2.5, the chart row's 2
   "51797701067059": {"row":10,"title":"Stan's Arch MK4 Alloy Rim 29\" / 32h / Black","borrowed":true,"borrowedFrom":"borrowed from Wanderer row, same ERD and offset"},
@@ -74,7 +74,8 @@ export const RIM_VARIANT_MAP = {
   "67796530037043": {"row":26,"title":"We Are One WHISP Carbon Rim (XC) 29\" / 24h 2:1 / Black"},
   "67796583547187": {"row":10,"title":"We Are One WANDERER Carbon Rim (Bikepacking) 29\" / 32h / Black"},
   // Industry Nine Coup Carbon 26" 32h = chart "Coup 26" (Hydra2 Carbon section) TR175, ERD 536, H2 32h, 268/270 (Jerry, round 10 prompt)
-  "67819688788275": {"row":21,"title":"Industry Nine Coup Carbon Rim 26\" / 32h"}
+  "67819688788275": {"row":21,"title":"Industry Nine Coup Carbon Rim 26\" / 32h"},
+  "67980774637875": {"row":25,"title":"We Are One REVIVE 2.0 Carbon Rim (Gravel) 700c / 24h 2:1 / Black"}
 };
 
 /**
