@@ -1,6 +1,8 @@
 // Generates _lib/i9-system-chart.js from I9's own spoke length chart and Jerry's allowed-rim list (round 10). The numbers are never typed by hand:
 //   node scripts/generate-i9-chart.mjs [dir-with-the-two-csv-files]
-// Default dir: ../loamlabs-system-builder/agent-prompts/i9-length-chart (the project folder). Inputs:
+// Default dir: data/i9-source/ in this repo. THIS COPY IS THE MASTER: change the CSV files here (committed byte for byte, see .gitattributes), run this script,
+// commit the CSVs and _lib/i9-system-chart.js together. The copy in loamlabs-system-builder/agent-prompts/i9-length-chart is only a working copy: copy a changed
+// file from there into data/i9-source/ first. Inputs:
 //   i9_system_length_chart.csv     31 rows from I9's "System- 2026" tab (section, wheel_model, rim_part_number, erd_mm, rim_offset_mm, hub, drive/non-drive length)
 //   I9_SYSTEM_ALLOWED_LIST.csv     the rim variants allowed in the System builder; chart_row_for_lengths names the chart row (part number, hub, ERD, offset)
 // The map rim variant id -> chart row is derived from the allowed list (part number + hub + model prefix pick the row); the chart numbers quoted in the
@@ -11,7 +13,7 @@ import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const dir = path.resolve(process.argv[2] || path.join(root, '..', 'loamlabs-system-builder', 'agent-prompts', 'i9-length-chart'));
+const dir = path.resolve(process.argv[2] || path.join(root, 'data', 'i9-source'));
 const CHART_FILE = 'i9_system_length_chart.csv', ALLOWED_FILE = 'I9_SYSTEM_ALLOWED_LIST.csv';
 const CHART_DATE = '2026-10-28';
 
@@ -44,7 +46,11 @@ function parseCsv(text) {
   const head = rows.shift();
   return rows.filter((r) => r.length > 1 || r[0]).map((r) => Object.fromEntries(head.map((h, i) => [h, r[i] === undefined ? '' : r[i]])));
 }
-const read = (f) => fs.readFileSync(path.join(dir, f));
+const read = (f) => {
+  const file = path.join(dir, f);
+  if (!fs.existsSync(file)) { console.error(`I9 source file not found: ${file}\nThe two CSV files live in data/i9-source/ in this repo (see the header of this script).`); process.exit(1); }
+  return fs.readFileSync(file);
+};
 const sha = (buf) => crypto.createHash('sha256').update(buf).digest('hex');
 const norm = (s) => String(s).replace(/"/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
 
