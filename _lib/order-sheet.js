@@ -68,7 +68,7 @@ function drawingPart(w) {
     autoValvePhase: w.standard === true
   };
   out.images = imageSpecsFor(w.position, !w.isMultiColor, w.sideLabels || null).map((spec) => ({
-    wheel: w.position, view: spec.cid.endsWith('-all-spokes') ? 'all' : (spec.sides[0] === highSideOf(w.position) ? 'high' : 'low'), caption: spec.caption, sides: spec.sides, pov: spec.pov
+    wheel: w.position, cid: spec.cid, view: spec.cid.endsWith('-all-spokes') ? 'all' : (spec.sides[0] === highSideOf(w.position) ? 'high' : 'low'), caption: spec.caption, sides: spec.sides, pov: spec.pov
   }));
   return out;
 }
@@ -94,7 +94,9 @@ function wheelEntry(w, lengths, extra = {}) {
 }
 
 /**
- * @param {{ orderData: object, componentData?: Map|null, buildReport?: object|null, calculatedAt?: string, lengthCalculator?: Function }} o
+ * @param {{ orderData: object, componentData?: Map|null, buildReport?: object|null, calculatedAt?: string, lengthCalculator?: Function, mode?: 'recalculated'|'as-sent', systemReport?: { wheels: Array, lengths: object } }} o
+ *   mode: 'recalculated' (default: the sheet the endpoint rebuilds on demand) or 'as-sent' (the copy the webhook saves; the label then reads "as sent on <date>").
+ *   systemReport: the wheels and lengths the webhook already computed for the email (buildSystemReport's `wheels` and `lengths`), so the saved sheet IS what the email used.
  *   buildReport = the result of runCalculationEngine() (api/index.js) for a Standard order; without it a Standard order's lengths are "not calculated".
  * @returns {object} the sheet (see the top of this file); throws OrderSheetError('NOT_A_BUILDER_ORDER') when the order has no wheel build
  */
@@ -102,6 +104,7 @@ export function buildOrderSheet(o) {
   const orderData = (o && o.orderData) || {};
   const componentData = (o && o.componentData) || null;
   const calculatedAt = (o && o.calculatedAt) || new Date().toISOString();
+  const asSent = !!(o && o.mode === 'as-sent');
   const lengthCalculator = (o && o.lengthCalculator) || calculateSystemSpokeLengths;
   const buildLine = findWheelBuildLineItem(orderData);
   const sys = findSystemBuildRecipe(orderData);
@@ -117,7 +120,7 @@ export function buildOrderSheet(o) {
     orderNumber: orderNumber != null ? String(orderNumber) : null, orderName: orderNumber != null ? `#${orderNumber}` : null,
     orderCreatedAt: typeof orderData.created_at === 'string' ? orderData.created_at : null, orderCancelled: !!orderData.cancelled_at,
     buildId: str(recipe.buildId, 80),
-    calculation: { mode: 'recalculated', at: calculatedAt, text: `recalculated on ${calculatedAt.slice(0, 10)}, may differ from what was sent` },
+    calculation: asSent ? { mode: 'as-sent', at: calculatedAt, text: `as sent on ${calculatedAt.slice(0, 10)}` } : { mode: 'recalculated', at: calculatedAt, text: `recalculated on ${calculatedAt.slice(0, 10)}, may differ from what was sent` },
     numbering: { version: NUMBERING.version, status: NUMBERING.status, label: NUMBERING.label, rule: NUMBERING.rule },
     numberingVersion: NUMBERING.version, calculatedAt,
     wheels: [], warnings: [], orderChecks: [], customerSupplied: null, i9OrderList: null
@@ -126,9 +129,10 @@ export function buildOrderSheet(o) {
   if (check) sheet.orderChecks.push(check);
 
   if (sys) {
-    const wheels = systemWheels(recipe, componentData, orderData);
+    const pre = o && o.systemReport && Array.isArray(o.systemReport.wheels) && o.systemReport.lengths ? o.systemReport : null;
+    const wheels = pre ? pre.wheels : systemWheels(recipe, componentData, orderData);
     const lengthsByPos = {};
-    for (const w of wheels) lengthsByPos[w.position] = lengthsFor(w, lengthCalculator);
+    for (const w of wheels) lengthsByPos[w.position] = pre ? pre.lengths[w.position] : lengthsFor(w, lengthCalculator);
     sheet.wheels = wheels.map((w) => wheelEntry(w, lengthsOfSheet(lengthsByPos[w.position])));
     const supplied = suppliedSummary(wheels);
     if (supplied) sheet.customerSupplied = { text: supplied, reminder: PARTS_MUST_ARRIVE };

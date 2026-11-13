@@ -4,11 +4,14 @@
 //   GET /api/order-sheet-image?order=1466&wheel=front&view=all[&width=600]      headers: x-order-sheet-secret: <ORDER_SHEET_SECRET>
 //   wheel = front | rear;  view = all (all spokes) | high (high-tension side only) | low (low-tension side only; a one-color wheel has only "all");  width 200 to 1200 (default 600)
 //   200 image/png    400 BAD_ORDER_NUMBER / BAD_WHEEL / BAD_VIEW    401 UNAUTHORIZED    404 ORDER_NOT_FOUND or NO_SUCH_IMAGE    422 NOT_A_BUILDER_ORDER    502 SHOPIFY_ERROR / DRAW_FAILED
+// A saved copy is used when there is one: the stored PNG exactly as sent (header x-order-sheet-source: saved), or, when the picture has expired / is missing or a width is asked for, a redraw from the
+// saved sheet's own data (saved-redrawn), all without a Shopify call. No saved copy: rebuilt from the order (recalculated).
 // The page asks for the images one at a time (a whole set in one JSON would be about 1.4 MB). Same read-only rules as api/order-sheet.js.
 
 import { secretMatches, SECRET_HEADER, parseOrderNumber, sheetForOrder } from '../_lib/order-sheet-api.js';
 import { OrderSheetError } from '../_lib/order-sheet.js';
 import { renderSheetImage, VIEWS } from '../_lib/order-sheet-image.js';
+import { loadSavedSheet, loadSavedImage } from '../_lib/order-sheet-store.js';
 import { runCalculationEngine } from './index.js';
 
 export const config = { maxDuration: 30 };
@@ -26,6 +29,21 @@ export function makeHandler(deps = {}) {
     if (wheel !== 'front' && wheel !== 'rear') return json(res, 400, { ok: false, error: 'BAD_WHEEL', message: 'wheel must be front or rear.' });
     if (!VIEWS.includes(view)) return json(res, 400, { ok: false, error: 'BAD_VIEW', message: 'view must be all, high or low.' });
     try {
+      const saved = await (deps.loadSaved || loadSavedSheet)(number, deps);
+      if (saved.status === 'found') {
+        const sw = (saved.sheet.wheels || []).find((x) => x.position === wheel);
+        if (!sw || !(sw.images || []).some((i) => i.view === view)) return json(res, 404, { ok: false, error: 'NO_SUCH_IMAGE', message: `Order #${number} has no ${wheel} ${view} image.` });
+        const stored = (saved.images || []).find((i) => i.wheel === wheel && i.view === view);
+        const bytes = stored && q.width == null ? await (deps.loadSavedImage || loadSavedImage)(stored.path, deps) : null;
+        let png = bytes, how = 'saved';
+        if (!png) {
+          try { png = (await (deps.renderSheetImage || renderSheetImage)({ wheel: sw, view, width: q.width, renderPng: deps.renderPng })).png; how = 'saved-redrawn'; }
+          catch (e) { return json(res, 502, { ok: false, error: 'DRAW_FAILED', message: String(e && e.message).slice(0, 200) }); }
+        }
+        res.setHeader('Cache-Control', 'no-store'); res.setHeader('Content-Type', 'image/png'); res.setHeader('X-Order-Sheet-Source', how);
+        res.setHeader('Content-Disposition', `inline; filename="order-${number}-${wheel}-${view}.png"`);
+        return res.status(200).send(png);
+      }
       const { sheet } = await sheetForOrder(number, deps);
       const w = sheet.wheels.find((x) => x.position === wheel);
       if (!w) return json(res, 404, { ok: false, error: 'NO_SUCH_IMAGE', message: `Order #${number} has no ${wheel} wheel build.` });
@@ -34,6 +52,7 @@ export function makeHandler(deps = {}) {
       catch (e) { return json(res, w.redraw && w.images.some((i) => i.view === view) ? 502 : 404, { ok: false, error: w.redraw && w.images.some((i) => i.view === view) ? 'DRAW_FAILED' : 'NO_SUCH_IMAGE', message: String(e && e.message).slice(0, 200) }); }
       res.setHeader('Cache-Control', 'no-store');
       res.setHeader('Content-Type', 'image/png');
+      res.setHeader('X-Order-Sheet-Source', 'recalculated');
       res.setHeader('Content-Disposition', `inline; filename="order-${number}-${wheel}-${view}.png"`);
       return res.status(200).send(img.png);
     } catch (e) {
