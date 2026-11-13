@@ -21,7 +21,8 @@ import { buildI9OrderList } from './i9-order-list.js';
 import { geometry } from './studio-geometry.js';
 import { NUMBERING, numberSpokes } from './spoke-numbering.js';
 
-export const ORDER_SHEET_VERSION = 1;
+// 1: PR 1 / PR 2. 2: adds `orderList` (+ orderListStatus, orderListNote). Backward compatible: nothing was removed or renamed, and a saved row of version 1 (no orderList) loads and is answered as before.
+export const ORDER_SHEET_VERSION = 2;
 
 export class OrderSheetError extends Error {
   constructor(code, message) { super(message); this.name = 'OrderSheetError'; this.code = code; }
@@ -123,7 +124,9 @@ export function buildOrderSheet(o) {
     calculation: asSent ? { mode: 'as-sent', at: calculatedAt, text: `as sent on ${calculatedAt.slice(0, 10)}` } : { mode: 'recalculated', at: calculatedAt, text: `recalculated on ${calculatedAt.slice(0, 10)}, may differ from what was sent` },
     numbering: { version: NUMBERING.version, status: NUMBERING.status, label: NUMBERING.label, rule: NUMBERING.rule },
     numberingVersion: NUMBERING.version, calculatedAt,
-    wheels: [], warnings: [], orderChecks: [], customerSupplied: null, i9OrderList: null
+    wheels: [], warnings: [], orderChecks: [], customerSupplied: null, i9OrderList: null,
+    // the I9 order list as the System email prints it (structured sections A to E + the email's own text); null with a plain status for Standard builds (not an error)
+    orderList: null, orderListStatus: 'not-applicable', orderListNote: 'Standard builds have no I9 order list.'
   };
   const check = extraBuildNotice(orderData, buildLine);
   if (check) sheet.orderChecks.push(check);
@@ -137,9 +140,19 @@ export function buildOrderSheet(o) {
     const supplied = suppliedSummary(wheels);
     if (supplied) sheet.customerSupplied = { text: supplied, reminder: PARTS_MUST_ARRIVE };
     try {
-      const i9 = buildI9OrderList({ wheels, lengthsByPos, orderNumber: orderNumber != null ? orderNumber : 'n/a', recipe });
-      sheet.i9OrderList = { text: i9.text, linkUrl: i9.linkUrl || null, linkAdds: i9.linkAdds || null, thomasText: i9.thomasText || null, snapshotDate: i9.snapshotDate || null };
-    } catch (e) { sheet.i9OrderList = { error: str(e && e.message, 200) }; }
+      // the list the email carries (the webhook passes its report), else the same function on the same data
+      const i9 = pre && pre.i9OrderList && pre.i9OrderList.sections ? pre.i9OrderList : buildI9OrderList({ wheels, lengthsByPos, orderNumber: orderNumber != null ? orderNumber : 'n/a', recipe });
+      sheet.i9OrderList = { text: i9.text, linkUrl: i9.linkUrl || null, linkAdds: i9.linkAdds || null, thomasText: i9.thomasText || null, snapshotDate: i9.snapshotDate || null }; // kept as in PR 1
+      sheet.orderList = {
+        version: 1, orderNumber: orderNumber != null ? String(orderNumber) : null, snapshotDate: i9.snapshotDate || null,
+        text: i9.text,                                  // exactly what the email prints ("Copy as text")
+        cartLink: i9.linkUrl || null,                   // the plain cart link
+        cartLinkAdds: i9.linkAdds || null,              // "THE LINK ADDS" summary
+        orderByEmailText: i9.thomasText || null,        // the ready-to-send text for Thomas Ward
+        sections: JSON.parse(JSON.stringify(i9.sections))
+      };
+      sheet.orderListStatus = 'present'; sheet.orderListNote = null;
+    } catch (e) { sheet.i9OrderList = { error: str(e && e.message, 200) }; sheet.orderListStatus = 'error'; sheet.orderListNote = `The I9 order list could not be built (${str(e && e.message, 200)}).`; }
   } else if (std) {
     const wheels = standardWheels(recipe, componentData, orderData);
     const report = o && o.buildReport ? o.buildReport : null;

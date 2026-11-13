@@ -144,6 +144,37 @@ export function buildI9OrderList({ wheels, lengthsByPos, orderNumber, recipe = {
   }
   const text = L.join('\n') + '\n';
 
+  // ORDER-SHEET: the same list as DATA (sections A to E), built from the variables above and from the very lines of the list, so the order sheet and the email cannot disagree.
+  // Nothing here changes `text` or `html` (the email is byte for byte what it was).
+  const block = (letter) => {
+    const start = L.findIndex((x) => x.startsWith(`${letter}. `));
+    if (start < 0) return [];
+    let end = L.findIndex((x, i) => i > start && /^[A-E]\. /.test(x));
+    if (end < 0) end = L.length;
+    const out = L.slice(start, end);
+    while (out.length && out[out.length - 1] === '') out.pop();
+    return out;
+  };
+  const sideOut = (r) => ({ position: r.w.position, side: r.side, lengthMm: r.mm, baseColor: r.spare.color || null, baseColorNote: r.spare.text || null });
+  const entryOut = (e) => ({ color: e.color, n: e.n, spare: e.spare, qty: e.qty });
+  const perWheel = (line) => { const m = /^\s{3}([A-Za-z]+): (.*)$/.exec(line); return m ? { position: m[1].toLowerCase(), text: m[2] } : null; };
+  const sections = {
+    prebuilt: { lines: block('A'), none: !solid.length, wheels: solid.map((w) => ({ position: w.position, color: w.counts.all[0].color })) },
+    dealerSpokes: {
+      lines: block('B'),
+      sides: bRows.map((r) => ({ ...sideOut(r), entries: r.dealer.map((e) => ({ ...entryOut(e), outOfStock: !!(e.row && e.row.available === false) })) })),
+      noLength: noLen.map((r) => ({ ...sideOut(r), entries: r.entries.map(entryOut) })),
+      cartLink: linkUrl ? { url: linkUrl, adds: linkAdds, totals: { spokes: totalSpokes, spares: totalSpares }, items: link.map((x) => ({ variantId: x.variantId, qty: x.qty, spares: x.spares, lengthMm: x.mm, color: x.color, available: x.row.available })) } : null
+    },
+    orderByEmail: {
+      lines: block('C'), to: 'Thomas Ward',
+      sides: cRows.map((r) => ({ ...sideOut(r), entries: r.other.map((e) => ({ ...entryOut(e), reason: e.why.reason, reasonText: e.why.reason === 'length' ? null : whyText(e.why) })) })),
+      message: thomasText
+    },
+    hubs: { lines: block('D'), wheels: block('D').slice(1).map(perWheel).filter(Boolean).map((x) => ({ ...x, customerSupplied: x.text === 'customer-supplied' })) },
+    rims: { lines: block('E'), wheels: block('E').slice(1).map(perWheel).filter(Boolean).map((x) => { const m = /\(I9 code (TR\d+)\)/.exec(x.text); return { ...x, customerSupplied: x.text === 'customer-supplied', i9Code: m ? m[1] : null }; }) }
+  };
+
   // the same lines as HTML: monospace block, the marker becomes the link, nothing else is formatted
   const htmlLines = L.map((line) => {
     const e = esc(line);
@@ -156,7 +187,8 @@ export function buildI9OrderList({ wheels, lengthsByPos, orderNumber, recipe = {
   return {
     text, html, linkUrl, link: link.map((x) => ({ variantId: x.variantId, qty: x.qty, mm: x.mm, color: x.color, available: x.row.available })), linkAdds: link.length ? linkAdds : null,
     totals: { spokes: totalSpokes, spares: totalSpares }, thomasText, snapshotDate: date,
-    blocks: { solid: solid.map((w) => w.position), dealerSides: bRows.length, otherSides: cRows.length, noLength: noLen.length }
+    blocks: { solid: solid.map((w) => w.position), dealerSides: bRows.length, otherSides: cRows.length, noLength: noLen.length },
+    sections
   };
 }
 
