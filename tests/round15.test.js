@@ -138,11 +138,10 @@ test('reports: each wheel\'s pictures carry its own valve color (System and Stan
 
   const std = stdWheels(valve('Gold'), valve('Silver'));
   const add = await buildStandardAdditions({ recipe: std.recipe, orderData: std.order, componentData: new Map(Object.entries(std.order._sample.metafields)), renderPng: png });
-  const stdImgs = add && add.images ? add.images : [];
-  if (stdImgs.length) {
-    const c = (pos) => [...new Set(stdImgs.filter((i) => i.position === pos).map((i) => /data-valve="([^"]+)"/.exec(i.svg)[1]))];
-    assert.deepEqual([c('front'), c('rear')], [['#c9a227'], ['#b8bcc2']]);
-  }
+  const stdImgs = add.images;
+  assert.ok(stdImgs.length >= 2, 'the Standard report drew pictures');
+  const c = (pos) => [...new Set(stdImgs.filter((i) => i.position === pos).map((i) => /data-valve="([^"]+)"/.exec(i.svg)[1]))];
+  assert.deepEqual([c('front'), c('rear')], [['#c9a227'], ['#b8bcc2']]);
 
   const plain = await buildSystemReport({ recipe, orderData: order, renderPng: png, rimRings: false });
   assert.ok(plain.images.every((i) => !/data-valve/.test(i.svg)), 'plain rim: old stem, no valve color');

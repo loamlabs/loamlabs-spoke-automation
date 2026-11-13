@@ -38,12 +38,12 @@ export function nippleFeeLinesOf(orderData, pos) {
 // Returns { units: { front?: n, rear?: n }, shared: { lines, quantity } } (see feeCoverage in system-build.js).
 export function nippleFeeCoverage(orderData, mixedByPos) { return feeCoverage(orderData, mixedByPos, isNippleFeeLine); }
 // The fee warnings of one wheel from its pooled units; the same words as the per-wheel check in nippleInfoFor, plus a clearer one when a shared line is too small.
-// mixedCount = how many wheels of the order have mixed nipples.
-export function nippleFeeWarnings(pos, mixed, units, shared, mixedCount) {
+// mixedCount = how many wheels of the order have mixed nipples; colorCount = the number of colors of this wheel's nipples (the same words as the per-wheel check).
+export function nippleFeeWarnings(pos, mixed, units, shared, mixedCount, colorCount) {
   if (mixed) {
     if (units === 0) {
-      if (shared.quantity > 0 && mixedCount > shared.quantity) return [`${cap(pos)} wheel: the nipples use more than one color, but the "${NIPPLE_FEE.name}" line on the order is one shared Front/Rear line with quantity ${shared.quantity}, which covers only ${shared.quantity} of the ${mixedCount} wheels with mixed nipples. The ${cap(pos)} wheel's fee is not verified.`];
-      return [`${cap(pos)} wheel: the nipples use more than one color, so the order should have a "${NIPPLE_FEE.name}" line ($${NIPPLE_FEE.price}) for it, but has none.`];
+      if (shared.quantity > 0 && mixedCount > shared.quantity) return [`${cap(pos)} wheel: the nipples use ${colorCount} colors, but the "${NIPPLE_FEE.name}" line on the order is one shared Front/Rear line with quantity ${shared.quantity}, which covers only ${shared.quantity} of the ${mixedCount} wheels with mixed nipples. The ${cap(pos)} wheel's fee is not verified.`];
+      return [`${cap(pos)} wheel: the nipples use ${colorCount} colors, so the order should have a "${NIPPLE_FEE.name}" line ($${NIPPLE_FEE.price}) for it, but has none.`];
     }
     if (units > 1) return [`${cap(pos)} wheel: the order has ${units} "${NIPPLE_FEE.name}" lines for this wheel (one expected).`];
     return [];

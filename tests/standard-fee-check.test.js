@@ -98,6 +98,14 @@ test('nipple fee: merged quantity 1 with two mixed wheels (rear not verified); n
   assert.equal(short.length, 1); assert.ok(short[0].startsWith('Rear: Rear wheel:') && short[0].includes('one shared Front/Rear line with quantity 1, which covers only 1 of the 2 wheels with mixed nipples') && short[0].includes("fee is not verified"), short[0]);
   const none = nipWarn(withFees(BOTH(), { nip: [] }));
   assert.equal(none.length, 2); assert.ok(none.every((t) => /so the order should have a "Custom Nipple Color Configuration" line \(\$15\) for it, but has none/.test(t)), none.join(' | '));
+  // the warning says how many colors the wheel's nipples have (the same words as the non-pooled check), not just "more than one"
+  const counts = wheels(withFees(BOTH(), { nip: [] })).map((w) => w.nipples.counts.all.length);
+  assert.ok(counts.every((n) => n >= 2), 'both wheels have mixed nipples: ' + counts);
+  assert.deepEqual(none.map((t) => /the nipples use (\d+) colors, so the order/.exec(t)[1]), counts.map(String), none.join(' | '));
+  assert.ok(none.every((t) => !t.includes('more than one color')), none.join(' | '));
+  // and the shared-line warning says it too
+  const sharedShort = nipWarn(withFees(BOTH(), { nip: [['Front/Rear', 1]] }))[0];
+  assert.ok(new RegExp('the nipples use ' + counts[1] + ' colors, but the').test(sharedShort), sharedShort);
   const extra = nipWarn(withFees(NIP_FRONT(), { nip: [['Front/Rear', 2]] })); // only the front has mixed nipples
   assert.equal(extra.length, 1); assert.ok(extra[0].startsWith('Rear: Rear wheel: the order has a "Custom Nipple Color Configuration" line but the nipples are one color'), extra[0]);
   assert.deepEqual(nipWarn(withFees(NIP_FRONT(), { nip: [['Front/Rear', 1]] })), [], 'quantity 1 is enough when only one wheel has mixed nipples');
