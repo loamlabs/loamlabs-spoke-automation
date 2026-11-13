@@ -21,6 +21,7 @@ import { claimSystemOrder, releaseSystemOrder, noteShowsProcessed, STANDARD_REPO
 // Orders without the key take today's path unchanged.
 import { isStandardStudioRecipe } from '../_lib/standard-build.js';
 import { buildStandardAdditions } from '../_lib/standard-report.js';
+import { saveOrderSheetCopy } from '../_lib/order-sheet-store.js'; // ORDER-SHEET: the saved "as sent" copy (OFF unless ORDER_SHEET_SAVE is "on"; runs last, never throws)
 
 // --- Vercel Config ---
 // maxDuration: 30 seconds for this function (the Node.js /api config export). Every outbound call has its own shorter limit (_lib/http-timeout.js).
@@ -406,6 +407,10 @@ function handleSystemOrderCreate(orderData, buildRecipe) {
             } catch (error) {
                 console.error("🚨 I9-SYSTEM: customer email step failed:", error);
             }
+
+            // ORDER-SHEET: the saved "as sent" copy of the order sheet, the LAST thing here (after the note and the emails). OFF unless env ORDER_SHEET_SAVE is "on".
+            // Best effort: it never throws and cannot change the note or an email above; its own time limit keeps it from holding the function.
+            try { await saveOrderSheetCopy({ orderData, componentData, systemReport: report, images: report.images }); } catch (error) { console.warn('ORDER-SHEET: save step failed:', error && error.message); }
         } catch (error) {
             console.error(`🚨 I9-SYSTEM: CRASH inside the System order path for order #${orderData.order_number}:`, error);
             await sendPlainFailureEmail(orderData, error, 'system', state);
@@ -574,6 +579,10 @@ async function handleOrderCreate(orderData) {
                         console.error("🚨 STANDARD-STUDIO: customer email step failed:", error);
                     }
                 }
+
+                // ORDER-SHEET: the saved "as sent" copy of the order sheet, the LAST thing here (after the inventory, the note and the emails). OFF unless env ORDER_SHEET_SAVE is "on".
+                // Best effort: it never throws and cannot change anything above; its own time limit keeps it from holding the function.
+                try { await saveOrderSheetCopy({ orderData, componentData, buildReport, images: standardExtra ? standardExtra.images : [] }); } catch (error) { console.warn('ORDER-SHEET: save step failed:', error && error.message); }
                 } catch (error) {
                     console.error(`🚨 CRASH after the webhook answer for order #${orderData.order_number}:`, error);
                     await sendPlainFailureEmail(orderData, error, 'standard', state);
