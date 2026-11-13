@@ -162,10 +162,16 @@ export function buildOrderSheet(o) {
         ? { status: 'calculated', rotorMm: l.left, driveMm: l.right, text: `Spoke lengths: Left ${l.left} mm, Right ${l.right} mm`, sourceText: 'Source: spoke calculator (rim, hub and spoke data from the store)', chart: null, caveat: null, sideLabels: null, internalText: null }
         : lengthsOfSheet({ pending: true, text: `Spoke lengths: NOT CALCULATED. ${r.error || ''}`.trim() });
       const inp = r.inputs || {};
+      // Spoke counts, from what the calculation itself used: the build's spoke count (specs.<pos>SpokeCount, the number api/index.js runCalculationEngine reads). The Standard calculation and its
+      // spoke stock step have no lacing ratio: they take half of the spokes for each side (spokeCountPerSide = count / 2), so equal sides are what was calculated; the store records no
+      // ratio for Standard hubs. An odd or missing count is left null.
+      const total = parseInt(String((recipe.specs && recipe.specs[pos + 'SpokeCount']) || '').replace('h', ''), 10);
+      const known = Number.isFinite(total) && total > 0, even = known && total % 2 === 0;
       sheet.wheels.push({
         position: pos, label: cap(pos), hubModel: null, hubTitle: str(inp.hub, 160), hubVariantTitle: null, hubColor: null, freehub: null, rimTitle: str(inp.rim, 200),
-        spokeCountLabel: null, total: null, ratio: null, highSide: null, lowSide: null,
-        sides: { drive: { count: null, lengthMm: lengths.driveMm, counts: [] }, rotor: { count: null, lengthMm: lengths.rotorMm, counts: [] } },
+        spokeCountLabel: known ? `${total}h` : null, total: known ? total : null, ratio: even ? '1:1' : null, highSide: null, lowSide: null,
+        countsNote: known ? 'Standard build: the calculation and the spoke stock step take half of the spokes for each side; the store records no lacing ratio for Standard hubs.' : null,
+        sides: { drive: { count: even ? total / 2 : null, lengthMm: lengths.driveMm, counts: [] }, rotor: { count: even ? total / 2 : null, lengthMm: lengths.rotorMm, counts: [] } },
         lengths, counts: [], isMultiColor: false, spokes: [], lists: { drive: [], rotor: [] }, images: [], redraw: null, supplied: null,
         spokeProduct: str(inp.spokes, 160), warnings: r.alert ? [str(r.alert, 400)] : []
       });
