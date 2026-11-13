@@ -93,7 +93,7 @@ export async function renderWheelImages(wheel, renderPng, width) {
   return { images, errors };
 }
 
-function lengthsFor(wheel, lengthCalculator) {
+export function lengthsFor(wheel, lengthCalculator) { // exported for the order sheet (_lib/order-sheet.js); same function, no change
   try {
     const r = lengthCalculator(wheel.geometryInput);
     if (r && typeof r === 'object' && isFinite(r.left) && isFinite(r.right)) {
