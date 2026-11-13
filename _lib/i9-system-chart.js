@@ -4,7 +4,7 @@
 // for a real calculator. Columns are as I9 prints them: driveColumn = "drive side", nonDriveColumn = "non-drive side"; which wheel side each belongs to for a
 // front or a rear hub is decided in _lib/system-lengths.js (side mapping), not here.
 
-export const CHART_SOURCE = {"chartFile":"i9_system_length_chart.csv","allowedListFile":"I9_SYSTEM_ALLOWED_LIST.csv","date":"2026-10-28","label":"I9 System chart 2026","chartSha256":"74125b936ba3ad8271224d63c06320395749a9e9a454abffe370b636765ef31a","allowedListSha256":"c5933af0ca126ad5c5a3ede8b6bda1bbf09098a1d65abf1725eb481f81a4cbf4"};
+export const CHART_SOURCE = {"chartFile":"i9_system_length_chart.csv","allowedListFile":"I9_SYSTEM_ALLOWED_LIST.csv","date":"2026-10-28","label":"I9 System chart 2026","chartSha256":"74125b936ba3ad8271224d63c06320395749a9e9a454abffe370b636765ef31a","allowedListSha256":"1f08caaed25dbc1cf73662912d91067e8912864f84430dfd06e7536b0d7f4599"};
 
 // 31 chart rows, in file order.
 export const CHART_ROWS = [
@@ -70,7 +70,7 @@ export const RIM_VARIANT_MAP = {
   "53530701168947": {"row":1,"title":"Industry Nine Sector Alloy Rim (Trail) 29\" / 32h / Black"},
   // WAO Hush 24h 2:1 = chart Hush 24h TR316 (ERD 655, SM, 328/325); the store says ERD 652: confirm with I9 when ordering parts
   "53871010939187": {"row":27,"title":"We Are One Hush Carbon Rim (XC) 32\" / 24h 2:1 / Black","storeErd":652},
-  "67792754475315": {"row":25,"title":"We Are One REVIVE 2.0 Carbon Rim (Gravel) 700c / 24h 2:1 / Black"},
+  "67792754475315": {"row":25,"title":"We Are One REVIVE 2.0 Carbon Rim (Gravel) 29\" / 24h 2:1 / Black"},
   "67796530037043": {"row":26,"title":"We Are One WHISP Carbon Rim (XC) 29\" / 24h 2:1 / Black"},
   "67796583547187": {"row":10,"title":"We Are One WANDERER Carbon Rim (Bikepacking) 29\" / 32h / Black"},
   // Industry Nine Coup Carbon 26" 32h = chart "Coup 26" (Hydra2 Carbon section) TR175, ERD 536, H2 32h, 268/270 (Jerry, round 10 prompt)

@@ -56,7 +56,7 @@ test('data: 31 chart rows and the map are in the generated file; they equal the 
     assert.equal(CHART_SOURCE.allowedListSha256, crypto.createHash('sha256').update(fs.readFileSync(path.join(CSV_DIR, 'I9_SYSTEM_ALLOWED_LIST.csv'))).digest('hex'), 'and this allowed list');
   } else {
     assert.equal(sha(CHART_ROWS), 'd60f092ac9c20cc2ffdab8c842c51f08ffbf6e1f14d04b7c2ea258dec0760ac4');
-    assert.equal(sha(RIM_VARIANT_MAP), '4537133052d1a3ad06f6436ea728dbf506e147d8c223717d3462355c669227c3');
+    assert.equal(sha(RIM_VARIANT_MAP), '0307ae36b25356cd82c89ef13e34cff69aa81e54526a1351fe3c31c22abf2836');
   }
 });
 
