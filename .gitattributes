@@ -1,0 +1,2 @@
+# The I9 source CSVs are checksummed (tests/round10.test.js, _lib/i9-system-chart.js): store them byte for byte, no line-ending conversion.
+data/i9-source/*.csv -text

@@ -14,8 +14,8 @@ import { buildSystemReport, buildCustomerEmail } from '../_lib/system-report.js'
 import { systemWheels } from '../_lib/system-build.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const CSV_DIR = path.resolve(here, '..', '..', 'loamlabs-system-builder', 'agent-prompts', 'i9-length-chart');
-const HAVE_CSV = fs.existsSync(path.join(CSV_DIR, 'i9_system_length_chart.csv')) && fs.existsSync(path.join(CSV_DIR, 'I9_SYSTEM_ALLOWED_LIST.csv'));
+const CSV_DIR = path.resolve(here, '..', 'data', 'i9-source'); // the committed master copy of the two I9 CSV files (see scripts/generate-i9-chart.mjs)
+for (const f of ['i9_system_length_chart.csv', 'I9_SYSTEM_ALLOWED_LIST.csv']) if (!fs.existsSync(path.join(CSV_DIR, f))) throw new Error(`I9 source file not found: ${path.join(CSV_DIR, f)} (it is committed in data/i9-source/)`);
 const INDEX = path.resolve(here, '..', 'api', 'index.js');
 const png = async () => Buffer.from('PNG');
 const sha = (v) => crypto.createHash('sha256').update(JSON.stringify(v)).digest('hex');
@@ -40,11 +40,11 @@ const wheelResult = (order, pos) => resolveSystemLengths(systemWheels(recipeOf(o
 
 /* ------------------------------------------------------------------ 1. the data file */
 
-test('data: 31 chart rows and the map are in the generated file; they equal the CSV files (re-read when the project folder is there), else the stored checksum', () => {
+test('data: 31 chart rows and the map are in the generated file; they equal the committed CSV files (data/i9-source/), and the stored checksums', () => {
   assert.equal(CHART_ROWS.length, 31);
   assert.equal(CHART_SOURCE.date, '2026-10-28');
   assert.equal(Object.keys(RIM_VARIANT_MAP).length, 27, '25 from the allowed list and the Coup, plus Stans Arch MK4 and Flow MK4 29 inch 32h (borrowed from the Wanderer row, Nov 7)');
-  if (HAVE_CSV) {
+  { // the committed CSV files (data/i9-source/) always exist here, so this check runs on every checkout
     const csv = parseCsv(fs.readFileSync(path.join(CSV_DIR, 'i9_system_length_chart.csv'), 'utf8'));
     assert.equal(csv.length, 31);
     csv.forEach((r, i) => {
@@ -54,13 +54,14 @@ test('data: 31 chart rows and the map are in the generated file; they equal the 
     });
     assert.equal(CHART_SOURCE.chartSha256, crypto.createHash('sha256').update(fs.readFileSync(path.join(CSV_DIR, 'i9_system_length_chart.csv'))).digest('hex'), 'the generated file is from this CSV');
     assert.equal(CHART_SOURCE.allowedListSha256, crypto.createHash('sha256').update(fs.readFileSync(path.join(CSV_DIR, 'I9_SYSTEM_ALLOWED_LIST.csv'))).digest('hex'), 'and this allowed list');
-  } else {
+  }
+  { // and the content of the generated file is pinned too
     assert.equal(sha(CHART_ROWS), 'd60f092ac9c20cc2ffdab8c842c51f08ffbf6e1f14d04b7c2ea258dec0760ac4');
     assert.equal(sha(RIM_VARIANT_MAP), '0307ae36b25356cd82c89ef13e34cff69aa81e54526a1351fe3c31c22abf2836');
   }
 });
 
-test('data: every allowed-list variant that names a chart row is mapped to exactly the chart pair quoted in the allowed list (and the Coup Carbon 26" 32h is added)', { skip: !HAVE_CSV && 'project folder with the CSV files not available' }, () => {
+test('data: every allowed-list variant that names a chart row is mapped to exactly the chart pair quoted in the allowed list (and the Coup Carbon 26" 32h is added)', () => {
   const allowed = parseCsv(fs.readFileSync(path.join(CSV_DIR, 'I9_SYSTEM_ALLOWED_LIST.csv'), 'utf8'));
   let n = 0;
   for (const a of allowed) {
