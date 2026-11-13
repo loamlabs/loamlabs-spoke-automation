@@ -17,15 +17,26 @@ const STANDARD = 'std-berd-rear-custom-two-painted';
 const SYSTEM = 'hydra2-wheelset-32f-32r';
 
 // A fetch that never answers, like a hung connection: it only ends when the caller's AbortSignal fires (a call without a signal fails the test after 4 s).
-function hang(init) {
+// `seen` (optional) collects one { ms, byGuard } per hung call: how long the call stayed pending and whether only the test guard ended it.
+// The tests below assert on THAT, not on the wall-clock time of the whole webhook: the webhook also renders the report pictures (PNG), which takes
+// about 1 s alone and several seconds when `npm test` runs 20 test files at once, and that must not make a time-limit test fail.
+function hang(init, seen) {
   return new Promise((_, reject) => {
-    const guard = setTimeout(() => reject(new Error('test guard: this call has no abort signal, it would hang')), 4000);
+    const t0 = Date.now();
+    const guard = setTimeout(() => { if (seen) seen.push({ ms: Date.now() - t0, byGuard: true }); reject(new Error('test guard: this call has no abort signal, it would hang')); }, 4000);
     if (init && init.signal) {
-      const done = () => { clearTimeout(guard); reject(init.signal.reason || new Error('aborted')); };
+      const done = () => { clearTimeout(guard); if (seen) seen.push({ ms: Date.now() - t0, byGuard: false }); reject(init.signal.reason || new Error('aborted')); };
       if (init.signal.aborted) done(); else init.signal.addEventListener('abort', done, { once: true });
     }
   });
 }
+// every hung call was ended by the code's own time limit (not by the test guard), well under the default limit (8 s / 10 s)
+function assertCutByLimit(seen, label) {
+  assert.ok(seen.length > 0, `${label}: at least one call hung`);
+  assert.deepEqual(seen.filter((s) => s.byGuard), [], `${label}: a call kept hanging until the test guard (no time limit)`);
+  assert.ok(seen.every((s) => s.ms < 2500), `${label}: calls were cut after ${seen.map((s) => s.ms).join(', ')} ms`);
+}
+const SLOW_OK = 120000; // generous per-test ceiling: a real hang fails the test instead of stalling the whole suite
 const isResend = (url) => String(url).includes('api.resend.com');
 const isShopify = (url) => String(url).includes('/admin/api/');
 
@@ -59,50 +70,48 @@ test('timeouts: sendSystemEmail with a hung Resend: the send with images times o
   await assert.rejects(sendSystemEmail({ report, apiKey: 'k', to: 'a@b.co', fetchImpl: async (u, init) => hang(init), timeoutMs: 60 }), /timeout|aborted/i);
 });
 
-test('timeouts, webhook: Resend REST hangs on the first send (with images): the internal System email still arrives, text-only', async () => {
-  const mock = createMock(loadMockShopify()); const inner = mock.fetch; let n = 0;
-  mock.fetch = async (url, init) => (isResend(url) && n++ === 0 ? hang(init) : inner(url, init));
-  const started = Date.now();
+test('timeouts, webhook: Resend REST hangs on the first send (with images): the internal System email still arrives, text-only', { timeout: SLOW_OK }, async () => {
+  const mock = createMock(loadMockShopify()); const inner = mock.fetch; let n = 0; const seen = [];
+  mock.fetch = async (url, init) => (isResend(url) && n++ === 0 ? hang(init, seen) : inner(url, init));
   const r = await runWebhook(INDEX, 'orders/create', loadSample('system', SYSTEM), { mock, env: { RESEND_FETCH_TIMEOUT_MS: '100' } });
   assert.equal(r.status, 200);
   assert.equal(r.restEmails.filter(isSystemInternal).length, 1, 'one internal email');
   assert.equal((r.restEmails[0].attachments || []).length, 0, 'it went out text-only');
   assert.ok(r.restEmails[0].html.includes('image failed'), 'and says why');
   assert.equal(r.notes.length, 1);
-  assert.ok(Date.now() - started < 3000);
+  assert.equal(seen.length, 1, 'only the first send hung');
+  assertCutByLimit(seen, 'Resend send with images'); // limit 100 ms, so the hung call must have ended long before the 10 s default
 });
 
-test('timeouts, webhook: Resend REST hangs on every send for a Standard (keyed) order: the SDK fallback sends the internal email, 200, no hang', async () => {
-  const mock = createMock(loadMockShopify()); const inner = mock.fetch;
-  mock.fetch = async (url, init) => (isResend(url) ? hang(init) : inner(url, init));
-  const started = Date.now();
+test('timeouts, webhook: Resend REST hangs on every send for a Standard (keyed) order: the SDK fallback sends the internal email, 200, no hang', { timeout: SLOW_OK }, async () => {
+  const mock = createMock(loadMockShopify()); const inner = mock.fetch; const seen = [];
+  mock.fetch = async (url, init) => (isResend(url) ? hang(init, seen) : inner(url, init));
   const r = await runWebhook(INDEX, 'orders/create', loadSample('standard', STANDARD), { mock, env: { RESEND_FETCH_TIMEOUT_MS: '100' } });
   assert.equal(r.status, 200);
   assert.equal(r.restEmails.length, 0);
   assert.equal(r.sdkEmails.filter(isStandardInternal).length, 1, 'the SDK fallback delivered the internal email once');
   assert.equal(r.notes.length, 1); assert.equal(r.inventoryAdjustments.length, 2, 'inventory unchanged');
-  assert.ok(Date.now() - started < 3000);
+  assertCutByLimit(seen, 'Resend REST sends');
 });
 
-test('timeouts, webhook: the Resend SDK itself hangs: the webhook stops waiting after the limit and still answers 200', async () => {
-  const started = Date.now();
+test('timeouts, webhook: the Resend SDK itself hangs: the webhook stops waiting after the limit and still answers 200', { timeout: SLOW_OK }, async () => {
   const r = await runWebhook(INDEX, 'orders/create', loadSample('standard', 'steel-jbend-wheelset'), { sdkDelayMs: 3000, env: { RESEND_FETCH_TIMEOUT_MS: '120' } });
   assert.equal(r.status, 200);
-  assert.ok(Date.now() - started < 2000, `waited ${Date.now() - started} ms`);
+  // no wall-clock bound here (it flaked on a busy machine): the SDK mock answers after 3000 ms, so the "timed out" log below can only exist if the webhook
+  // gave up at its own 120 ms limit instead of waiting for the SDK
   assert.ok(r.logs.some(([lvl, m]) => lvl === 'error' && /Resend SDK send timed out/.test(m)), 'the timeout is logged like any send error');
   assert.equal(r.notes.length, 1); assert.equal(r.inventoryAdjustments.length > 0, true);
 });
 
-test('timeouts, webhook: every Shopify call hangs (note read, metafields, note write): a System order still sends its internal email and answers 200', async () => {
-  const mock = createMock(loadMockShopify()); const inner = mock.fetch;
-  mock.fetch = async (url, init) => (isShopify(url) ? hang(init) : inner(url, init));
-  const started = Date.now();
+test('timeouts, webhook: every Shopify call hangs (note read, metafields, note write): a System order still sends its internal email and answers 200', { timeout: SLOW_OK }, async () => {
+  const mock = createMock(loadMockShopify()); const inner = mock.fetch; const seen = [];
+  mock.fetch = async (url, init) => (isShopify(url) ? hang(init, seen) : inner(url, init));
   const r = await runWebhook(INDEX, 'orders/create', loadSample('system', SYSTEM), { mock, env: { SHOPIFY_FETCH_TIMEOUT_MS: '40' } });
   assert.equal(r.status, 200);
   assert.equal(r.restEmails.filter(isSystemInternal).length, 1, 'the internal email is sent');
   assert.equal(r.inventoryAdjustments.length, 0);
   assert.ok(r.logs.some(([, m]) => /timeout|aborted/i.test(m)), 'the timeouts show in the log as Shopify attempt failures');
-  assert.ok(Date.now() - started < 12000, `took ${Date.now() - started} ms`);
+  assertCutByLimit(seen, 'Shopify calls'); // limit 40 ms, so every hung call must have ended long before the 8 s default
 });
 
 /* ------------------------------------------------------------------ 2. function duration */

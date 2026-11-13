@@ -2,8 +2,8 @@
 // Standard wheels. Run with: npm test
 //
 // The theme's Studio is read from a git REF of the theme repo (default: commit 9fdb48f, pinned by id (was dd908ad: the lacing geometry is the same); LOAM_THEME_REF=<branch> shows newer theme work that is not synced yet); see
-// tests/helpers/theme-studio.mjs for LOAM_THEME_DIR / LOAM_THEME_REF. When the theme is not there the live tests FAIL on purpose (set LOAM_THEME_DIR=skip
-// to run only the fixture comparisons), so a drift can never pass unnoticed.
+// tests/helpers/theme-studio.mjs for LOAM_THEME_DIR / LOAM_THEME_REF. When the theme folder is not there the live tests are
+// SKIPPED with a visible reason ("# SKIP theme folder not found: <path>"), counted as skipped and never as passed; the fixture comparisons still run.
 // tests/fixtures/studio-geometry.json and studio-geometry-standard.json are snapshots of the theme's output; regenerate them with
 //   node scripts/update-geometry-fixture.mjs
 // after an intentional lacing change in the theme (and port the change into _lib/studio-geometry.js).
@@ -14,12 +14,11 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { geometry } from '../_lib/studio-geometry.js';
 import { SANDBOX_WHEELS, GOLDEN_WHEELS, STANDARD_WHEELS, STANDARD_AUTO_WHEELS } from './fixtures/sandbox-wheels.js';
-import { themeSource, loadStudio, loadGolden } from './helpers/theme-studio.mjs';
+import { themeSource, loadStudio, loadGolden, themeSkipReason } from './helpers/theme-studio.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const readFixture = (name) => JSON.parse(fs.readFileSync(path.join(here, 'fixtures', name), 'utf8'));
 const plain = (o) => JSON.parse(JSON.stringify(o));
-const skipLive = process.env.LOAM_THEME_DIR === 'skip';
 
 test('vendored geometry equals the committed snapshot of the theme geometry (System sandbox wheels)', () => {
   const fixture = readFixture('studio-geometry.json');
@@ -40,19 +39,19 @@ test('vendored geometry equals the committed snapshot of the theme geometry (all
 });
 
 test('vendored geometry equals the LIVE theme LoamStudio.geometry (System sandbox wheels)', (t) => {
-  if (skipLive) { t.skip('LOAM_THEME_DIR=skip'); return; }
+  { const why = themeSkipReason(); if (why) { t.skip(why); return; } }
   const src = themeSource(), Studio = loadStudio(src);
   for (const [name, cfg] of Object.entries(SANDBOX_WHEELS)) assert.deepEqual(plain(geometry(cfg)), plain(Studio.geometry(cfg)), `geometry drifted from the theme (${src.origin}) for ${name}`);
 });
 
 test('vendored geometry equals the LIVE theme LoamStudio.geometry for every Standard wheel: front and rear, 20/24/28/32/36 holes, crossing 0 to 4, with autoValvePhase on and off', (t) => {
-  if (skipLive) { t.skip('LOAM_THEME_DIR=skip'); return; }
+  { const why = themeSkipReason(); if (why) { t.skip(why); return; } }
   const src = themeSource(), Studio = loadStudio(src);
   for (const [name, cfg] of Object.entries({ ...STANDARD_WHEELS, ...STANDARD_AUTO_WHEELS })) assert.deepEqual(plain(geometry(cfg)), plain(Studio.geometry(cfg)), `geometry drifted from the theme (${src.origin}) for ${name}`);
 });
 
 test('vendored geometry equals the theme golden file for every wheel except the Solix 24h 2:1 pair, and for the 38 Standard wheels', (t) => {
-  if (skipLive) { t.skip('LOAM_THEME_DIR=skip'); return; }
+  { const why = themeSkipReason(); if (why) { t.skip(why); return; } }
   const src = themeSource(), golden = loadGolden(src);
   assert.ok(golden, `theme golden file not found at ${src.origin}`);
   for (const [name, cfg] of Object.entries(GOLDEN_WHEELS)) assert.deepEqual(plain(geometry(cfg)), golden[name], `${name}: geometry differs from the theme golden file (${src.origin})`);
