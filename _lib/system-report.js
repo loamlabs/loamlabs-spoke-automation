@@ -15,7 +15,7 @@ import { loadRing } from './rim-rings.js';
 import { unknownValveColorText } from './valve-colors.js';
 import { svgToPng } from './wheel-png.js';
 import { suppliedSummary, suppliedWheelText, PARTS_MUST_ARRIVE } from './own-parts.js'; // OWN-PARTS
-import { calculateSystemSpokeLengths, SYSTEM_LENGTHS_PENDING_TEXT, SYSTEM_LENGTHS_NOT_CALCULATED_PREFIX, systemLengthsNotCalculatedText } from './system-lengths.js';
+import { calculateSystemSpokeLengths, SYSTEM_LENGTHS_PENDING_TEXT, SYSTEM_LENGTHS_NOT_CALCULATED_PREFIX, systemLengthsNotCalculatedText, resolveSystemLengths, REASON_NOT_IN_CHART_MAP } from './system-lengths.js';
 import { resendTimeoutMs } from './http-timeout.js';
 import { buildI9OrderList } from './i9-order-list.js'; // I9 ORDER LIST (internal email only, never the order note)
 
@@ -103,7 +103,9 @@ export function lengthsFor(wheel, lengthCalculator) { // exported for the order 
     }
     // the chart lookup says why in plain words; an injected calculator (tests) keeps the old text
     const why = lengthCalculator === calculateSystemSpokeLengths ? systemLengthsNotCalculatedText(wheel.geometryInput) : null;
-    return { pending: true, text: why || SYSTEM_LENGTHS_PENDING_TEXT };
+    // a rim without an I9 chart row is flagged so the order note can say so in plain words (the note used to be silent about it)
+    const noChartRow = lengthCalculator === calculateSystemSpokeLengths && resolveSystemLengths(wheel.geometryInput).reason === REASON_NOT_IN_CHART_MAP;
+    return { pending: true, text: why || SYSTEM_LENGTHS_PENDING_TEXT, ...(noChartRow ? { noChartRow: true } : {}) };
   } catch (e) {
     return { pending: true, text: `${SYSTEM_LENGTHS_NOT_CALCULATED_PREFIX} The length lookup failed (${e.message}), so check the lengths with I9 before ordering spokes.` };
   }
@@ -216,12 +218,15 @@ function wheelHtml(w, images, imageErrors, opts) {
 // The old header ("AUTOMATED SYSTEM BUILD REPORT") doubled as the "already processed" record; each wheel's first line is that record now (see _lib/system-dedupe.js).
 // OWN-PARTS (kept, it is a requirement of the own-parts contract and it is not a warning): an order with customer-supplied parts starts with two plain lines saying what the
 // customer supplies and that the parts must arrive first. Orders without own parts have nothing above the wheel blocks.
+// the sentence the Shopify order note carries for a System wheel whose rim has no I9 chart row
+export const NOTE_NO_CHART_ROW = "Lengths not calculated: this rim is not in I9's chart, check the lengths with I9.";
 function noteText(wheels, lengthsByPos) {
   const own = suppliedSummary(wheels);
   const head = own ? `CUSTOMER-SUPPLIED PARTS: ${own}.\n${PARTS_MUST_ARRIVE}\n\n` : '';
   return head + wheels.map((w) => [
     `${w.label.toUpperCase().padEnd(5)}  ${w.rimTitle}  /  ${w.hubModel}, ${w.hubColor}`,
-    ...sideEntries(w, lengthsByPos[w.position]).map((e) => `  ${sideLine(e)}`)
+    ...sideEntries(w, lengthsByPos[w.position]).map((e) => `  ${sideLine(e)}`),
+    ...(lengthsByPos[w.position] && lengthsByPos[w.position].noChartRow ? [`  ${NOTE_NO_CHART_ROW}`] : [])
   ].join('\n')).join('\n\n') + '\n';
 }
 

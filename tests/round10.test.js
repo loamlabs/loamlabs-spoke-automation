@@ -206,7 +206,7 @@ test('null cases: unmapped rim, hub that does not match the chart row, unknown h
 test('a miss says NOT CALCULATED and why in the note, no source line, and the internal email summary says NOT CALCULATED', async () => {
   const { report } = await lengthsOf(chartOrder({ rear: { rim: '12345', holes: 32 }, orderNumber: 91207 }));
   assert.ok(report.html.includes("Spoke lengths for System hubs: NOT CALCULATED. This rim is not in I9&#39;s spoke length chart, so check the lengths with I9 before ordering spokes.") || report.html.includes("Spoke lengths for System hubs: NOT CALCULATED. This rim is not in I9's spoke length chart, so check the lengths with I9 before ordering spokes."), 'the reason is in the internal email');
-  assert.ok(!/NOT CALCULATED|I9/.test(report.note), 'the order note says nothing about it: the side lines carry colors only');
+  assert.ok(!/NOT CALCULATED/.test(report.note) && report.note.includes("Lengths not calculated: this rim is not in I9's chart, check the lengths with I9."), 'the order note says so in plain words (no mm), once per wheel');
   assert.ok(!/I9 System chart 2026/.test(report.note) && !/I9 System chart 2026/.test(report.html));
   assert.ok(report.html.includes('NOT CALCULATED, see each wheel for the reason'));
   assert.ok(!report.html.includes('method pending') && !report.note.includes('method pending'));

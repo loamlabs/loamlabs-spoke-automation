@@ -120,7 +120,12 @@ export function buildI9OrderList({ wheels, lengthsByPos, orderNumber, recipe = {
   // C. not on the dealer list
   L.push('C. SPOKES NOT on the dealer list: ORDER BY EMAIL OR PHONE (Thomas Ward)');
   const cRows = sideRows.filter((r) => r.other.length);
-  if (!cRows.length) L.push("   none: every length and color of this order is on I9's dealer list");
+  if (!cRows.length) {
+    // when no side lost its length the sentence is unchanged; when some side was left out for a missing chart length it must not claim that every length is on the list
+    if (!noLen.length) L.push("   none: every length and color of this order is on I9's dealer list");
+    else if (noLen.length === sideRows.length) L.push('   none: no length is calculated for this order, so nothing could be matched against the dealer list (see block B)');
+    else L.push(`   none: every length that is calculated is on I9's dealer list; the sides marked "length not calculated" in block B are not covered`);
+  }
   cRows.forEach((r) => L.push(`${pre(r)}${mmText(r.mm)}  ${r.other.map((e) => fmtEntry(e) + (e.why.reason === 'length' ? '' : ` [${whyText(e.why)}]`)).join('   ')}${baseText(r)}`));
   let thomasText = null;
   if (cMap.size) {
