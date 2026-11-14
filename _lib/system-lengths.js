@@ -125,7 +125,7 @@ export function resolveSystemLengths(wheel) {
   }
   let estimated = null;
   if (hit.estimated) {
-    estimated = { model: row.model, partNumber: row.partNumber, gap: hit.estimated.gap, method: hit.estimated.method };
+    estimated = { model: row.model, partNumber: row.partNumber, gap: hit.estimated.gap, offsetGap: hit.estimated.offsetGap };
     estimated.text = estimatedMarker(estimated);
     flags.push('estimated'); notes.push(estimated.text);
   }

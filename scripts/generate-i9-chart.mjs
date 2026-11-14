@@ -5,7 +5,7 @@
 // file from there into data/i9-source/ first. Inputs:
 //   i9_system_length_chart.csv     31 rows from I9's "System- 2026" tab (section, wheel_model, rim_part_number, erd_mm, rim_offset_mm, hub, drive/non-drive length)
 //   I9_SYSTEM_ALLOWED_LIST.csv     the rim variants allowed in the System builder; chart_row_for_lengths names the chart row (part number, hub, ERD, offset)
-//   ESTIMATED_RIM_LENGTHS.csv      non-I9 rim variants and the I9 Hydra2 row their lengths are estimated from (copy or adjusted); every row is re-derived with the rule in
+//   ESTIMATED_RIM_LENGTHS.csv      non-I9 rim variants and the I9 Hydra2 row their lengths are estimated from (geometry difference to that rim, offset included); every row is re-derived with the rule in
 //                                  _lib/rim-length-estimate.js and the script stops if the file disagrees with the rule or the chart. Such a variant is marked `estimated` in the map.
 // The map rim variant id -> chart row is derived from the allowed list (part number + hub + model prefix pick the row); the chart numbers quoted in the
 // allowed list must equal the chart's, otherwise this script stops. EXTRA_VARIANTS adds variants that are not in the allowed-list file yet.
@@ -24,15 +24,10 @@ const CHART_DATE = '2026-10-28';
 // Variants Jerry asked for in the round 10 prompt that the allowed-list file does not contain yet.
 const EXTRA_VARIANTS = [
   { variantId: '67819688788275', title: 'Industry Nine Coup Carbon Rim 26" / 32h', part: 'TR175', hub: 'H2 32h', modelPrefix: 'Coup 26', comment: 'Industry Nine Coup Carbon 26" 32h = chart "Coup 26" (Hydra2 Carbon section) TR175, ERD 536, H2 32h, 268/270 (Jerry, round 10 prompt)' },
-  // Jerry, Nov 7 2026 (rim fix addendum): the two Stan's 29" 32h rims borrow the Wanderer 29" row (TR309, H2 32h, ERD 600, 299/300)
-  { variantId: '51797701067059', title: "Stan's Arch MK4 Alloy Rim 29\" / 32h / Black", part: 'TR309', hub: 'H2 32h', modelPrefix: 'Wanderer 29', comment: "Stan's Arch MK4 29\" 32h borrows the Wanderer 29\" row TR309 (ERD 600, H2 32h, 299/300): same ERD and hole count; the store offset is 2.5, the chart row's 2" },
-  { variantId: '51797701263667', title: "Stan's Flow MK4 Alloy Rim 29\" / 32h / Black", part: 'TR309', hub: 'H2 32h', modelPrefix: 'Wanderer 29', comment: "Stan's Flow MK4 29\" 32h borrows the Wanderer 29\" row TR309 (ERD 600, H2 32h, 299/300): same ERD and hole count; the store offset is 3.0, the chart row's 2" }
 ];
 // Facts from the round 10 prompt about single variants.
 const VARIANT_NOTES = {
   '51901428400435': { borrowed: true, comment: 'WAO Whisp 29" 28h borrows the chart row Sector 2.0 29" 28h TR314 (ERD 600, H2 28h, 303/305): same ERD and hole count, NOT an I9-listed Whisp combination' },
-  '51797701067059': { borrowed: true, borrowedFrom: 'borrowed from Wanderer row, same ERD and offset' },
-  '51797701263667': { borrowed: true, borrowedFrom: 'borrowed from Wanderer row, same ERD and offset' },
   '53871010939187': { storeErd: 652, comment: 'WAO Hush 24h 2:1 = chart Hush 24h TR316 (ERD 655, SM, 328/325); the store says ERD 652: confirm with I9 when ordering parts' }
 };
 
@@ -96,14 +91,14 @@ for (const e of estimatedRows) {
   const id = e['variant_id'];
   if (!/^\d+$/.test(id)) throw new Error('estimated list: bad variant id ' + id);
   if (map[id]) throw new Error('estimated list: variant already has an I9 chart row of its own (allowed list, extras or borrowed): ' + id);
-  const holes = Number(e['holes']), erd = Number(e['effective_erd']);
-  const est = estimateFromChart({ erd, holes }, chart);
-  if (!est || est.method === 'none') throw new Error(`estimated list: variant ${id} has no estimate by the rule (gap over 4 mm or no row)`);
+  const holes = Number(e['holes']), erd = Number(e['effective_erd']), offset = Number(e['rim_offset']);
+  const est = estimateFromChart({ erd, offset, holes }, chart);
+  if (!est || est.method === 'none') throw new Error(`estimated list: variant ${id} has no estimate by the rule (ERD gap over 4 mm or no row)`);
   const idx = chart.findIndex((r) => r.model === e['matched_model'] && r.partNumber === e['matched_part'] && r.hub === e['matched_hub']);
   if (idx < 0 || chart[idx] !== est.row) throw new Error(`estimated list: variant ${id}: the rule picks ${est.row.model} ${est.row.partNumber} ${est.row.hub}, the file says ${e['matched_model']} ${e['matched_part']} ${e['matched_hub']}`);
-  if (e['method'] !== est.method || Number(e['erd_gap']) !== est.gap || Number(e['drive_mm']) !== est.lengths[0] || Number(e['non_drive_mm']) !== est.lengths[1]) throw new Error(`estimated list: variant ${id}: method, gap or lengths differ from the rule (${JSON.stringify({ method: est.method, gap: est.gap, lengths: est.lengths })})`);
-  if (Number(e['matched_erd']) !== est.row.erd) throw new Error(`estimated list: variant ${id}: matched ERD differs from the chart`);
-  map[id] = { row: idx, title: `${e['product_title']} ${e['size']} / ${holes}h`, estimated: { erd, gap: est.gap, method: est.method, drive: est.lengths[0], nonDrive: est.lengths[1] } };
+  if (Number(e['erd_gap']) !== est.gap || Number(e['offset_gap']) !== est.offsetGap || Number(e['delta_drive']) !== est.deltaDrive || Number(e['delta_non_drive']) !== est.deltaNonDrive || Number(e['drive_mm']) !== est.lengths[0] || Number(e['non_drive_mm']) !== est.lengths[1]) throw new Error(`estimated list: variant ${id}: gap, correction or lengths differ from the rule (${JSON.stringify({ gap: est.gap, offsetGap: est.offsetGap, dD: est.deltaDrive, dN: est.deltaNonDrive, lengths: est.lengths })})`);
+  if (Number(e['matched_erd']) !== est.row.erd || Number(e['matched_offset']) !== est.row.rimOffset) throw new Error(`estimated list: variant ${id}: matched ERD or offset differs from the chart`);
+  map[id] = { row: idx, title: `${e['product_title']} ${e['size']} / ${holes}h`, estimated: { erd, offset, gap: est.gap, offsetGap: est.offsetGap, drive: est.lengths[0], nonDrive: est.lengths[1] } };
 }
 const ids = Object.keys(map).sort((a, b) => (a < b ? -1 : 1));
 
@@ -135,13 +130,13 @@ lines.push('');
 lines.push(`/**`);
 lines.push(` * The chart numbers for a rim variant: no hub logic, no side mapping.`);
 lines.push(` * @param {string|number} rimVariantId  digits, or a gid://shopify/ProductVariant/<digits>`);
-lines.push(` * @returns {null|{ source: 'i9-chart', row: object, driveColumn: number, nonDriveColumn: number, variantTitle: string, borrowed?: boolean, storeErd?: number, estimated?: { erd: number, gap: number, method: string } }}`);
+lines.push(` * @returns {null|{ source: 'i9-chart', row: object, driveColumn: number, nonDriveColumn: number, variantTitle: string, borrowed?: boolean, storeErd?: number, estimated?: { erd: number, offset: number, gap: number, offsetGap: number } }}`);
 lines.push(` */`);
 lines.push(`export function chartLengthsForRim(rimVariantId) {`);
 lines.push(`  const id = String(rimVariantId == null ? '' : rimVariantId).replace(/^.*\\//, '');`);
 lines.push(`  if (!Object.prototype.hasOwnProperty.call(RIM_VARIANT_MAP, id)) return null;`);
 lines.push(`  const e = RIM_VARIANT_MAP[id], row = CHART_ROWS[e.row];`);
-lines.push(`  return { source: 'i9-chart', row, driveColumn: e.estimated ? e.estimated.drive : row.driveColumn, nonDriveColumn: e.estimated ? e.estimated.nonDrive : row.nonDriveColumn, variantTitle: e.title, ...(e.estimated ? { estimated: { erd: e.estimated.erd, gap: e.estimated.gap, method: e.estimated.method } } : {}), ...(e.borrowed ? { borrowed: true } : {}), ...(e.borrowedFrom ? { borrowedFrom: e.borrowedFrom } : {}), ...(e.storeErd ? { storeErd: e.storeErd } : {}) };`);
+lines.push(`  return { source: 'i9-chart', row, driveColumn: e.estimated ? e.estimated.drive : row.driveColumn, nonDriveColumn: e.estimated ? e.estimated.nonDrive : row.nonDriveColumn, variantTitle: e.title, ...(e.estimated ? { estimated: { erd: e.estimated.erd, offset: e.estimated.offset, gap: e.estimated.gap, offsetGap: e.estimated.offsetGap } } : {}), ...(e.borrowed ? { borrowed: true } : {}), ...(e.borrowedFrom ? { borrowedFrom: e.borrowedFrom } : {}), ...(e.storeErd ? { storeErd: e.storeErd } : {}) };`);
 lines.push(`}`);
 lines.push('');
 fs.writeFileSync(path.join(root, '_lib', 'i9-system-chart.js'), lines.join('\n'));

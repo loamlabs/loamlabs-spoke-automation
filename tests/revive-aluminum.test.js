@@ -45,7 +45,7 @@ test('the CSV master has the new id once, allowed, with the numbers of the TR253
   assert.equal(row.length, 1);
   assert.ok(row[0].includes(',"29"" / 24h 2:1 / Black",true,Revive 24h TR253 SM/G erd 602 off 0,300,298,'));
   for (const id of [CARBON_29, CARBON_700C]) { const c = chartLengthsForRim(id); assert.deepEqual([c.row.partNumber, c.row.erd, c.driveColumn, c.nonDriveColumn], ['TR313', 602.5, 302, 298], id); }
-  assert.equal(Object.values(RIM_VARIANT_MAP).filter((e) => !e.estimated).length, 29, 'exactly one entry was added (the estimated rims of 2026-11-14 are counted separately)');
+  assert.equal(Object.values(RIM_VARIANT_MAP).filter((e) => !e.estimated).length, 27, 'exactly one entry was added (the estimated rims of 2026-11-14 are counted separately; 29 before the two Stans 29 inch 32h rims moved to the estimates)');
 });
 
 test('worked example, Solix 24h REAR with this rim: rotor side 298 mm (8 spokes), drive side 300 mm (16 spokes), source line TR253, no warning, no "check ERD" flag', async () => {

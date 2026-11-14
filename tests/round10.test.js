@@ -59,9 +59,9 @@ test('data: 31 chart rows and the map are in the generated file; they equal the 
   { // and the content of the generated file is pinned too
     assert.equal(sha(CHART_ROWS), 'd60f092ac9c20cc2ffdab8c842c51f08ffbf6e1f14d04b7c2ea258dec0760ac4');
     const own = Object.fromEntries(Object.entries(RIM_VARIANT_MAP).filter(([, e]) => !e.estimated)), est = Object.fromEntries(Object.entries(RIM_VARIANT_MAP).filter(([, e]) => e.estimated));
-    assert.equal(Object.keys(own).length, 29); assert.equal(Object.keys(est).length, 80);
-    assert.equal(sha(own), '0e913b740784cd9785304f73145295b261b3c32594bcb3dd256edb80d7bbdffc', 'the I9-listed and borrowed entries are exactly what they were before the estimates');
-    assert.equal(sha(est), '6ac431d14b63627eaec5892620941a72aef5ec3d0655d3d9bdf725a07b20fada', 'the estimated entries');
+    assert.equal(Object.keys(own).length, 27); assert.equal(Object.keys(est).length, 82);
+    assert.equal(sha(own), 'a54942e2a83dc7c2caf62f4e569d7a7e425dffe2a42f7012f92c14fdf401f14f', 'the I9-listed entries (and the Whisp 28h borrowed one) are exactly what they were before the estimates: the old pin 0e913b74... minus the two Stans 29 inch 32h entries, which moved to the estimates on 2026-11-14');
+    assert.equal(sha(est), 'c7af5ba93228511ec3f9f657b3ce33fc6c56e0ae65d6ffa7e4a524f148e90230', 'the estimated entries');
   }
 });
 
