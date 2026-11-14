@@ -27,8 +27,9 @@ test('data: both rims map to the Wanderer 29" row TR309 (ERD 600, H2 32h, 299/30
     assert.equal(RIM_VARIANT_MAP[id].row, wanderer, name); assert.equal(RIM_VARIANT_MAP[id].borrowed, true); assert.equal(RIM_VARIANT_MAP[id].borrowedFrom, SRC);
     const hit = chartLengthsForRim(`gid://shopify/ProductVariant/${id}`); assert.equal(hit.driveColumn, 299); assert.equal(hit.nonDriveColumn, 300); assert.equal(hit.borrowedFrom, SRC); assert.match(hit.variantTitle, new RegExp(name));
   }
-  // not added: the three rims without I9 data
-  for (const id of ['1', '51797701034291', '51797701230899']) assert.equal(chartLengthsForRim(id), null, 'the 28h variants and unknown ids stay out');
+  // unknown ids stay out; the two 28h MK4 29" variants are no longer "not in the chart": since 2026-11-14 they carry ESTIMATED lengths (nearest I9 H2 28h row, see tests/estimated-lengths.test.js)
+  assert.equal(chartLengthsForRim('1'), null, 'unknown ids stay out');
+  for (const id of ['51797701034291', '51797701230899']) assert.equal(chartLengthsForRim(id).estimated.method, 'copy', 'the 28h MK4 29" variants are estimated, not I9-listed');
 });
 
 test('orders: Arch MK4 and Flow MK4 29" 32h on a Hydra2 32h wheel set give the Wanderer numbers, with the borrowed Source line, no "check ERD" at the store ERD 600', async () => {
@@ -51,7 +52,7 @@ test('the ERD compare still works for these rims: a store ERD of 604 is flagged'
 });
 
 test('ENVE M630, WTB i30 and Light Bicycle AM928 (no I9 data) and the other Stan\'s variants stay NOT CALCULATED', async () => {
-  for (const [id, title] of [['51000000000001', 'ENVE M630 Rim'], ['51000000000002', 'WTB ST i30 Rim'], ['51000000000003', 'Light Bicycle AM928 Rim'], ['51797701034291', "Stan's Arch MK4 Alloy Rim (28h variant)"]]) {
+  for (const [id, title] of [['51000000000001', 'ENVE M630 Rim'], ['51000000000002', 'WTB ST i30 Rim'], ['51000000000003', 'Light Bicycle AM928 Rim'], ['51797701099827', "Stan's Arch MK4 Alloy Rim 27.5\" (28h variant: no I9 row and no estimate, 37 mm from the nearest H2 28h row)"]]) {
     const r = await run(order(rimComp(id, title))); assert.ok(mail(r).includes('NOT CALCULATED'), title); assert.equal(r.note.includes('NOT CALCULATED'), false, title);
   }
 });

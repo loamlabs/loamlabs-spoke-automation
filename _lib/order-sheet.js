@@ -41,7 +41,7 @@ function lengthsOfSheet(l) {
   }
   return {
     status: 'calculated', rotorMm: Number(l.left), driveMm: Number(l.right), text: str(l.text, 500), sourceText: str(l.sourceText, 400),
-    chart: l.chart ? { section: str(l.chart.section, 80), model: str(l.chart.model, 80), partNumber: str(l.chart.partNumber, 30), erd: l.chart.erd != null ? Number(l.chart.erd) : null, hub: str(l.chart.hub, 40) } : null,
+    chart: l.chart ? { section: str(l.chart.section, 80), model: str(l.chart.model, 80), partNumber: str(l.chart.partNumber, 30), erd: l.chart.erd != null ? Number(l.chart.erd) : null, hub: str(l.chart.hub, 40), ...(l.estimatedText ? { estimated: true, estimatedText: str(l.estimatedText, 300) } : {}) } : null,
     caveat: str(l.extra, 500), sideLabels: l.sideLabels && l.sideLabels.left && l.sideLabels.right ? { rotor: str(l.sideLabels.left, 40), drive: str(l.sideLabels.right, 40) } : null,
     internalText: str(l.internalText, 500)
   };
