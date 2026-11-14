@@ -73,6 +73,7 @@ const COLUMN_SIDES = { front: { first: 'left', second: 'right' }, rear: { first:
 // The payload does not say Solix M, G or SG, so SM/G, SG and SM can only be checked as "a Solix hub with 24 holes".
 const CHART_HUBS = { 'H2 28h': { model: 'Hydra2', holes: 28 }, 'H2 32h': { model: 'Hydra2', holes: 32 }, 'SM/G': { model: 'Solix', holes: 24 }, SG: { model: 'Solix', holes: 24 }, SM: { model: 'Solix', holes: 24 } };
 
+export const REASON_NOT_IN_CHART_MAP = 'rim variant is not in the I9 chart map'; // resolveSystemLengths() reason for a rim without a chart row (the order note says so in plain words)
 const ERD_TOLERANCE_MM = 0.5;
 const SOURCE_LABEL = CHART_SOURCE.label;
 const r1 = (n) => Math.round(n * 10) / 10;
@@ -85,7 +86,7 @@ const r1 = (n) => Math.round(n * 10) / 10;
 export function resolveSystemLengths(wheel) {
   const w = wheel || {};
   const hit = chartLengthsForRim(w.rimVariantId);
-  if (!hit) return { lengths: null, reason: 'rim variant is not in the I9 chart map', plain: w.rimSupplied ? suppliedRimNotCalculated(w.rimText) : "This rim is not in I9's spoke length chart, so check the lengths with I9 before ordering spokes." };   // (b)
+  if (!hit) return { lengths: null, reason: REASON_NOT_IN_CHART_MAP, plain: w.rimSupplied ? suppliedRimNotCalculated(w.rimText) : "This rim is not in I9's spoke length chart, so check the lengths with I9 before ordering spokes." };   // (b)
   const row = hit.row, need = CHART_HUBS[row.hub];
   const holes = Number.isFinite(w.holes) && w.holes > 0 ? w.holes : ((w.spokes && Number(w.spokes.left) + Number(w.spokes.right)) || null);
   if (!need) return { lengths: null, reason: `chart row hub "${row.hub}" is not known`, plain: "The chart row for this rim lists a hub we do not recognize, so check the lengths with I9 before ordering spokes." };

@@ -185,11 +185,12 @@ test('the counts in the note add up to the wheel spoke count and agree with the 
   }
 });
 
-test('a wheel without chart lengths prints its colors without a length, and the reason is in the internal email only', async () => {
+test('a wheel without chart lengths prints its colors without a length and says so in plain words in the note; the internal email carries the full reason', async () => {
   const o = loadSample('system', 'hydra2-front-28h-only'); // its rim is not in the chart
   const r = await buildSystemReport({ recipe: recipeOf(o), orderData: o, renderPng: png });
   assert.ok(/^ {2}Rotor side:  .+$/m.test(r.note) && /^ {2}Drive side:  .+$/m.test(r.note) && !/ mm:/.test(r.note));
-  assert.equal(/NOT CALCULATED|chart|I9/.test(r.note), false);
+  assert.equal(/NOT CALCULATED/.test(r.note), false);
+  assert.ok(r.note.includes("Lengths not calculated: this rim is not in I9's chart, check the lengths with I9."), 'the note says plainly that the length is missing');
   assert.ok(r.html.includes('NOT CALCULATED'));
 });
 
