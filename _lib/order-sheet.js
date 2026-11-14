@@ -19,7 +19,7 @@ import { suppliedSummary, PARTS_MUST_ARRIVE } from './own-parts.js';
 import { extraBuildNotice } from './order-lines.js';
 import { buildI9OrderList } from './i9-order-list.js';
 import { geometry } from './studio-geometry.js';
-import { NUMBERING, numberSpokes } from './spoke-numbering.js';
+import { numberSpokes, numberingFor } from './spoke-numbering.js';
 
 // 1: PR 1 / PR 2. 2: adds `orderList` (+ orderListStatus, orderListNote). 3: the PR 1 field `i9OrderList` is gone (its data is in `orderList`: text, cartLink, cartLinkAdds, orderByEmailText, snapshotDate).
 // A saved row of any older version still loads and is answered as stored (a row of version 1 or 2 may carry `i9OrderList`; the reader ignores it, the dashboard keeps its legacy card for them).
@@ -48,7 +48,7 @@ function lengthsOfSheet(l) {
 }
 
 // numbered spokes, lists, redraw data and image descriptors of one wheel; problems become warnings, never exceptions
-function drawingPart(w) {
+function drawingPart(w, numbering) {
   const out = { spokes: [], lists: { drive: [], rotor: [] }, highSide: null, lowSide: null, redraw: null, images: [], warnings: [] };
   const config = w.config || null;
   if (!config) { out.warnings.push(`${w.label} wheel: no wheel geometry in the build data, so no spoke numbers and no spoke map.`); return out; }
@@ -59,7 +59,7 @@ function drawingPart(w) {
   } catch (e) { out.warnings.push(`${w.label} wheel: geometry error (${str(e && e.message, 100)}), so no spoke numbers and no spoke map.`); return out; }
   const equal = geom.drive.length === geom.rotor.length;
   if (equal) { out.highSide = highSideOf(w.position); out.lowSide = lowSideOf(w.position); }
-  const list = numberSpokes({ position: w.position, geom, colors: w.colors });
+  const list = numberSpokes({ position: w.position, geom, colors: w.colors, numbering });
   out.spokes = list.map((s) => ({ number: s.number, text: s.text, side: s.side, k: s.k, color: s.color, high: s.high }));
   for (const side of SIDES) out.lists[side] = list.filter((s) => s.side === side).map((s) => ({ number: s.number, text: s.text, color: s.color }));
   out.redraw = {
@@ -75,8 +75,8 @@ function drawingPart(w) {
   return out;
 }
 
-function wheelEntry(w, lengths, extra = {}) {
-  const part = drawingPart(w);
+function wheelEntry(w, lengths, extra = {}, numbering) {
+  const part = drawingPart(w, numbering);
   const equalSides = part.highSide != null;
   return {
     position: w.position, label: w.label,
@@ -107,6 +107,8 @@ export function buildOrderSheet(o) {
   const componentData = (o && o.componentData) || null;
   const calculatedAt = (o && o.calculatedAt) || new Date().toISOString();
   const asSent = !!(o && o.mode === 'as-sent');
+  // the spoke numbering in force: version 1 unless the environment flag SPOKE_NUMBERING_JERRY=on (default OFF). `o.env` / `o.numbering` are for tests and the compare script only.
+  const numbering = (o && o.numbering) || numberingFor(o && o.env ? o.env : process.env);
   const lengthCalculator = (o && o.lengthCalculator) || calculateSystemSpokeLengths;
   const buildLine = findWheelBuildLineItem(orderData);
   const sys = findSystemBuildRecipe(orderData);
@@ -123,8 +125,8 @@ export function buildOrderSheet(o) {
     orderCreatedAt: typeof orderData.created_at === 'string' ? orderData.created_at : null, orderCancelled: !!orderData.cancelled_at,
     buildId: str(recipe.buildId, 80),
     calculation: asSent ? { mode: 'as-sent', at: calculatedAt, text: `as sent on ${calculatedAt.slice(0, 10)}` } : { mode: 'recalculated', at: calculatedAt, text: `recalculated on ${calculatedAt.slice(0, 10)}, may differ from what was sent` },
-    numbering: { version: NUMBERING.version, status: NUMBERING.status, label: NUMBERING.label, rule: NUMBERING.rule },
-    numberingVersion: NUMBERING.version, calculatedAt,
+    numbering: { version: numbering.version, status: numbering.status, label: numbering.label, rule: numbering.rule },
+    numberingVersion: numbering.version, calculatedAt,
     wheels: [], warnings: [], orderChecks: [], customerSupplied: null,
     // the I9 order list as the System email prints it (structured sections A to E + the email's own text); null with a plain status for Standard builds (not an error)
     orderList: null, orderListStatus: 'not-applicable', orderListNote: 'Standard builds have no I9 order list.'
@@ -137,7 +139,7 @@ export function buildOrderSheet(o) {
     const wheels = pre ? pre.wheels : systemWheels(recipe, componentData, orderData);
     const lengthsByPos = {};
     for (const w of wheels) lengthsByPos[w.position] = pre ? pre.lengths[w.position] : lengthsFor(w, lengthCalculator);
-    sheet.wheels = wheels.map((w) => wheelEntry(w, lengthsOfSheet(lengthsByPos[w.position])));
+    sheet.wheels = wheels.map((w) => wheelEntry(w, lengthsOfSheet(lengthsByPos[w.position]), {}, numbering));
     const supplied = suppliedSummary(wheels);
     if (supplied) sheet.customerSupplied = { text: supplied, reminder: PARTS_MUST_ARRIVE };
     try {
@@ -161,7 +163,7 @@ export function buildOrderSheet(o) {
       const lengths = l.left && l.right
         ? { status: 'calculated', rotorMm: l.left, driveMm: l.right, text: `Spoke lengths: Left ${l.left} mm, Right ${l.right} mm`, sourceText: 'Source: spoke calculator (rim, hub and spoke data from the store)', chart: null, caveat: null, sideLabels: null, internalText: null }
         : lengthsOfSheet({ pending: true, text: report ? (report[w.position] && report[w.position].error ? `Spoke lengths: NOT CALCULATED. ${report[w.position].error}` : 'Spoke lengths: not calculated') : 'Spoke lengths: not calculated (no calculation was run for this sheet)' });
-      return wheelEntry(w, lengths, { spokeProduct: str(w.spokeProduct, 160), vendor: str(w.vendor, 60), sideWords: w.sideLabels ? { drive: str(w.sideLabels.drive, 40), rotor: str(w.sideLabels.rotor, 40) } : null, paint: { berd: !!w.berdType, paintColors: (w.paintColors || []).map((c) => str(c, 60)), blank: str(w.blank, 60) } });
+      return wheelEntry(w, lengths, { spokeProduct: str(w.spokeProduct, 160), vendor: str(w.vendor, 60), sideWords: w.sideLabels ? { drive: str(w.sideLabels.drive, 40), rotor: str(w.sideLabels.rotor, 40) } : null, paint: { berd: !!w.berdType, paintColors: (w.paintColors || []).map((c) => str(c, 60)), blank: str(w.blank, 60) } }, numbering);
     });
     if (report && Array.isArray(report.errors)) sheet.warnings.push(...report.errors.map((t) => str(t, 600)));
   } else {
