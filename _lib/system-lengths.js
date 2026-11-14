@@ -70,7 +70,8 @@ export const SYSTEM_LENGTHS_PENDING_TEXT = 'Spoke lengths for System hubs: not c
 const COLUMN_SIDES = { front: { first: 'left', second: 'right' }, rear: { first: 'right', second: 'left' } };
 
 // chart hub label -> what the order must have: hub model label (system-build.js SYSTEM_HUB_MODELS) and hole count.
-// The payload does not say Solix M, G or SG, so SM/G, SG and SM can only be checked as "a Solix hub with 24 holes".
+// Only two System hubs exist: Hydra2 and Solix. The hub labels in the chart ("SM/G", "SG", "SM") are I9's own spelling in its System 2026 sheet and are kept as the keys here;
+// every one of them means "a Solix hub with 24 holes", which is all the payload can be checked against.
 const CHART_HUBS = { 'H2 28h': { model: 'Hydra2', holes: 28 }, 'H2 32h': { model: 'Hydra2', holes: 32 }, 'SM/G': { model: 'Solix', holes: 24 }, SG: { model: 'Solix', holes: 24 }, SM: { model: 'Solix', holes: 24 } };
 
 export const REASON_NOT_IN_CHART_MAP = 'rim variant is not in the I9 chart map'; // resolveSystemLengths() reason for a rim without a chart row (the order note says so in plain words)
