@@ -4,7 +4,7 @@
 // for a real calculator. Columns are as I9 prints them: driveColumn = "drive side", nonDriveColumn = "non-drive side"; which wheel side each belongs to for a
 // front or a rear hub is decided in _lib/system-lengths.js (side mapping), not here.
 
-export const CHART_SOURCE = {"chartFile":"i9_system_length_chart.csv","allowedListFile":"I9_SYSTEM_ALLOWED_LIST.csv","date":"2026-10-28","label":"I9 System chart 2026","chartSha256":"74125b936ba3ad8271224d63c06320395749a9e9a454abffe370b636765ef31a","allowedListSha256":"ca3533f67292a9966dc26279a6aa6f0c7ca0b43ee32ecff12908a4fcc95a76e6"};
+export const CHART_SOURCE = {"chartFile":"i9_system_length_chart.csv","allowedListFile":"I9_SYSTEM_ALLOWED_LIST.csv","date":"2026-10-28","label":"I9 System chart 2026","chartSha256":"74125b936ba3ad8271224d63c06320395749a9e9a454abffe370b636765ef31a","allowedListSha256":"f1dbe844e4ee1377d04a6d882f24ce63df0375ca51826b399831cdef33190335"};
 
 // 31 chart rows, in file order.
 export const CHART_ROWS = [

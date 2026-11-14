@@ -1,5 +1,5 @@
 // Industry Nine Revive 2.0 Alloy Rim (Gravel), 29" / 24h 2:1 (variant 67984929227059, draft product 15486035657011): maps to I9's own chart row "Revive 24h" TR253 (System 2026 sheet:
-// ERD 602.0, offset 0.0, hub SM/G, 300 / 298). Same job shape as the Revive 700c row (tests/revive-700c.test.js): one new row in the allowed-list master, one new map entry; nothing else moves.
+// ERD 602.0, offset 0.0, Solix 24h (I9's label "SM/G"), 300 / 298). Same job shape as the Revive 700c row (tests/revive-700c.test.js): one new row in the allowed-list master, one new map entry; nothing else moves.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -29,7 +29,7 @@ function aluOrder(pos, n) {
 }
 const reportOf = (o, erd) => buildSystemReport({ recipe: recipeOf(o), orderData: o, componentData: metaFor(erd), renderPng: png });
 
-test('the chart maps the alloy Revive variant to I9\'s own row Revive 24h TR253 (ERD 602, offset 0, hub SM/G, 300 / 298); not borrowed', () => {
+test('the chart maps the alloy Revive variant to I9\'s own row Revive 24h TR253 (ERD 602, offset 0, Solix 24h, I9 label "SM/G", 300 / 298); not borrowed', () => {
   const hit = chartLengthsForRim(ALU);
   assert.ok(hit);
   assert.deepEqual([hit.row.section, hit.row.model, hit.row.partNumber, hit.row.erd, hit.row.rimOffset, hit.row.hub, hit.driveColumn, hit.nonDriveColumn], ['Solix Aluminum Rims', 'Revive 24h', 'TR253', 602, 0, 'SM/G', 300, 298]);
