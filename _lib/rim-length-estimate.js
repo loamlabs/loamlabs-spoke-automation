@@ -5,7 +5,7 @@
 //
 //   estimated length (per side) = ceil( the I9 rim's length + [spoke length formula(new rim) - spoke length formula(I9 rim)] )
 //
-//   - The formula is _lib/calculator.js calculateSpokeLength (straight pull, 3 cross) with the Hydra2 hub geometry below. The thread allowance and every other constant are the same
+//   - The formula is I9's own (hub spec sheet section 1: crossing used exactly as given, spoke offset 0) with the Hydra2 hub numbers below. The thread allowance and every other constant are the same
 //     for both rims and cancel in the difference, so the result is anchored to I9's own number.
 //   - Effective ERD = stored ERD + 2 x washer thickness, unless the washer policy is Not Compatible (api/index.js, same as everywhere else).
 //   - Rim offset: positive = the rim's spoke bed is shifted toward the NON-drive side: the non-drive flange is effectively closer by the offset, the drive flange further. This sign is the
@@ -15,29 +15,29 @@
 //     on a tie (corrections within 0.05 mm of each other) the one with the LONGER estimated lengths (a spoke too short is worse than one a bit long), flagged.
 //   - Rounding is always UP (I9 rounds System spokes up). The result can be shorter than the I9 rim's length only when the correction is a full mm or more; the table lists those.
 
-import { calculateSpokeLength } from './calculator.js';
-
 export const MAX_GAP_MM = 4.0;
 export const HYDRA2_HUB_HOLES = { 'H2 28h': 28, 'H2 32h': 32 };
-// Hydra2 hub geometry (component library, Hydra2 6-Bolt, the numbers the store uses for the Hydra2 hubs; the System hub spec sheet claude/I9_SYSTEM_HUB_SPECS.md named in the prompt is not on this
-// machine). 28h rims are front only: 15x110 Boost, the chart's "drive" column is the disc side. 32h rows are the rear pair (12x148 Boost; I9, Oct 30: same lengths front and rear).
-// fd = flange (spoke circle) diameter, f = flange offset from the hub center, both mm.
+// Hydra2 hub geometry: I9's own numbers (agent-prompts\I9_SYSTEM_HUB_SPECS.md section 2, from Thomas Ward / I9 engineering; Left = disk side, Right = drive side there). 32h rows of the chart are
+// the rear pair (Boost 12x148; I9, Oct 30: the same lengths front and rear): drive = Right (PCD 63.5, flange distance 22), non-drive = Left (PCD 44, 34), crossing 3.5, 16 spokes per side.
+// 28h rims are front only (Boost 15x110): the chart's "drive" column is the disk side = Left (PCD 46, flange distance 27.5), "non-drive" = Right (PCD 43, 40.5), crossing 3.35, 14 spokes per side.
+// pcd = spoke circle diameter, f = flange distance from the hub center (mm). I9's formula: L = sqrt(f^2 + r^2 + R^2 - 2 r R cos(2 pi cross / n_side)) + 4.5 mm of thread, rounded up (r = PCD / 2,
+// R = ERD / 2). The 4.5 mm allowance was never verified (it is 1.8 to 2.1 mm longer than I9's own chart on average) and it cancels in the difference between two rims, so it is not used here.
 export const HUB_GEOMETRY = {
-  28: { drive: { fd: 59.5, f: 28 }, nonDrive: { fd: 46, f: 41 } },
-  32: { drive: { fd: 62, f: 24 }, nonDrive: { fd: 59.5, f: 37 } }
+  28: { drive: { pcd: 46, f: 27.5, cross: 3.35, n: 14 }, nonDrive: { pcd: 43, f: 40.5, cross: 3.35, n: 14 } },
+  32: { drive: { pcd: 63.5, f: 22, cross: 3.5, n: 16 }, nonDrive: { pcd: 44, f: 34, cross: 3.5, n: 16 } }
 };
-export const CROSS = 3;                // base crossing; calculator.js adds 0.5 for a straight-pull hub
 export const OFFSET_TOWARD_NON_DRIVE = 1; // +1 = positive rim offset moves the spoke bed toward the non-drive side
 
 const EPS = 1e-9;
 const TIE_MM = 0.05; // two corrections that differ by less than 0.05 mm of spoke length are a tie (the formula is not exactly symmetric: +0.496 and -0.497 are the same size for an order)
 
-/** The formula length (mm, without thread allowance) of one side for a rim of effective ERD `erd` and spoke-bed offset `offset`. */
+/** The formula length (mm, without the thread allowance) of one side for a rim of effective ERD `erd` and spoke-bed offset `offset`. */
 export function geometryLength({ erd, offset = 0, holes, side }) {
   const g = HUB_GEOMETRY[holes] && HUB_GEOMETRY[holes][side];
   if (!g) return NaN;
   const f = side === 'nonDrive' ? g.f - OFFSET_TOWARD_NON_DRIVE * offset : g.f + OFFSET_TOWARD_NON_DRIVE * offset;
-  return calculateSpokeLength({ hubType: 'Straight Pull', baseCrossPattern: CROSS, spokeCount: holes, finalErd: erd, hubFlangeDiameter: g.fd, flangeOffset: f, hubSpokeHoleDiameter: 2.6, spOffset: 0 });
+  const r = g.pcd / 2, R = erd / 2;
+  return Math.sqrt(f * f + r * r + R * R - 2 * r * R * Math.cos((2 * Math.PI * g.cross) / g.n));
 }
 
 const up = (x) => Math.ceil(x - EPS);
@@ -107,8 +107,12 @@ export function estimateFlatFromChart(target, chartRows) {
 
 const r1 = (n) => Math.round(n * 10) / 10;
 const sgn = (n) => (n > 0 ? '+' : '');
+// A rim whose spoke-bed offset is this far from the I9 rim's: the geometry changes the length by a fraction of a mm, but I9's own table moves the non-drive length by up to about 1 mm per mm of
+// offset. If I9's pattern is the real one the estimate is long on the non-drive side by up to about 4 mm (Jerry accepts long, not short): the marker says so (Jerry, 2026-11-14).
+export const OFFSET_FLAG_MM = 1.5;
+export const OFFSET_LONG_SENTENCE = 'may be up to 4 mm long on the non-drive side';
 /** "estimated from I9 Sector 29" 32h TR256 (ERD gap -2 mm, offset gap +1 mm): verify": the internal marker in the order note, email, sheet and I9 list. */
 export function estimatedMarker({ model, partNumber, gap, offsetGap = 0 }) {
   const g = r1(gap), o = r1(offsetGap);
-  return `estimated from I9 ${model} ${partNumber} (ERD gap ${sgn(g)}${g} mm${o ? `, offset gap ${sgn(o)}${o} mm` : ''}): verify`;
+  return `estimated from I9 ${model} ${partNumber} (ERD gap ${sgn(g)}${g} mm${o ? `, offset gap ${sgn(o)}${o} mm` : ''}): ${Math.abs(offsetGap) >= OFFSET_FLAG_MM ? `${OFFSET_LONG_SENTENCE}; ` : ''}verify`;
 }

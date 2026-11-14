@@ -1,83 +1,83 @@
 variant_id,vendor,product_title,size,holes,stored_erd,effective_erd,measured_effective_erd,measured_drive_mm,measured_non_drive_mm,erd_basis,rim_offset,matched_model,matched_part,matched_hub,matched_erd,matched_offset,erd_gap,offset_gap,delta_drive,delta_non_drive,drive_mm,non_drive_mm,priority,note
-51924234567987,DT Swiss,DT Swiss EX 471 Alloy Rim (Enduro),"26""",32,537,539,,,,site,0,"Coup 26""",TR235,H2 32h,539,1,0,-1,-0.09,0.14,270,273,1,DT Swiss: ERD from site (not measured)
-51797698543923,DT Swiss,DT Swiss EX 471 Alloy Rim (Enduro),"27.5""",32,558,560,,,,site,0,"Triad 27.5"" 32h",TR250,H2 32h,560,1,0,-1,-0.09,0.13,278,281,1,DT Swiss: ERD from site (not measured)
-51797698478387,DT Swiss,DT Swiss EX 471 Alloy Rim (Enduro),"29""",32,596,598,,,,site,0,"Sector 29"" 32h",TR256,H2 32h,598,1,0,-1,-0.08,0.12,299,301,1,DT Swiss: ERD from site (not measured)
+51924234567987,DT Swiss,DT Swiss EX 471 Alloy Rim (Enduro),"26""",32,537,539,,,,site,0,"Coup 26""",TR235,H2 32h,539,1,0,-1,-0.08,0.12,270,273,1,DT Swiss: ERD from site (not measured)
+51797698543923,DT Swiss,DT Swiss EX 471 Alloy Rim (Enduro),"27.5""",32,558,560,,,,site,0,"Triad 27.5"" 32h",TR250,H2 32h,560,1,0,-1,-0.08,0.12,278,281,1,DT Swiss: ERD from site (not measured)
+51797698478387,DT Swiss,DT Swiss EX 471 Alloy Rim (Enduro),"29""",32,596,598,,,,site,0,"Sector 29"" 32h",TR256,H2 32h,598,1,0,-1,-0.08,0.11,299,301,1,DT Swiss: ERD from site (not measured)
 51797698412851,DT Swiss,DT Swiss EX 511 Alloy Rim (Enduro),"27.5""",32,559,561,,,,site,0,"Fuse 27.5"" 32h",TR308,H2 32h,562,0,-1,0,-0.5,-0.49,280,282,1,DT Swiss: ERD from site (not measured)
 51797698314547,DT Swiss,DT Swiss EX 511 Alloy Rim (Enduro),"29""",28,597,599,598,302,304,site (the longer of measured and site),0,"Sector 2.0 29"" 28h",TR314,H2 28h,600,0,-1,0,-0.5,-0.49,303,305,1,"DT Swiss: measured ERD 596 (effective 598, Jerry, SON gauge, bare rim) and site ERD 597 both run, the longer lengths are used"
-51797698347315,DT Swiss,DT Swiss EX 511 Alloy Rim (Enduro),"29""",32,597,599,598,299,301,site (the longer of measured and site),0,"Sector 2.0 29"" 32h",TR315,H2 32h,600,0,-1,0,-0.5,-0.49,299,302,1,"DT Swiss: measured ERD 596 (effective 598, Jerry, SON gauge, bare rim) and site ERD 597 both run, the longer lengths are used"
-51797704573235,DT Swiss,DT Swiss EXC 330 Carbon Rim,"27.5""",32,561,561,,,,site,4,"Triad 27.5"" 32h",TR250,H2 32h,560,1,1,3,0.78,0.12,279,281,1,DT Swiss: ERD from site (not measured)
+51797698347315,DT Swiss,DT Swiss EX 511 Alloy Rim (Enduro),"29""",32,597,599,598,299,301,site (the longer of measured and site),0,"Sector 2.0 29"" 32h",TR315,H2 32h,600,0,-1,0,-0.5,-0.5,299,302,1,"DT Swiss: measured ERD 596 (effective 598, Jerry, SON gauge, bare rim) and site ERD 597 both run, the longer lengths are used"
+51797704573235,DT Swiss,DT Swiss EXC 330 Carbon Rim,"27.5""",32,561,561,,,,site,4,"Triad 27.5"" 32h",TR250,H2 32h,560,1,1,3,0.76,0.16,279,281,1,DT Swiss: ERD from site (not measured)
 51797704474931,DT Swiss,DT Swiss EXC 330 Carbon Rim,"29""",28,601,601,,,,site,4,"Sector 2.0 29"" 28h",TR314,H2 28h,600,0,1,4,0.89,-0.02,304,305,1,DT Swiss: ERD from site (not measured)
-51797704507699,DT Swiss,DT Swiss EXC 330 Carbon Rim,"29""",32,601,601,,,,site,4,"Wanderer 29""",TR309,H2 32h,600,2,1,2,0.68,0.27,300,301,1,DT Swiss: ERD from site (not measured)
+51797704507699,DT Swiss,DT Swiss EXC 330 Carbon Rim,"29""",32,601,601,,,,site,4,"Wanderer 29""",TR309,H2 32h,600,2,1,2,0.66,0.29,300,301,1,DT Swiss: ERD from site (not measured)
 51797698281779,DT Swiss,DT Swiss FR 541 Alloy Rim (Downhill),"27.5""",32,561,563,560,278,281,site (the longer of measured and site),0,"Triad 27.5"" 32h",TR305,H2 32h,564,0,-1,0,-0.5,-0.49,282,284,1,"tie with Fuse 27.5"" 32h TR308 | Deal 27.5"" TR333: took the longer lengths; DT Swiss: measured ERD 558 (effective 560, Jerry, SON gauge, bare rim) and site ERD 561 both run, the longer lengths are used"
 52318435541299,DT Swiss,DT Swiss FR 541 Alloy Rim (Downhill),"27.5""",32,561,563,560,278,281,site (the longer of measured and site),0,"Triad 27.5"" 32h",TR305,H2 32h,564,0,-1,0,-0.5,-0.49,282,284,1,"tie with Fuse 27.5"" 32h TR308 | Deal 27.5"" TR333: took the longer lengths; DT Swiss: measured ERD 558 (effective 560, Jerry, SON gauge, bare rim) and site ERD 561 both run, the longer lengths are used"
 51797698183475,DT Swiss,DT Swiss FR 541 Alloy Rim (Downhill),"29""",28,599,601,598,302,304,site (the longer of measured and site),0,"Sector 2.0 29"" 28h",TR314,H2 28h,600,0,1,0,0.5,0.49,304,306,1,"DT Swiss: measured ERD 596 (effective 598, Jerry, SON gauge, bare rim) and site ERD 599 both run, the longer lengths are used"
-51797698216243,DT Swiss,DT Swiss FR 541 Alloy Rim (Downhill),"29""",32,599,601,598,299,301,site (the longer of measured and site),0,"Sector 2.0 29"" 32h",TR315,H2 32h,600,0,1,0,0.5,0.49,300,303,1,"DT Swiss: measured ERD 596 (effective 598, Jerry, SON gauge, bare rim) and site ERD 599 both run, the longer lengths are used"
-52318435508531,DT Swiss,DT Swiss FR 541 Alloy Rim (Downhill),"29""",32,599,601,598,299,301,site (the longer of measured and site),0,"Sector 2.0 29"" 32h",TR315,H2 32h,600,0,1,0,0.5,0.49,300,303,1,"DT Swiss: measured ERD 596 (effective 598, Jerry, SON gauge, bare rim) and site ERD 599 both run, the longer lengths are used"
-52453184274739,DT Swiss,DT Swiss FR 560 Alloy Rim,"26""",32,538,538,,,,site,0,"Coup 26""",TR235,H2 32h,539,1,-1,-1,-0.59,-0.36,270,272,1,DT Swiss: ERD from site (not measured)
+51797698216243,DT Swiss,DT Swiss FR 541 Alloy Rim (Downhill),"29""",32,599,601,598,299,301,site (the longer of measured and site),0,"Sector 2.0 29"" 32h",TR315,H2 32h,600,0,1,0,0.5,0.5,300,303,1,"DT Swiss: measured ERD 596 (effective 598, Jerry, SON gauge, bare rim) and site ERD 599 both run, the longer lengths are used"
+52318435508531,DT Swiss,DT Swiss FR 541 Alloy Rim (Downhill),"29""",32,599,601,598,299,301,site (the longer of measured and site),0,"Sector 2.0 29"" 32h",TR315,H2 32h,600,0,1,0,0.5,0.5,300,303,1,"DT Swiss: measured ERD 596 (effective 598, Jerry, SON gauge, bare rim) and site ERD 599 both run, the longer lengths are used"
+52453184274739,DT Swiss,DT Swiss FR 560 Alloy Rim,"26""",32,538,538,,,,site,0,"Coup 26""",TR235,H2 32h,539,1,-1,-1,-0.58,-0.37,270,272,1,DT Swiss: ERD from site (not measured)
 51797698674995,DT Swiss,DT Swiss XM 481 Alloy Rim (All Mountain),"27.5""",32,559,561,,,,site,0,"Fuse 27.5"" 32h",TR308,H2 32h,562,0,-1,0,-0.5,-0.49,280,282,1,DT Swiss: ERD from site (not measured)
 51797698576691,DT Swiss,DT Swiss XM 481 Alloy Rim (All Mountain),"29""",28,597,599,,,,site,0,"Sector 2.0 29"" 28h",TR314,H2 28h,600,0,-1,0,-0.5,-0.49,303,305,1,DT Swiss: ERD from site (not measured)
-51797698609459,DT Swiss,DT Swiss XM 481 Alloy Rim (All Mountain),"29""",32,597,599,,,,site,0,"Sector 2.0 29"" 32h",TR315,H2 32h,600,0,-1,0,-0.5,-0.49,299,302,1,DT Swiss: ERD from site (not measured)
+51797698609459,DT Swiss,DT Swiss XM 481 Alloy Rim (All Mountain),"29""",32,597,599,,,,site,0,"Sector 2.0 29"" 32h",TR315,H2 32h,600,0,-1,0,-0.5,-0.5,299,302,1,DT Swiss: ERD from site (not measured)
 51797704606003,DT Swiss,DT Swiss XMC 320 Carbon Rim,"29""",28,601,601,,,,site,4,"Sector 2.0 29"" 28h",TR314,H2 28h,600,0,1,4,0.89,-0.02,304,305,1,DT Swiss: ERD from site (not measured)
-51797704671539,DT Swiss,DT Swiss XRC 310 Carbon Rim,"29""",28,602,602,,,,site,4,"Sector 2.0 29"" 28h",TR314,H2 28h,600,0,2,4,1.39,0.48,305,306,1,DT Swiss: ERD from site (not measured)
-51797701198131,Stan's,Stan's Arch MK4 Alloy Rim,"26""",32,536,536,,,,site,2.5,"Coup 26""",TR175,H2 32h,536,0,0,2.5,0.24,-0.34,269,270,1,
-51797701132595,Stan's,Stan's Arch MK4 Alloy Rim,"27.5""",32,561,561,,,,site,2.5,"Triad 27.5"" 32h",TR250,H2 32h,560,1,1,1.5,0.63,0.3,279,281,1,
+51797704671539,DT Swiss,DT Swiss XRC 310 Carbon Rim,"29""",28,602,602,,,,site,4,"Sector 2.0 29"" 28h",TR314,H2 28h,600,0,2,4,1.38,0.48,305,306,1,DT Swiss: ERD from site (not measured)
+51797701198131,Stan's,Stan's Arch MK4 Alloy Rim,"26""",32,536,536,,,,site,2.5,"Coup 26""",TR175,H2 32h,536,0,0,2.5,0.22,-0.31,269,270,1,
+51797701132595,Stan's,Stan's Arch MK4 Alloy Rim,"27.5""",32,561,561,,,,site,2.5,"Triad 27.5"" 32h",TR250,H2 32h,560,1,1,1.5,0.62,0.32,279,281,1,
 51797701034291,Stan's,Stan's Arch MK4 Alloy Rim,"29""",28,600,600,,,,site,2.5,"Sector 2.0 29"" 28h",TR314,H2 28h,600,0,0,2.5,0.24,-0.33,304,305,1,
 51797701001523,Stan's,Stan's Crest MK4 Alloy Rim,"26""",32,538,538,,,,site,1.5,"Coup 26""",TR235,H2 32h,539,1,-1,0.5,-0.45,-0.56,270,272,1,
-51797700935987,Stan's,Stan's Crest MK4 Alloy Rim,"27.5""",32,563,563,,,,site,1.5,"Fuse 27.5"" 32h",TR308,H2 32h,562,0,1,1.5,0.63,0.3,281,283,1,
+51797700935987,Stan's,Stan's Crest MK4 Alloy Rim,"27.5""",32,563,563,,,,site,1.5,"Fuse 27.5"" 32h",TR308,H2 32h,562,0,1,1.5,0.62,0.32,281,283,1,
 51797700837683,Stan's,Stan's Crest MK4 Alloy Rim,"29""",28,601,601,,,,site,1.5,"Sector 2.0 29"" 28h",TR314,H2 28h,600,0,1,1.5,0.64,0.3,304,306,1,
-51797700870451,Stan's,Stan's Crest MK4 Alloy Rim,"29""",32,601,601,,,,site,1.5,"Wanderer 29""",TR309,H2 32h,600,2,1,-0.5,0.45,0.55,300,301,1,
-51797701493043,Stan's,Stan's Flow CB7 Carbon Rim,"27.5""",32,564,564,,,,site,4,"Triad 27.5"" 32h",TR305,H2 32h,564,0,0,4,0.37,-0.5,283,284,1,
-51797701460275,Stan's,Stan's Flow CB7 Carbon Rim,"29""",32,602,602,,,,site,4,"Wanderer 29""",TR309,H2 32h,600,2,2,2,1.17,0.76,301,301,1,
+51797700870451,Stan's,Stan's Crest MK4 Alloy Rim,"29""",32,601,601,,,,site,1.5,"Wanderer 29""",TR309,H2 32h,600,2,1,-0.5,0.46,0.55,300,301,1,
+51797701493043,Stan's,Stan's Flow CB7 Carbon Rim,"27.5""",32,564,564,,,,site,4,"Triad 27.5"" 32h",TR305,H2 32h,564,0,0,4,0.34,-0.46,283,284,1,
+51797701460275,Stan's,Stan's Flow CB7 Carbon Rim,"29""",32,602,602,,,,site,4,"Wanderer 29""",TR309,H2 32h,600,2,2,2,1.16,0.78,301,301,1,
 51797701394739,Stan's,Stan's Flow EX3 Alloy Rim,"27.5""",32,564,564,,,,site,0,"Triad 27.5"" 32h",TR305,H2 32h,564,0,0,0,0,0,282,284,1,
 51797701361971,Stan's,Stan's Flow EX3 Alloy Rim,"29""",32,602,602,,,,site,0,"Triad 29"" 32h",TR304,H2 32h,604,0,-2,0,-0.99,-0.99,300,303,1,
-51926296985907,Stan's,Stan's Flow MK4 Alloy Rim,"26""",32,536,536,,,,site,3,"Coup 26""",TR175,H2 32h,536,0,0,3,0.29,-0.4,269,270,1,
-51797701329203,Stan's,Stan's Flow MK4 Alloy Rim,"27.5""",32,561,561,,,,site,3,"Triad 27.5"" 32h",TR250,H2 32h,560,1,1,2,0.68,0.24,279,281,1,
+51926296985907,Stan's,Stan's Flow MK4 Alloy Rim,"26""",32,536,536,,,,site,3,"Coup 26""",TR175,H2 32h,536,0,0,3,0.27,-0.37,269,270,1,
+51797701329203,Stan's,Stan's Flow MK4 Alloy Rim,"27.5""",32,561,561,,,,site,3,"Triad 27.5"" 32h",TR250,H2 32h,560,1,1,2,0.67,0.27,279,281,1,
 51797701230899,Stan's,Stan's Flow MK4 Alloy Rim,"29""",28,600,600,,,,site,3,"Sector 2.0 29"" 28h",TR314,H2 28h,600,0,0,3,0.29,-0.39,304,305,1,
-51797703360819,Reserve,Reserve 30|DH Carbon Rim,"27.5""",32,558,558,,,,site,3.6,"Triad 27.5"" 32h",TR250,H2 32h,560,1,-2,2.6,-0.74,-1.31,278,279,1,
-51797703295283,Reserve,Reserve 30|DH Carbon Rim,"29""",28,599,599,,,,site,3.6,"Sector 29"" 28h",TR255,H2 28h,598,1,1,2.6,0.76,0.16,303,304,1,
-51797703328051,Reserve,Reserve 30|DH Carbon Rim,"29""",32,599,599,,,,site,3.6,"Sector 29"" 32h",TR256,H2 32h,598,1,1,2.6,0.73,0.19,300,301,1,"tie with Triad 29"" 32h TR251 | Fuse 29"" TR242 | Deal 29"" TR242 | Wanderer 29"" TR309: took the longer lengths"
-51409494933811,Reserve,Reserve 30|HD AL Alloy Rim,"27.5""",32,558,558,,,,site,0,"Triad 27.5"" 32h",TR250,H2 32h,560,1,-2,-1,-1.08,-0.85,277,280,1,
-51409494901043,Reserve,Reserve 30|HD AL Alloy Rim,"29""",32,596,596,,,,site,0,"Sector 29"" 32h",TR256,H2 32h,598,1,-2,-1,-1.07,-0.86,298,300,1,
+51797703360819,Reserve,Reserve 30|DH Carbon Rim,"27.5""",32,558,558,,,,site,3.6,"Triad 27.5"" 32h",TR250,H2 32h,560,1,-2,2.6,-0.76,-1.29,278,279,1,
+51797703295283,Reserve,Reserve 30|DH Carbon Rim,"29""",28,599,599,,,,site,3.6,"Sector 29"" 28h",TR255,H2 28h,598,1,1,2.6,0.75,0.16,303,304,1,
+51797703328051,Reserve,Reserve 30|DH Carbon Rim,"29""",32,599,599,,,,site,3.6,"Sector 29"" 32h",TR256,H2 32h,598,1,1,2.6,0.71,0.22,300,301,1,"tie with Triad 29"" 32h TR251 | Fuse 29"" TR242 | Deal 29"" TR242 | Wanderer 29"" TR309: took the longer lengths"
+51409494933811,Reserve,Reserve 30|HD AL Alloy Rim,"27.5""",32,558,558,,,,site,0,"Triad 27.5"" 32h",TR250,H2 32h,560,1,-2,-1,-1.07,-0.87,277,280,1,
+51409494901043,Reserve,Reserve 30|HD AL Alloy Rim,"29""",32,596,596,,,,site,0,"Sector 29"" 32h",TR256,H2 32h,598,1,-2,-1,-1.07,-0.88,298,300,1,
 51797703917875,Reserve,Reserve 30|HD Carbon Rim,"29""",28,598,598,,,,site,3,"Sector 29"" 28h",TR255,H2 28h,598,1,0,2,0.2,-0.26,303,303,1,
 51797703852339,Reserve,Reserve 30|SL AL Alloy Rim,"29""",28,599,599,,,,site,3,"Sector 29"" 28h",TR255,H2 28h,598,1,1,2,0.69,0.24,303,304,1,
-51797703885107,Reserve,Reserve 30|SL Carbon Rim,"29""",28,599,599,,,,site,3.6,"Sector 29"" 28h",TR255,H2 28h,598,1,1,2.6,0.76,0.16,303,304,1,
-53237902082355,Reserve,Reserve 30|XC Carbon Rim,"29""",28,599,599,,,,site,3.6,"Sector 29"" 28h",TR255,H2 28h,598,1,1,2.6,0.76,0.16,303,304,1,
-53237911519539,Reserve,Reserve 30|XC SL Carbon Rim,"29""",28,599,599,,,,site,3.6,"Sector 29"" 28h",TR255,H2 28h,598,1,1,2.6,0.76,0.16,303,304,1,
-51797699166515,Astral,Astral Serpentine Alloy Rim,"29""",32,600,600,,,,site,3,"Wanderer 29""",TR309,H2 32h,600,2,0,1,0.09,-0.12,300,300,1,
-51797699428659,Astral,Astral Wanderlust GEN2 Alloy Rim,"27.5""",32,559.5,559.5,,,,site,2,"Triad 27.5"" 32h",TR250,H2 32h,560,1,-0.5,1,-0.16,-0.37,278,280,1,
+51797703885107,Reserve,Reserve 30|SL Carbon Rim,"29""",28,599,599,,,,site,3.6,"Sector 29"" 28h",TR255,H2 28h,598,1,1,2.6,0.75,0.16,303,304,1,
+53237902082355,Reserve,Reserve 30|XC Carbon Rim,"29""",28,599,599,,,,site,3.6,"Sector 29"" 28h",TR255,H2 28h,598,1,1,2.6,0.75,0.16,303,304,1,
+53237911519539,Reserve,Reserve 30|XC SL Carbon Rim,"29""",28,599,599,,,,site,3.6,"Sector 29"" 28h",TR255,H2 28h,598,1,1,2.6,0.75,0.16,303,304,1,
+51797699166515,Astral,Astral Serpentine Alloy Rim,"29""",32,600,600,,,,site,3,"Wanderer 29""",TR309,H2 32h,600,2,0,1,0.08,-0.11,300,300,1,
+51797699428659,Astral,Astral Wanderlust GEN2 Alloy Rim,"27.5""",32,559.5,559.5,,,,site,2,"Triad 27.5"" 32h",TR250,H2 32h,560,1,-0.5,1,-0.16,-0.36,278,280,1,
 51797699330355,Astral,Astral Wanderlust GEN2 Alloy Rim,"29""",28,597.5,597.5,,,,site,2,"Sector 29"" 28h",TR255,H2 28h,598,1,-0.5,1,-0.15,-0.38,302,303,1,
-51797699363123,Astral,Astral Wanderlust GEN2 Alloy Rim,"29""",32,597.5,597.5,,,,site,2,"Sector 29"" 32h",TR256,H2 32h,598,1,-0.5,1,-0.16,-0.37,299,300,1,
-51797699297587,Astral,Astral Wanderlust GEN2 Alloy Rim,650b,32,559.5,559.5,,,,site,2,"Triad 27.5"" 32h",TR250,H2 32h,560,1,-0.5,1,-0.16,-0.37,278,280,1,
+51797699363123,Astral,Astral Wanderlust GEN2 Alloy Rim,"29""",32,597.5,597.5,,,,site,2,"Sector 29"" 32h",TR256,H2 32h,598,1,-0.5,1,-0.17,-0.36,299,300,1,
+51797699297587,Astral,Astral Wanderlust GEN2 Alloy Rim,650b,32,559.5,559.5,,,,site,2,"Triad 27.5"" 32h",TR250,H2 32h,560,1,-0.5,1,-0.16,-0.36,278,280,1,
 51797699199283,Astral,Astral Wanderlust GEN2 Alloy Rim,700c,28,597.5,597.5,,,,site,2,"Sector 29"" 28h",TR255,H2 28h,598,1,-0.5,1,-0.15,-0.38,302,303,1,
-51797699232051,Astral,Astral Wanderlust GEN2 Alloy Rim,700c,32,597.5,597.5,,,,site,2,"Sector 29"" 32h",TR256,H2 32h,598,1,-0.5,1,-0.16,-0.37,299,300,1,
-51797699559731,Race Face,Race Face ARC 25 Offset Alloy Rim,"27.5""",32,562,562,,,,site,3,"Fuse 27.5"" 32h",TR308,H2 32h,562,0,0,3,0.28,-0.38,281,282,1,
-51797705163059,Race Face,Race Face ARC 30 Offset Alloy Rim,"27.5""",32,562,562,,,,site,4.5,"Fuse 27.5"" 32h",TR308,H2 32h,562,0,0,4.5,0.43,-0.56,281,282,1,
-51797705130291,Race Face,Race Face ARC 30 Offset Alloy Rim,"29""",32,600,600,,,,site,4.5,"Wanderer 29""",TR309,H2 32h,600,2,0,2.5,0.23,-0.28,300,300,1,
-51797705261363,Race Face,Race Face ARC 35 Offset Alloy Rim,"27.5""",32,562,562,,,,site,4.5,"Fuse 27.5"" 32h",TR308,H2 32h,562,0,0,4.5,0.43,-0.56,281,282,1,
-51797705228595,Race Face,Race Face ARC 35 Offset Alloy Rim,"29""",32,600,600,,,,site,4.5,"Wanderer 29""",TR309,H2 32h,600,2,0,2.5,0.23,-0.28,300,300,1,
-51797705326899,Race Face,Race Face ARC 40 Offset Alloy Rim,"27.5""",32,562,562,,,,site,4.5,"Fuse 27.5"" 32h",TR308,H2 32h,562,0,0,4.5,0.43,-0.56,281,282,1,
+51797699232051,Astral,Astral Wanderlust GEN2 Alloy Rim,700c,32,597.5,597.5,,,,site,2,"Sector 29"" 32h",TR256,H2 32h,598,1,-0.5,1,-0.17,-0.36,299,300,1,
+51797699559731,Race Face,Race Face ARC 25 Offset Alloy Rim,"27.5""",32,562,562,,,,site,3,"Fuse 27.5"" 32h",TR308,H2 32h,562,0,0,3,0.25,-0.35,281,282,1,
+51797705163059,Race Face,Race Face ARC 30 Offset Alloy Rim,"27.5""",32,562,562,,,,site,4.5,"Fuse 27.5"" 32h",TR308,H2 32h,562,0,0,4.5,0.39,-0.51,281,282,1,
+51797705130291,Race Face,Race Face ARC 30 Offset Alloy Rim,"29""",32,600,600,,,,site,4.5,"Wanderer 29""",TR309,H2 32h,600,2,0,2.5,0.21,-0.26,300,300,1,
+51797705261363,Race Face,Race Face ARC 35 Offset Alloy Rim,"27.5""",32,562,562,,,,site,4.5,"Fuse 27.5"" 32h",TR308,H2 32h,562,0,0,4.5,0.39,-0.51,281,282,1,
+51797705228595,Race Face,Race Face ARC 35 Offset Alloy Rim,"29""",32,600,600,,,,site,4.5,"Wanderer 29""",TR309,H2 32h,600,2,0,2.5,0.21,-0.26,300,300,1,
+51797705326899,Race Face,Race Face ARC 40 Offset Alloy Rim,"27.5""",32,562,562,,,,site,4.5,"Fuse 27.5"" 32h",TR308,H2 32h,562,0,0,4.5,0.39,-0.51,281,282,1,
 51797700051251,Spank,Spank 350 Vibrocore Alloy Rim,"27.5""",32,564,564,,,,site,0,"Triad 27.5"" 32h",TR305,H2 32h,564,0,0,0,0,0,282,284,1,
 51797699887411,Spank,Spank Flare 24 Vibrocore Alloy Rim,700c,28,602,602,,,,site,0,"Triad 29"" 28h",TR303,H2 28h,604,0,-2,0,-0.99,-0.99,305,307,1,"tie with Fuse 29"" 28h TR306 | Sector 2.0 29"" 28h TR314: took the longer lengths"
 51797699920179,Spank,Spank Flare 24 Vibrocore Alloy Rim,700c,32,602,602,,,,site,0,"Triad 29"" 32h",TR304,H2 32h,604,0,-2,0,-0.99,-0.99,300,303,1,
-53123497722163,Velocity,Velocity A23 Alloy Rim,700c,32,601,601,,,,site,0,"Sector 2.0 29"" 32h",TR315,H2 32h,600,0,1,0,0.5,0.49,300,303,1,
-53123491103027,Velocity,Velocity Cliffhanger Alloy Rim,700c,32,597,597,,,,site,0,"Sector 29"" 32h",TR256,H2 32h,598,1,-1,-1,-0.58,-0.37,299,300,1,
+53123497722163,Velocity,Velocity A23 Alloy Rim,700c,32,601,601,,,,site,0,"Sector 2.0 29"" 32h",TR315,H2 32h,600,0,1,0,0.5,0.5,300,303,1,
+53123491103027,Velocity,Velocity Cliffhanger Alloy Rim,700c,32,597,597,,,,site,0,"Sector 29"" 32h",TR256,H2 32h,598,1,-1,-1,-0.57,-0.38,299,300,1,
 51797706375475,Logos,Logos gída SL g2 Carbon Rim,"29""",28,598,598,,,,site,2.5,"Sector 29"" 28h",TR255,H2 28h,598,1,0,1.5,0.15,-0.19,303,303,1,
 51797700280627,Spank,Spank 350 Alloy Rim,"27.5""",32,564,564,,,,site,0,"Triad 27.5"" 32h",TR305,H2 32h,564,0,0,0,0,0,282,284,2,
 51797700215091,Spank,Spank 350 Alloy Rim,"29""",28,601,601,,,,site,0,"Sector 2.0 29"" 28h",TR314,H2 28h,600,0,1,0,0.5,0.49,304,306,2,
-51797700247859,Spank,Spank 350 Alloy Rim,"29""",32,601,601,,,,site,0,"Sector 2.0 29"" 32h",TR315,H2 32h,600,0,1,0,0.5,0.49,300,303,2,
+51797700247859,Spank,Spank 350 Alloy Rim,"29""",32,601,601,,,,site,0,"Sector 2.0 29"" 32h",TR315,H2 32h,600,0,1,0,0.5,0.5,300,303,2,
 51797699952947,Spank,Spank 350 Vibrocore Alloy Rim,"29""",28,602,602,,,,site,0,"Triad 29"" 28h",TR303,H2 28h,604,0,-2,0,-0.99,-0.99,305,307,2,"tie with Fuse 29"" 28h TR306 | Sector 2.0 29"" 28h TR314: took the longer lengths"
 51797699985715,Spank,Spank 350 Vibrocore Alloy Rim,"29""",32,602,602,,,,site,0,"Triad 29"" 32h",TR304,H2 32h,604,0,-2,0,-0.99,-0.99,300,303,2,
-51797699854643,Spank,Spank 359 Alloy Rim,"27.5""",32,560,560,,,,site,0,"Triad 27.5"" 32h",TR250,H2 32h,560,1,0,-1,-0.09,0.13,278,281,2,
+51797699854643,Spank,Spank 359 Alloy Rim,"27.5""",32,560,560,,,,site,0,"Triad 27.5"" 32h",TR250,H2 32h,560,1,0,-1,-0.08,0.12,278,281,2,
 51797699756339,Spank,Spank 359 Alloy Rim,"29""",28,598,598,,,,site,0,"Sector 29"" 28h",TR255,H2 28h,598,1,0,-1,-0.09,0.13,302,304,2,
-51797699789107,Spank,Spank 359 Alloy Rim,"29""",32,598,598,,,,site,0,"Sector 29"" 32h",TR256,H2 32h,598,1,0,-1,-0.08,0.12,299,301,2,
-51797699723571,Spank,Spank 359 Vibrocore Alloy Rim,"27.5""",32,560,560,,,,site,0,"Triad 27.5"" 32h",TR250,H2 32h,560,1,0,-1,-0.09,0.13,278,281,2,
-51797699690803,Spank,Spank 359 Vibrocore Alloy Rim,"29""",32,598,598,,,,site,0,"Sector 29"" 32h",TR256,H2 32h,598,1,0,-1,-0.08,0.12,299,301,2,
-51797699494195,Race Face,Race Face ARC 25 Offset Alloy Rim,"29""",32,600,600,,,,site,3,"Wanderer 29""",TR309,H2 32h,600,2,0,1,0.09,-0.12,300,300,2,
-51797705294131,Race Face,Race Face ARC 40 Offset Alloy Rim,"29""",32,600,600,,,,site,4.5,"Wanderer 29""",TR309,H2 32h,600,2,0,2.5,0.23,-0.28,300,300,2,
+51797699789107,Spank,Spank 359 Alloy Rim,"29""",32,598,598,,,,site,0,"Sector 29"" 32h",TR256,H2 32h,598,1,0,-1,-0.08,0.11,299,301,2,
+51797699723571,Spank,Spank 359 Vibrocore Alloy Rim,"27.5""",32,560,560,,,,site,0,"Triad 27.5"" 32h",TR250,H2 32h,560,1,0,-1,-0.08,0.12,278,281,2,
+51797699690803,Spank,Spank 359 Vibrocore Alloy Rim,"29""",32,598,598,,,,site,0,"Sector 29"" 32h",TR256,H2 32h,598,1,0,-1,-0.08,0.11,299,301,2,
+51797699494195,Race Face,Race Face ARC 25 Offset Alloy Rim,"29""",32,600,600,,,,site,3,"Wanderer 29""",TR309,H2 32h,600,2,0,1,0.08,-0.11,300,300,2,
+51797705294131,Race Face,Race Face ARC 40 Offset Alloy Rim,"29""",32,600,600,,,,site,4.5,"Wanderer 29""",TR309,H2 32h,600,2,0,2.5,0.21,-0.26,300,300,2,
 51797699133747,Astral,Astral Serpentine Alloy Rim,"29""",28,600,600,,,,site,3,"Sector 2.0 29"" 28h",TR314,H2 28h,600,0,0,3,0.29,-0.39,304,305,2,
-52318442094899,DT Swiss,DT Swiss FR 571 Alloy Rim (Downhill),"27.5""",32,556,558,,,,site,0,"Triad 27.5"" 32h",TR250,H2 32h,560,1,-2,-1,-1.08,-0.85,277,280,3,DT Swiss: ERD from site (not measured)
-52318442127667,DT Swiss,DT Swiss FR 571 Alloy Rim (Downhill),"27.5""",32,556,558,,,,site,0,"Triad 27.5"" 32h",TR250,H2 32h,560,1,-2,-1,-1.08,-0.85,277,280,3,DT Swiss: ERD from site (not measured)
-52318441996595,DT Swiss,DT Swiss FR 571 Alloy Rim (Downhill),"29""",32,595,597,594,297,299,site (the longer of measured and site),0,"Sector 29"" 32h",TR256,H2 32h,598,1,-1,-1,-0.58,-0.37,299,300,3,"DT Swiss: measured ERD 592 (effective 594, Jerry, SON gauge, bare rim) and site ERD 595 both run, the longer lengths are used"
-52318442029363,DT Swiss,DT Swiss FR 571 Alloy Rim (Downhill),"29""",32,595,597,594,297,299,site (the longer of measured and site),0,"Sector 29"" 32h",TR256,H2 32h,598,1,-1,-1,-0.58,-0.37,299,300,3,"DT Swiss: measured ERD 592 (effective 594, Jerry, SON gauge, bare rim) and site ERD 595 both run, the longer lengths are used"
-51797701067059,Stan's,Stan's Arch MK4 Alloy Rim,"29""",32,600,600,,,,site,2.5,"Wanderer 29""",TR309,H2 32h,600,2,0,0.5,0.04,-0.06,300,300,1,was borrowed from the Wanderer row (299 / 300) until 2026-11-14
-51797701263667,Stan's,Stan's Flow MK4 Alloy Rim,"29""",32,600,600,,,,site,3,"Wanderer 29""",TR309,H2 32h,600,2,0,1,0.09,-0.12,300,300,1,was borrowed from the Wanderer row (299 / 300) until 2026-11-14
+52318442094899,DT Swiss,DT Swiss FR 571 Alloy Rim (Downhill),"27.5""",32,556,558,,,,site,0,"Triad 27.5"" 32h",TR250,H2 32h,560,1,-2,-1,-1.07,-0.87,277,280,3,DT Swiss: ERD from site (not measured)
+52318442127667,DT Swiss,DT Swiss FR 571 Alloy Rim (Downhill),"27.5""",32,556,558,,,,site,0,"Triad 27.5"" 32h",TR250,H2 32h,560,1,-2,-1,-1.07,-0.87,277,280,3,DT Swiss: ERD from site (not measured)
+52318441996595,DT Swiss,DT Swiss FR 571 Alloy Rim (Downhill),"29""",32,595,597,594,297,299,site (the longer of measured and site),0,"Sector 29"" 32h",TR256,H2 32h,598,1,-1,-1,-0.57,-0.38,299,300,3,"DT Swiss: measured ERD 592 (effective 594, Jerry, SON gauge, bare rim) and site ERD 595 both run, the longer lengths are used"
+52318442029363,DT Swiss,DT Swiss FR 571 Alloy Rim (Downhill),"29""",32,595,597,594,297,299,site (the longer of measured and site),0,"Sector 29"" 32h",TR256,H2 32h,598,1,-1,-1,-0.57,-0.38,299,300,3,"DT Swiss: measured ERD 592 (effective 594, Jerry, SON gauge, bare rim) and site ERD 595 both run, the longer lengths are used"
+51797701067059,Stan's,Stan's Arch MK4 Alloy Rim,"29""",32,600,600,,,,site,2.5,"Wanderer 29""",TR309,H2 32h,600,2,0,0.5,0.04,-0.05,300,300,1,was borrowed from the Wanderer row (299 / 300) until 2026-11-14
+51797701263667,Stan's,Stan's Flow MK4 Alloy Rim,"29""",32,600,600,,,,site,3,"Wanderer 29""",TR309,H2 32h,600,2,0,1,0.08,-0.11,300,300,1,was borrowed from the Wanderer row (299 / 300) until 2026-11-14

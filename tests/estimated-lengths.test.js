@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { estimateFromChart, estimateFlatFromChart, estimateLongerOfSiteAndMeasured, estimatedMarker, geometryLength, MAX_GAP_MM } from '../_lib/rim-length-estimate.js';
+import { estimateFromChart, estimateFlatFromChart, estimateLongerOfSiteAndMeasured, estimatedMarker, geometryLength, HUB_GEOMETRY, OFFSET_FLAG_MM, MAX_GAP_MM } from '../_lib/rim-length-estimate.js';
 import { CHART_ROWS, RIM_VARIANT_MAP, chartLengthsForRim } from '../_lib/i9-system-chart.js';
 import { resolveSystemLengths } from '../_lib/system-lengths.js';
 import { buildSystemReport } from '../_lib/system-report.js';
@@ -73,7 +73,9 @@ test('the I9 rim is chosen by ERD and offset together: the smallest correction w
 
 test('the marker names the matched I9 rim, the ERD gap and (when there is one) the offset gap', () => {
   assert.equal(estimatedMarker({ model: 'Sector 2.0 29" 32h', partNumber: 'TR315', gap: -1, offsetGap: 0 }), 'estimated from I9 Sector 2.0 29" 32h TR315 (ERD gap -1 mm): verify');
-  assert.equal(estimatedMarker({ model: 'Sector 2.0 29" 28h', partNumber: 'TR314', gap: 2, offsetGap: 4 }), 'estimated from I9 Sector 2.0 29" 28h TR314 (ERD gap +2 mm, offset gap +4 mm): verify');
+  assert.equal(estimatedMarker({ model: 'Sector 2.0 29" 28h', partNumber: 'TR314', gap: 2, offsetGap: 4 }), 'estimated from I9 Sector 2.0 29" 28h TR314 (ERD gap +2 mm, offset gap +4 mm): may be up to 4 mm long on the non-drive side; verify');
+  assert.equal(estimatedMarker({ model: 'Wanderer 29"', partNumber: 'TR309', gap: 0, offsetGap: -1.5 }), 'estimated from I9 Wanderer 29" TR309 (ERD gap 0 mm, offset gap -1.5 mm): may be up to 4 mm long on the non-drive side; verify', 'from 1.5 mm of offset gap on, either direction');
+  assert.equal(estimatedMarker({ model: 'Wanderer 29"', partNumber: 'TR309', gap: 0, offsetGap: 1.4 }), 'estimated from I9 Wanderer 29" TR309 (ERD gap 0 mm, offset gap +1.4 mm): verify', 'below 1.5 mm: no sentence');
   assert.equal(estimatedMarker({ model: 'Wanderer 29"', partNumber: 'TR309', gap: 0, offsetGap: 0.5 }), 'estimated from I9 Wanderer 29" TR309 (ERD gap 0 mm, offset gap +0.5 mm): verify');
 });
 
@@ -188,7 +190,7 @@ test('Stans Flow EX3 29" 32h (effective ERD 602, a tie between Sector 2.0 TR315 
 test('28h estimate with an offset gap (DT Swiss XRC 310 29" 28h, offset 4, matched to Sector 2.0 28h TR314 at offset 0): 305 / 306 on the 28h front; the marker names both gaps', async () => {
   const r = await reportOf(rimOrder(DT_XRC310_29_28, 28, 95004, 'front', 'DT Swiss XRC 310 Carbon Rim - 29"'));
   assert.deepEqual([r.lengths.front.left, r.lengths.front.right], [305, 306]);
-  assert.match(r.note, /Lengths estimated from I9 Sector 2\.0 29" 28h TR314 \(ERD gap \+2 mm, offset gap \+4 mm\): verify/);
+  assert.match(r.note, /Lengths estimated from I9 Sector 2\.0 29" 28h TR314 \(ERD gap \+2 mm, offset gap \+4 mm\): may be up to 4 mm long on the non-drive side; verify/);
 });
 
 test('a wheel with an I9-listed rim is untouched: no marker anywhere; a mixed order marks only the estimated wheel', async () => {
@@ -218,7 +220,7 @@ test('whole webhook: the order note and the internal email say estimated; the cu
   const o = chartOrder({ front: { rim: DT_XRC310_29_28, holes: 28, rimTitle: 'DT Swiss XRC 310 Carbon Rim' }, rear: { rim: STANS_EX3_29_32, holes: 32, rimTitle: "Stan's Flow EX3 Alloy Rim" }, orderNumber: 95008 });
   const r = await runWebhook(INDEX, 'orders/create', o, { env: { SYSTEM_CUSTOMER_EMAIL: 'on' } });
   assert.equal(r.status, 200);
-  assert.match(r.note, /Lengths estimated from I9 Sector 2\.0 29" 28h TR314 \(ERD gap \+2 mm, offset gap \+4 mm\): verify/); assert.match(r.note, /Lengths estimated from I9 Triad 29" 32h TR304 \(ERD gap -2 mm\): verify/);
+  assert.match(r.note, /Lengths estimated from I9 Sector 2\.0 29" 28h TR314 \(ERD gap \+2 mm, offset gap \+4 mm\): may be up to 4 mm long on the non-drive side; verify/); assert.match(r.note, /Lengths estimated from I9 Triad 29" 32h TR304 \(ERD gap -2 mm\): verify/);
   const internal = r.restEmails.find((e) => /^I9 System Build Report/.test(e.subject)), customer = r.restEmails.find((e) => /^Your custom spoke colors/.test(e.subject));
   assert.ok(internal && /estimated from I9 Sector 2\.0/.test(internal.html));
   assert.ok(customer, 'the customer email is sent (flag on)');
@@ -274,4 +276,40 @@ test('longer of the two, per side: a measured ERD ABOVE the site ERD wins; two E
   const two = [row('Lo', 'H2 32h', 600, 299, 300, 0), row('Hi', 'H2 32h', 604, 298, 305, 0)];
   const mixed = estimateLongerOfSiteAndMeasured({ erd: 600, offset: 0, holes: 32 }, 604, two);
   assert.deepEqual(mixed.lengths, [Math.max(mixed.site.lengths[0], mixed.measured.lengths[0]), Math.max(mixed.site.lengths[1], mixed.measured.lengths[1])]);
+});
+
+/* ------------------------------------------------------------------ 5. round 2 (Jerry, 2026-11-14): I9's own hub numbers, and the "may be long" sentence */
+
+test('the hub numbers are the ones of I9 (I9_SYSTEM_HUB_SPECS.md section 2: Hydra2 32H Boost rear 12x148 and 28H Boost front 15x110) and the formula is that of I9 (crossing as given, no straight-pull +0.5)', () => {
+  assert.deepEqual(HUB_GEOMETRY[32], { drive: { pcd: 63.5, f: 22, cross: 3.5, n: 16 }, nonDrive: { pcd: 44, f: 34, cross: 3.5, n: 16 } });
+  assert.deepEqual(HUB_GEOMETRY[28], { drive: { pcd: 46, f: 27.5, cross: 3.35, n: 14 }, nonDrive: { pcd: 43, f: 40.5, cross: 3.35, n: 14 } });
+  // L = sqrt(f^2 + r^2 + R^2 - 2 r R cos(2 pi cross / n)): worked by hand for the 32h drive side at ERD 600
+  const f = 22, r = 63.5 / 2, R = 300, hand = Math.sqrt(f * f + r * r + R * R - 2 * r * R * Math.cos((2 * Math.PI * 3.5) / 16));
+  assert.ok(Math.abs(geometryLength({ erd: 600, offset: 0, holes: 32, side: 'drive' }) - hand) < 1e-9);
+  // I9's +4.5 mm of thread was never verified: with it the formula is longer than I9's own chart by about 2 mm on average (it cancels in an estimate, which is a difference)
+  const h2 = CHART_ROWS.filter((r2) => /^H2/.test(r2.hub) && !/Hush/.test(r2.model));
+  const res = h2.flatMap((r2) => { const holes = Number(/(\d+)h/.exec(r2.hub)[1]); return [r2.driveColumn - (geometryLength({ erd: r2.erd, offset: r2.rimOffset, holes, side: 'drive' }) + 4.5), r2.nonDriveColumn - (geometryLength({ erd: r2.erd, offset: r2.rimOffset, holes, side: 'nonDrive' }) + 4.5)]; });
+  const mean = res.reduce((a, b) => a + b, 0) / res.length;
+  assert.ok(mean < -1.5 && mean > -2.5, `mean I9 minus formula(+4.5) = ${mean.toFixed(2)}`);
+});
+
+test('the sentence "may be up to 4 mm long on the non-drive side" is in the marker of exactly the 32 variants whose rim offset is 1.5 mm or more away from their I9 rim, and of no other', async () => {
+  assert.equal(OFFSET_FLAG_MM, 1.5);
+  const flagged = EST.filter((e) => Math.abs(Number(e.offset_gap)) >= 1.5);
+  assert.equal(flagged.length, 32);
+  for (const e of EST) {
+    const m = estimatedMarker({ model: e.matched_model, partNumber: e.matched_part, gap: Number(e.erd_gap), offsetGap: Number(e.offset_gap) });
+    assert.equal(m.includes('may be up to 4 mm long on the non-drive side'), Math.abs(Number(e.offset_gap)) >= 1.5, e.variant_id);
+    assert.ok(m.endsWith('verify'));
+  }
+  // through a real order: a Race Face ARC 30 Offset 29" 32h (offset 4.5 in the store, matched to an I9 rim at offset 2) says it in the note, the internal email, the sheet and the I9 list
+  const e = flagged.find((x) => /ARC 30/.test(x.product_title) && x.size === '29"');
+  const o = chartOrder({ rear: { rim: e.variant_id, holes: 32, rimTitle: 'Race Face ARC 30 Offset Alloy Rim - 29"' }, orderNumber: 95010 });
+  const r = await reportOf(o);
+  assert.match(r.note, /Lengths estimated from I9 .* \(ERD gap .*, offset gap \+2\.5 mm\): may be up to 4 mm long on the non-drive side; verify/);
+  assert.match(r.html, /may be up to 4 mm long on the non-drive side; verify/); assert.match(r.i9OrderList.text, /\[length estimated .*may be up to 4 mm long on the non-drive side; verify\]/);
+  const sheet = buildOrderSheet({ orderData: o, calculatedAt: '2026-11-14T12:00:00.000Z' });
+  assert.match(sheet.wheels[0].lengths.chart.estimatedText, /may be up to 4 mm long on the non-drive side/); assert.match(sheet.wheels[0].lengths.caveat, /may be up to 4 mm long/);
+  // and not on a rim whose offset is close to its I9 rim
+  const plain = await reportOf(rimOrder(DT_XM481_29_32, 32, 95011, 'rear', 'DT Swiss XM 481 - 29"')); assert.doesNotMatch(plain.note, /may be up to 4 mm long/);
 });
