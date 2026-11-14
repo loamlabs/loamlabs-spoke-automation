@@ -139,9 +139,9 @@ test('a length or color that is not in the snapshot goes to block C, never repla
   const l = await listOf(order1466(), stub({ left: 283, right: 283 }, { left: 283, right: 283 }));
   assert.equal(l.linkUrl, null); assert.equal(l.thomasText, 'Hi Thomas, for LoamLabs order #1466 please add System spokes: 283 mm: 34 Black, 30 Bronze. Thank you.');
   assert.equal(l.text.includes('284 mm') || l.text.includes('282 mm'), false, 'no neighbouring length is used');
-  // 301 mm is on the list only for Hydra (not tagged Hydra2): a Hydra2 wheel does not get it in the link, it goes to block C with the reason
+  // 301 mm is on the list only for another hub (not tagged Hydra2): a Hydra2 wheel does not get it in the link, it goes to block C with the reason
   const m = await listOf(order1466(), stub({ left: 301, right: 301 }, { left: 301, right: 301 }));
-  assert.equal(m.linkUrl, null); assert.ok(m.text.includes('[I9 lists this length only for other hubs (Hydra, Torch)]'), m.text);
+  assert.equal(m.linkUrl, null); assert.ok(m.text.includes('[I9 lists this length only for other hubs, not for the hub on this wheel]'), m.text);
   // a color the length does not have: only that color goes to block C, the rest stays in the link
   const snap = clone(SNAPSHOT); snap.spokes = snap.spokes.filter((r) => !(r.gauge === 'standard' && Math.round(r.mm) === 282 && r.color === 'Bronze'));
   const o = order1466(); const rec = recipeOf(o);
@@ -152,7 +152,7 @@ test('a length or color that is not in the snapshot goes to block C, never repla
   assert.equal(c.thomasText, 'Hi Thomas, for LoamLabs order #1466 please add System spokes: 282 mm: 8 Bronze. Thank you.');
 });
 
-test('the gauge decision: only the standard System spoke is used (the DH and Straight gauge products are tagged Hydra / Torch only); a length tagged for other hubs goes to block C', () => {
+test('the gauge decision: only the standard System spoke is used (the DH and Straight gauge products are tagged for other hubs only); a length tagged for other hubs goes to block C', () => {
   const dh = SNAPSHOT.spokes.filter((r) => r.gauge === 'dh' || r.gauge === 'straight');
   assert.ok(dh.length > 0 && dh.every((r) => !r.tags.includes('Hydra2') && !r.tags.includes('Solix')), 'no DH or Straight gauge product carries a Hydra2 or Solix tag');
   // 270 mm exists as standard (Hydra, Hydra2) and straight gauge: a Hydra2 wheel gets the standard one, a Solix wheel does not (not tagged Solix)

@@ -22,7 +22,7 @@ const SIDES = ['rotor', 'drive']; // the order the note prints them in
 /**
  * The B2B spoke for one chart length and color, or why there is none.
  * Gauge: the Hydra2 and Solix System spokes are I9's STANDARD gauge (.114-.106, "System Spoke - NNNmm"). The DH Gauge (.118-.110) and Straight Gauge (.114) products are tagged
- * Hydra / Torch only in the B2B file (none carries Hydra2 or Solix), so they are never used. A standard product whose tags do not include the order's hub model is not used either:
+ * other hubs only in the B2B file (none carries Hydra2 or Solix), so they are never used. A standard product whose tags do not include the order's hub model is not used either:
  * I9 lists that length for other hubs, so it goes to block C ("check with I9") instead of the link.
  * @returns {{found: true, row: object} | {found: false, reason: 'length'|'ambiguous'|'hub'|'color', detail?: string}}
  */
@@ -92,7 +92,7 @@ export function buildI9OrderList({ wheels, lengthsByPos, orderNumber, recipe = {
   const linkAdds = link.map((x) => `${x.qty} x ${mmText(x.mm)} ${x.color}${stockNote(x.row, date)}`).join(', ') + ` (total ${totalSpokes} spokes, includes ${totalSpares} spares)`;
   const baseText = (r) => (r.spare.text ? `  (${r.spare.text})` : '');
   const pre = (r) => `   ${cap(r.w.position).padEnd(5)}  ${r.side}  `;
-  const whyText = (why) => (why.reason === 'color' ? `color not on I9's list at this length (I9 has: ${why.detail})` : why.reason === 'hub' ? `I9 lists this length only for other hubs (${why.detail || 'no System hub'})` : why.reason === 'ambiguous' ? 'more than one I9 product at this length' : 'length not on the dealer list');
+  const whyText = (why) => (why.reason === 'color' ? `color not on I9's list at this length (I9 has: ${why.detail})` : why.reason === 'hub' ? 'I9 lists this length only for other hubs, not for the hub on this wheel' : why.reason === 'ambiguous' ? 'more than one I9 product at this length' : 'length not on the dealer list');
 
   const L = [];                // text lines
   const lines = (arr) => arr.forEach((x) => L.push(x));
