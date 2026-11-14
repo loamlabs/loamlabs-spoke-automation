@@ -31,7 +31,7 @@ test('#1466: orderList carries the email\'s text exactly, the plain cart link, t
   const o = order1466();
   const report = await buildSystemReport({ recipe: findSystemBuildRecipe(o).recipe, orderData: o, renderPng: png });
   const s = buildOrderSheet({ orderData: o, calculatedAt: AT });
-  assert.equal(s.sheetVersion, ORDER_SHEET_VERSION); assert.equal(ORDER_SHEET_VERSION, 2);
+  assert.equal(s.sheetVersion, ORDER_SHEET_VERSION); assert.equal(ORDER_SHEET_VERSION, 3);
   assert.equal(s.orderListStatus, 'present'); assert.equal(s.orderListNote, null);
   const L = s.orderList;
   assert.deepEqual(Object.keys(L), ['version', 'orderNumber', 'snapshotDate', 'text', 'cartLink', 'cartLinkAdds', 'orderByEmailText', 'sections']);
@@ -68,8 +68,8 @@ test('#1466: orderList carries the email\'s text exactly, the plain cart link, t
   assert.deepEqual(all.filter((l) => /^[A-E]\. /.test(l)).map((l) => l[0]), ['A', 'B', 'C', 'D', 'E']);
   assert.equal(JSON.stringify(s).length < 90000, true);
   assert.deepEqual(JSON.parse(JSON.stringify(s)), s, 'plain JSON');
-  // the PR 1 field stays as it was
-  assert.deepEqual(Object.keys(s.i9OrderList), ['text', 'linkUrl', 'linkAdds', 'thomasText', 'snapshotDate']); assert.equal(s.i9OrderList.text, L.text);
+  // the PR 1 field is gone (version 3): its data is orderList.text / cartLink / cartLinkAdds / orderByEmailText / snapshotDate
+  assert.equal('i9OrderList' in s, false); assert.equal(JSON.stringify(s).includes('i9OrderList'), false);
 });
 
 /* ------------------------------------------------------------------ the cases */
@@ -133,7 +133,7 @@ test('every System sample: the text equals the email\'s list, the sections agree
   }
 });
 
-test('Standard orders: orderList is null with the plain status "not-applicable" and a note (never an error); i9OrderList is null too', () => {
+test('Standard orders: orderList is null with the plain status "not-applicable" and a note (never an error); there is no i9OrderList field', () => {
   const keyed = clone(STANDARD_STUDIO_SAMPLES['std-nip-both-wheels-painted-both-fees']);
   const classic = loadSample('standard', 'steel-jbend-wheelset');
   for (const [o, cd] of [[keyed, metaOf(keyed)], [classic, null]]) {
@@ -141,7 +141,7 @@ test('Standard orders: orderList is null with the plain status "not-applicable" 
     const buildReport = runCalculationEngine(rec, cd || new Map(Object.entries(JSON.parse(fs.readFileSync(path.join(here, '..', 'samples', 'standard', 'mock-shopify.json'), 'utf8')).metafields)));
     const s = buildOrderSheet({ orderData: o, componentData: cd, buildReport, calculatedAt: AT });
     assert.equal(s.kind, 'standard'); assert.equal(s.orderList, null); assert.equal(s.orderListStatus, 'not-applicable'); assert.equal(s.orderListNote, 'Standard builds have no I9 order list.');
-    assert.equal(s.i9OrderList, null);
+    assert.equal('i9OrderList' in s, false);
     assert.equal(s.warnings.some((w) => /order list/i.test(w)), false, 'not a warning either');
   }
 });
@@ -174,7 +174,7 @@ test('the saved copy carries orderList, as the email had it (the webhook passes 
   assert.equal((await saveOrderSheetCopy({ orderData: o, systemReport: report, images: report.images }, sbDeps(sb))).ok, true);
   const row = [...sb.rows.values()][0];
   assert.equal(row.sheet.orderList.text, report.i9OrderList.text); assert.equal(row.sheet.orderListStatus, 'present'); assert.equal(row.sheet.calculation.mode, 'as-sent');
-  assert.equal(row.sheet.sheetVersion, 2);
+  assert.equal(row.sheet.sheetVersion, ORDER_SHEET_VERSION); assert.equal('i9OrderList' in row.sheet, false);
   // through the real webhook: every line of the stored list is in the email that was sent
   const sb2 = createFakeSupabase(); const { createMock, loadMockShopify } = await import('./helpers/webhook-harness.mjs');
   const mock = createMock(loadMockShopify()); const inner = mock.fetch; mock.fetch = async (url, init) => (sb2.isSupabase(url) ? sb2.fetchImpl(url, init) : inner(url, init));
@@ -242,4 +242,28 @@ test('GET /api/order-sheet with an OLD saved row (no orderList): it loads and an
   assert.equal(orderListStatusOf(sheet), 'not-saved'); assert.equal(orderListStatusOf(stdSheet), 'not-applicable'); assert.equal(orderListStatusOf({ kind: 'system', orderList: { text: 'x' } }), 'present'); assert.equal(orderListStatusOf(null), 'not-saved');
   for (const v of ['true', 'YES', '1']) assert.equal((await call(h, { order: '1466', fresh: v })).body.source, 'recalculated', v);
   for (const v of ['0', 'no', '', undefined]) assert.equal((await call(h, { order: '1466', fresh: v })).body.source, 'saved', String(v));
+});
+
+test('old saved rows that still carry the removed field i9OrderList (sheet versions 1 and 2) still load and are answered exactly as saved; the new sheet never writes it', async () => {
+  const sb = createFakeSupabase({ now: () => new Date(AT) });
+  const o = order1466();
+  const fresh = clone(buildOrderSheet({ orderData: o, calculatedAt: AT, mode: 'as-sent' }));
+  assert.equal('i9OrderList' in fresh, false, 'the builder no longer writes the field');
+  const legacyField = { text: 'I9 ORDER LIST  -  order #1466 (old copy)', linkUrl: 'https://b2b.industrynine.com/cart/1:1', linkAdds: '1 x 280 mm Black', thomasText: 'Hi Thomas, old copy', snapshotDate: '2026-11-08' };
+  // version 1 row: old field only (no orderList); version 2 row: old field and orderList
+  const v1 = clone(fresh); delete v1.orderList; delete v1.orderListStatus; delete v1.orderListNote; v1.sheetVersion = 1; v1.i9OrderList = legacyField;
+  const v2 = clone(fresh); v2.sheetVersion = 2; v2.i9OrderList = legacyField;
+  const row = (n, sheet, ver) => sb.rows.set(`test-store|${n}`, { shop: 'test-store', order_number: String(n), kind: 'system', numbering_version: 1, sheet, images: [], created_at: AT, updated_at: AT, images_expire_at: '2027-11-13T12:00:00.000Z', expires_at: '2028-11-13T12:00:00.000Z' });
+  row('1466', v1); row('1467', v2);
+  const c = combined(sb, [order1466()]);
+  const h = makeSheetHandler({ fetchImpl: c.fetchImpl, runEngine: runCalculationEngine, now: () => AT, loadSaved: undefined });
+  const a = await call(h, { order: '1466' });
+  assert.equal(a.statusCode, 200); assert.equal(a.body.source, 'saved'); assert.equal(a.body.orderListStatus, 'not-saved');
+  assert.deepEqual(a.body.sheet, v1, 'the version 1 row comes back exactly as saved, old field included (the dashboard keeps its legacy card for it)');
+  const b = await call(h, { order: '1467' });
+  assert.equal(b.statusCode, 200); assert.equal(b.body.source, 'saved'); assert.equal(b.body.orderListStatus, 'present');
+  assert.deepEqual(b.body.sheet, v2, 'the version 2 row comes back exactly as saved');
+  assert.equal(c.shopify.length, 0, 'no Shopify call for saved answers');
+  const f = await call(h, { order: '1466', fresh: '1' });
+  assert.equal(f.body.source, 'recalculated'); assert.equal('i9OrderList' in f.body.sheet, false); assert.equal(f.body.sheet.sheetVersion, ORDER_SHEET_VERSION);
 });

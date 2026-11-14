@@ -61,10 +61,10 @@ test('order #1466: the I9 order list on the sheet is the one the email carries (
   const o = order1466(), s = buildOrderSheet({ orderData: o, calculatedAt: AT });
   const { recipe } = findSystemBuildRecipe(o);
   const wheels = systemWheels(recipe, null, o);
-  assert.ok(s.i9OrderList.text.startsWith('I9 ORDER LIST  -  order #1466'));
-  assert.equal(s.i9OrderList.linkUrl, 'https://b2b.industrynine.com/cart/43663812755591:9,43663812821127:8,43663819047047:9,43663819112583:8');
-  assert.match(s.i9OrderList.thomasText, /^Hi Thomas, for LoamLabs order #1466/);
-  assert.ok(s.i9OrderList.snapshotDate);
+  assert.ok(s.orderList.text.startsWith('I9 ORDER LIST  -  order #1466'));
+  assert.equal(s.orderList.cartLink, 'https://b2b.industrynine.com/cart/43663812755591:9,43663812821127:8,43663819047047:9,43663819112583:8');
+  assert.match(s.orderList.orderByEmailText, /^Hi Thomas, for LoamLabs order #1466/);
+  assert.ok(s.orderList.snapshotDate); assert.equal('i9OrderList' in s, false, 'the PR 1 field is gone');
   void wheels; void buildI9OrderList;
 });
 
@@ -92,14 +92,14 @@ test('every System sample: the lengths, counts and spoke totals equal what the e
       assert.deepEqual(w.warnings, rw.warnings, `${name} ${rw.position} warnings`);
       assert.equal(w.images.length, rw.isMultiColor ? 3 : 1, `${name} ${rw.position} image descriptors (3 for multi-color, 1 for a solid wheel)`);
     }
-    assert.equal(!!s.i9OrderList, true, name);
+    assert.equal(!!s.orderList, true, name); assert.equal('i9OrderList' in s, false, name);
   }
 });
 
 test('every keyed Standard sample: counts equal the Standard email, lengths equal the engine (the numbers the Standard email and note print)', async () => {
   for (const [name, sample] of Object.entries(STANDARD_STUDIO_SAMPLES)) {
     const o = clone(sample), { sheet, buildReport, componentData, recipe } = standardSheet(o);
-    assert.equal(sheet.kind, 'standard', name); assert.equal(sheet.studio, true, name); assert.equal(sheet.i9OrderList, null, name);
+    assert.equal(sheet.kind, 'standard', name); assert.equal(sheet.studio, true, name); assert.equal(sheet.orderList, null, name); assert.equal('i9OrderList' in sheet, false, name);
     const extra = await buildStandardAdditions({ recipe, orderData: o, componentData, buildReport, renderPng: png });
     assert.equal(sheet.wheels.length, extra.wheels.length, name);
     for (const ew of extra.wheels) {
@@ -145,7 +145,7 @@ test('a chart miss (unknown rim variant): the wheel says NOT CALCULATED with the
   assert.match(f.lengths.text, /NOT CALCULATED/);
   assert.equal(f.spokes.length, 28, 'the spoke list is still complete');
   assert.equal(s.wheels[1].lengths.status, 'calculated');
-  assert.ok(s.i9OrderList.text.includes('length not calculated'), 'the I9 list says so for that wheel');
+  assert.ok(s.orderList.text.includes('length not calculated'), 'the I9 list says so for that wheel');
 });
 
 test('customer-supplied parts are reported (System)', () => {

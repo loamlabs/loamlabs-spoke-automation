@@ -110,7 +110,7 @@ test('200: the sheet of #1466 through the real handler equals buildOrderSheet() 
   assert.equal(res.statusCode, 200); assert.equal(res.body.ok, true); assert.equal(res.headers['cache-control'], 'no-store');
   const direct = buildOrderSheet({ orderData: order1466(), calculatedAt: '2026-11-12T12:00:00.000Z' });
   assert.deepEqual(res.body.sheet.wheels, direct.wheels);
-  assert.deepEqual(res.body.sheet.i9OrderList, direct.i9OrderList);
+  assert.deepEqual(res.body.sheet.orderList, direct.orderList); assert.equal('i9OrderList' in res.body.sheet, false);
   assert.equal(res.body.sheet.orderName, '#1466'); assert.equal(res.body.sheet.calculation.mode, 'recalculated');
   assert.equal(res.body.sheet.numbering.label, 'numbering version 1, provisional');
 });
