@@ -49,11 +49,29 @@ test('wheels WITH a chart row: the note has no new line (byte-identical to befor
   assert.equal(b.note.trim().split('\n\n').every((blk) => /^ {2}Drive side {2}\d+ mm:/m.test(blk)), true);
 });
 
-test('other reasons for "not calculated" are NOT touched: a hub that does not match the chart row (28h rim row on a Solix hub) keeps its silent note', async () => {
-  const o = chartOrder({ rear: { rim: '51797702934835', holes: 28, hub: 'Solix' }, orderNumber: 94005 }); // FUSE 29" 28h row is for a Hydra2 28h hub
-  const r = await report(o);
-  assert.ok(r.html.includes('NOT CALCULATED'), 'the internal email still says why');
-  assert.ok(!r.note.includes('Lengths not calculated'), 'the note is unchanged for this other reason');
+test('every other reason for "not calculated" gets its own plain line in the note too (hub does not match the chart row, hub not recognized, lookup failed); wheels that calculate stay untouched', async () => {
+  const mismatch = await report(chartOrder({ rear: { rim: '51797702934835', holes: 28, hub: 'Solix' }, orderNumber: 94005 })); // FUSE 29" 28h row is for a Hydra2 28h hub
+  assert.ok(mismatch.note.split(/\r?\n/).includes("  Lengths not calculated: The hub on this wheel (Solix 28h) does not match the hub in I9's chart row for this rim (H2 28h), so check the lengths with I9 before ordering spokes."));
+  assert.ok(!mismatch.note.includes(SENTENCE), 'a different reason, a different line');
+  assert.ok(mismatch.html.includes('NOT CALCULATED'), 'the internal email still says why');
+  const holes = await report(chartOrder({ rear: { rim: ROW, holes: 28 }, orderNumber: 94012 })); // a 32h chart row on a 28h wheel
+  assert.ok(holes.note.split(/\r?\n/).some((l) => l.startsWith('  Lengths not calculated: The hub on this wheel (Hydra2 28h) does not match')));
+  // hub model not recognized: take a good order and strip the hub model words
+  const o = chartOrder({ rear: { rim: ROW, holes: 32 }, orderNumber: 94013 });
+  const rec = recipeOf(o); rec.specs.systemHub = null; rec.components.rearHub.title = 'Some Hub'; rec.components.rearHub.variantTitle = '32h / Black';
+  o.line_items[0].properties.find((p) => p.name === '_build').value = JSON.stringify(rec);
+  const unknown = await report(o);
+  assert.ok(unknown.note.split(/\r?\n/).includes('  Lengths not calculated: The hub model (Solix or Hydra2) was not recognized on this wheel, so check the lengths with I9 before ordering spokes.'));
+  // the lookup itself failing
+  const { systemWheels } = await import('../_lib/system-build.js'); const { lengthsFor } = await import('../_lib/system-report.js');
+  const w = systemWheels(recipeOf(chartOrder({ rear: { rim: ROW, holes: 32 }, orderNumber: 94014 })), null, {})[0];
+  const failed = lengthsFor(w, () => { throw new Error('boom'); });
+  assert.equal(failed.pending, true); assert.equal(failed.noteLine, 'Lengths not calculated: The length lookup failed, so check the lengths with I9 before ordering spokes.');
+  // an injected calculator (tests only) that returns nothing keeps the old behaviour: no note line
+  assert.equal(lengthsFor(w, () => null).noteLine, undefined);
+  // wheels that calculate: no line at all
+  const fine = await report(chartOrder({ rear: { rim: ROW, holes: 32 }, orderNumber: 94015 }));
+  assert.ok(!fine.note.includes('Lengths not calculated'));
 });
 
 test('the internal email, the order sheet and the I9 list are unchanged by the note line, and the customer email never carries it', async () => {
