@@ -145,6 +145,7 @@ test('Stan\'s Flow EX3 29" 32h (adjusted from Triad TR304, gap -2): 299 / 302 as
   const front = await reportOf(rimOrder(STANS_EX3_29_32, 32, 95003, 'front', "Stan's Flow EX3 Alloy Rim - 29\""));
   assert.deepEqual([front.lengths.front.left, front.lengths.front.right], [299, 302]);   // 32h front = the rear pair (I9, Oct 30), disc / non-disc side
   assert.match(front.note, /Lengths estimated from I9 Triad 29" 32h TR304/);
+  assert.match(front.lengths.front.sourceText, /^Source: ESTIMATED from I9 System chart 2026, row Triad 29" 32h TR304 \(this rim is not in I9's chart\), 32h pair/);
 });
 
 test('28h estimate (DT Swiss XRC 310 29" 28h, adjusted from Triad 28h TR303): 304 / 306 on the 28h front, marked', async () => {
