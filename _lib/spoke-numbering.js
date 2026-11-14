@@ -41,7 +41,7 @@ export const NUMBERING_JERRY = {
   version: 2,
   status: 'provisional',
   convention: 'jerry',
-  label: "numbering version 2 (Jerry's convention), provisional",
+  label: 'numbering v2, provisional',                // shown on the sheet only while the flag is on
   valveAngle: 180,
   povOfSide: { drive: 'as-geometry', rotor: 'mirror' },
   highSide: { front: 'rotor', rear: 'drive' },

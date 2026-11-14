@@ -51,7 +51,7 @@ test('flag: only the exact word "on" (any case, spaces ignored) switches Jerry\'
 
 test('settings: version 2, provisional, the rule is written in the settings object and version 1 is untouched', () => {
   assert.equal(NUMBERING.version, 1); assert.equal(NUMBERING.label, 'numbering version 1, provisional');
-  assert.equal(NUMBERING_JERRY.version, 2); assert.equal(NUMBERING_JERRY.status, 'provisional'); assert.match(NUMBERING_JERRY.label, /version 2/); assert.match(NUMBERING_JERRY.label, /provisional/);
+  assert.equal(NUMBERING_JERRY.version, 2); assert.equal(NUMBERING_JERRY.status, 'provisional'); assert.equal(NUMBERING_JERRY.label, 'numbering v2, provisional'); assert.equal(NUMBERING.label, 'numbering version 1, provisional', 'version 1 label unchanged (shown when the flag is off)');
   assert.deepEqual(NUMBERING_JERRY.highSide, { front: 'rotor', rear: 'drive' }); assert.deepEqual(NUMBERING_JERRY.first, { high: 2, low: 1 });
   assert.match(NUMBERING_JERRY.rule, /spoke 2 is the first spoke to the left of the valve/); assert.match(NUMBERING_JERRY.rule, /counter-clockwise/);
 });
