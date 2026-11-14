@@ -43,7 +43,7 @@ const wheelResult = (order, pos) => resolveSystemLengths(systemWheels(recipeOf(o
 test('data: 31 chart rows and the map are in the generated file; they equal the committed CSV files (data/i9-source/), and the stored checksums', () => {
   assert.equal(CHART_ROWS.length, 31);
   assert.equal(CHART_SOURCE.date, '2026-10-28');
-  assert.equal(Object.keys(RIM_VARIANT_MAP).length, 28, '26 from the allowed list and the Coup, plus Stans Arch MK4 and Flow MK4 29 inch 32h (borrowed from the Wanderer row, Nov 7); the 26 include the Revive 2.0 700c 24h 2:1 (Nov 13)');
+  assert.equal(Object.keys(RIM_VARIANT_MAP).length, 29, '27 from the allowed list and the Coup, plus Stans Arch MK4 and Flow MK4 29 inch 32h (borrowed from the Wanderer row, Nov 7); the 27 include the Revive 2.0 700c 24h 2:1 (Nov 13) and the Industry Nine Revive 2.0 Alloy 29 inch 24h 2:1 (Nov 14)');
   { // the committed CSV files (data/i9-source/) always exist here, so this check runs on every checkout
     const csv = parseCsv(fs.readFileSync(path.join(CSV_DIR, 'i9_system_length_chart.csv'), 'utf8'));
     assert.equal(csv.length, 31);
@@ -57,7 +57,7 @@ test('data: 31 chart rows and the map are in the generated file; they equal the 
   }
   { // and the content of the generated file is pinned too
     assert.equal(sha(CHART_ROWS), 'd60f092ac9c20cc2ffdab8c842c51f08ffbf6e1f14d04b7c2ea258dec0760ac4');
-    assert.equal(sha(RIM_VARIANT_MAP), '9d86298d33e188dbe4c15f35b7e4416fd56e67a38c4960251ab93998af0ad366');
+    assert.equal(sha(RIM_VARIANT_MAP), '0e913b740784cd9785304f73145295b261b3c32594bcb3dd256edb80d7bbdffc');
   }
 });
 
@@ -71,7 +71,7 @@ test('data: every allowed-list variant that names a chart row is mapped to exact
     assert.equal(hit.driveColumn, Number(a.chart_drive_mm), a.variant_id); assert.equal(hit.nonDriveColumn, Number(a.chart_non_drive_mm), a.variant_id);
     n++;
   }
-  assert.equal(n, 25);
+  assert.equal(n, 26);
   const coup = chartLengthsForRim('67819688788275');
   assert.deepEqual([coup.row.partNumber, coup.row.erd, coup.row.hub, coup.driveColumn, coup.nonDriveColumn], ['TR175', 536, 'H2 32h', 268, 270]);
   assert.equal(chartLengthsForRim('51901428400435').borrowed, true, 'the Whisp 28h borrows the Sector 2.0 row');
