@@ -4,7 +4,7 @@
 // for a real calculator. Columns are as I9 prints them: driveColumn = "drive side", nonDriveColumn = "non-drive side"; which wheel side each belongs to for a
 // front or a rear hub is decided in _lib/system-lengths.js (side mapping), not here.
 
-export const CHART_SOURCE = {"chartFile":"i9_system_length_chart.csv","allowedListFile":"I9_SYSTEM_ALLOWED_LIST.csv","date":"2026-10-28","label":"I9 System chart 2026","chartSha256":"74125b936ba3ad8271224d63c06320395749a9e9a454abffe370b636765ef31a","allowedListSha256":"f1dbe844e4ee1377d04a6d882f24ce63df0375ca51826b399831cdef33190335","estimatedListFile":"ESTIMATED_RIM_LENGTHS.csv","estimatedListSha256":"0bcfc8b5c686f4d099fb26994d5f5f3919b986ef22281f253960bf7e75711c4b"};
+export const CHART_SOURCE = {"chartFile":"i9_system_length_chart.csv","allowedListFile":"I9_SYSTEM_ALLOWED_LIST.csv","date":"2026-10-28","label":"I9 System chart 2026","chartSha256":"74125b936ba3ad8271224d63c06320395749a9e9a454abffe370b636765ef31a","allowedListSha256":"f1dbe844e4ee1377d04a6d882f24ce63df0375ca51826b399831cdef33190335","estimatedListFile":"ESTIMATED_RIM_LENGTHS.csv","estimatedListSha256":"585cfb620a3f8f73d98159bab51275e4af973b832443832bccee617ecccb4c5e"};
 
 // 31 chart rows, in file order.
 export const CHART_ROWS = [

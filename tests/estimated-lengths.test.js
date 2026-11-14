@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { estimateFromChart, estimateFlatFromChart, estimatedMarker, geometryLength, MAX_GAP_MM } from '../_lib/rim-length-estimate.js';
+import { estimateFromChart, estimateFlatFromChart, estimateLongerOfSiteAndMeasured, estimatedMarker, geometryLength, MAX_GAP_MM } from '../_lib/rim-length-estimate.js';
 import { CHART_ROWS, RIM_VARIANT_MAP, chartLengthsForRim } from '../_lib/i9-system-chart.js';
 import { resolveSystemLengths } from '../_lib/system-lengths.js';
 import { buildSystemReport } from '../_lib/system-report.js';
@@ -223,4 +223,55 @@ test('whole webhook: the order note and the internal email say estimated; the cu
   assert.ok(internal && /estimated from I9 Sector 2\.0/.test(internal.html));
   assert.ok(customer, 'the customer email is sent (flag on)');
   assert.ok(!/estimated|Left\/Rotor|Spoke lengths|I9 System chart|ESTIMATED| mm\b/.test(customer.html.replace(/<style[\s\S]*?<\/style>/g, '')), 'no lengths, no estimate text for the customer');
+});
+
+/* ------------------------------------------------------------------ 4. DT Swiss: measured ERD and site ERD (Jerry, 2026-11-14) */
+
+test('DT Swiss rims Jerry measured (EX 511 29", FR 541 29" and 27.5", FR 571 29"; SON gauge, bare rim): the estimate runs with the measured AND the site ERD and takes the LONGER lengths per side', () => {
+  const MEASURED = { 'DT Swiss EX 511 Alloy Rim (Enduro)|29"': 596, 'DT Swiss FR 541 Alloy Rim (Downhill)|29"': 596, 'DT Swiss FR 541 Alloy Rim (Downhill)|27.5"': 558, 'DT Swiss FR 571 Alloy Rim (Downhill)|29"': 592 };
+  const dtRows = EST.filter((e) => e.vendor === 'DT Swiss');
+  let withMeasured = 0;
+  for (const e of dtRows) {
+    const key = `${e.product_title}|${e.size}`;
+    if (MEASURED[key] == null) {
+      assert.equal(e.measured_effective_erd, '', `${key}: not measured`); assert.match(e.note, /DT Swiss: ERD from site \(not measured\)/); assert.doesNotMatch(e.note, /may change/); assert.equal(e.erd_basis, 'site');
+      continue;
+    }
+    withMeasured++;
+    const washer = Number(e.effective_erd) - Number(e.stored_erd);                        // 2 x the 1.0 mm washer of these Mandatory-washer rims
+    assert.equal(washer, 2, key);
+    assert.equal(Number(e.measured_effective_erd), MEASURED[key] + washer, key);
+    const both = estimateLongerOfSiteAndMeasured({ erd: Number(e.effective_erd), offset: Number(e.rim_offset), holes: Number(e.holes) }, MEASURED[key] + washer, CHART_ROWS);
+    assert.deepEqual(both.lengths, [Number(e.drive_mm), Number(e.non_drive_mm)], key);
+    assert.deepEqual(both.measured.lengths, [Number(e.measured_drive_mm), Number(e.measured_non_drive_mm)], key);
+    assert.ok(both.lengths[0] >= both.measured.lengths[0] && both.lengths[1] >= both.measured.lengths[1], 'never shorter than the measured-ERD estimate');
+    assert.ok(both.lengths[0] >= both.site.lengths[0] && both.lengths[1] >= both.site.lengths[1], 'never shorter than the site-ERD estimate');
+    assert.match(e.note, /measured ERD \d+ .* and site ERD \d+ both run, the longer lengths are used/);
+    assert.equal(chartLengthsForRim(e.variant_id).estimated.erd, Number(e.effective_erd), 'the stale-ERD guard compares with the SITE ERD');
+  }
+  assert.equal(withMeasured, 9, 'EX 511 29" x2, FR 541 29" x3, FR 541 27.5" 32h x2, FR 571 29" x2 = the 9 estimated variants of the measured sizes (the FR 541 27.5" 28h has none; the GR 531 is not in the System list)');
+  assert.ok(dtRows.length >= 20 && dtRows.every((e) => !/may change/.test(e.note)), 'nothing says "ERD may change" any more');
+});
+
+test('in these five sizes the site (stored) ERD is above the measured one, so the site estimate is the longer one in every case: the lengths are those of the site ERD; the measured ones are 1 to 3 mm shorter', () => {
+  const cases = [['EX 511 29" 28h', 597, 596, 28, [303, 305], [302, 304]], ['EX 511 29" 32h', 597, 596, 32, [299, 302], [299, 301]], ['FR 541 29" 28h', 599, 596, 28, [304, 306], [302, 304]], ['FR 541 29" 32h', 599, 596, 32, [300, 303], [299, 301]],
+    ['FR 541 27.5" 32h', 561, 558, 32, [282, 284], [278, 281]], ['FR 571 29" 32h', 595, 592, 32, [299, 300], [297, 299]]];
+  for (const [name, stored, meas, holes, siteL, measL] of cases) {
+    const r = estimateLongerOfSiteAndMeasured({ erd: stored + 2, offset: 0, holes }, meas + 2, CHART_ROWS);
+    assert.deepEqual(r.site.lengths, siteL, name); assert.deepEqual(r.measured.lengths, measL, name); assert.deepEqual(r.lengths, siteL, name); assert.equal(r.basis, 'site', name);
+  }
+  // the FR 541 27.5" 28h has no estimate with either ERD (more than 4 mm from every H2 28h row)
+  const none = estimateLongerOfSiteAndMeasured({ erd: 563, offset: 0, holes: 28 }, 560, CHART_ROWS); assert.equal(none.lengths, null);
+});
+
+test('longer of the two, per side: a measured ERD ABOVE the site ERD wins; two ERDs that each win one side give the larger of each side', () => {
+  const rows = [row('A', 'H2 32h', 600, 299, 302, 0)];
+  const up = estimateLongerOfSiteAndMeasured({ erd: 600, offset: 0, holes: 32 }, 602, rows);
+  assert.deepEqual(up.site.lengths, [299, 302]); assert.deepEqual(up.measured.lengths, [300, 303]); assert.deepEqual(up.lengths, [300, 303]); assert.equal(up.basis, 'measured');
+  const dn = estimateLongerOfSiteAndMeasured({ erd: 602, offset: 0, holes: 32 }, 598, rows);
+  assert.deepEqual(dn.lengths, [300, 303]); assert.equal(dn.basis, 'site');
+  // one side each (different matched rims): the larger of each side
+  const two = [row('Lo', 'H2 32h', 600, 299, 300, 0), row('Hi', 'H2 32h', 604, 298, 305, 0)];
+  const mixed = estimateLongerOfSiteAndMeasured({ erd: 600, offset: 0, holes: 32 }, 604, two);
+  assert.deepEqual(mixed.lengths, [Math.max(mixed.site.lengths[0], mixed.measured.lengths[0]), Math.max(mixed.site.lengths[1], mixed.measured.lengths[1])]);
 });

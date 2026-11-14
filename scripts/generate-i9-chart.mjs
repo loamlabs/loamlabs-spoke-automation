@@ -13,7 +13,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
-import { estimateFromChart } from '../_lib/rim-length-estimate.js';
+import { estimateFromChart, estimateLongerOfSiteAndMeasured } from '../_lib/rim-length-estimate.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const dir = path.resolve(process.argv[2] || path.join(root, 'data', 'i9-source'));
@@ -92,8 +92,15 @@ for (const e of estimatedRows) {
   if (!/^\d+$/.test(id)) throw new Error('estimated list: bad variant id ' + id);
   if (map[id]) throw new Error('estimated list: variant already has an I9 chart row of its own (allowed list, extras or borrowed): ' + id);
   const holes = Number(e['holes']), erd = Number(e['effective_erd']), offset = Number(e['rim_offset']);
-  const est = estimateFromChart({ erd, offset, holes }, chart);
+  // a rim whose ERD was measured in house as well (DT Swiss EX 511, FR 541, FR 571): both effective ERDs are run and the LONGER lengths per side are used (Jerry, 2026-11-14)
+  const measuredErd = e['measured_effective_erd'] === '' ? null : Number(e['measured_effective_erd']);
+  const both = measuredErd == null ? null : estimateLongerOfSiteAndMeasured({ erd, offset, holes }, measuredErd, chart);
+  const est = both ? { ...both.primary, lengths: both.lengths } : estimateFromChart({ erd, offset, holes }, chart);
   if (!est || est.method === 'none') throw new Error(`estimated list: variant ${id} has no estimate by the rule (ERD gap over 4 mm or no row)`);
+  if (both) {
+    if (!both.measured || both.measured.method === 'none' || Number(e['measured_drive_mm']) !== both.measured.lengths[0] || Number(e['measured_non_drive_mm']) !== both.measured.lengths[1]) throw new Error(`estimated list: variant ${id}: the lengths for the measured ERD differ from the rule`);
+    if (!String(e['erd_basis']).startsWith(both.basis)) throw new Error(`estimated list: variant ${id}: erd_basis says "${e['erd_basis']}", the rule says ${both.basis}`);
+  } else if (e['erd_basis'] !== 'site') throw new Error(`estimated list: variant ${id}: erd_basis must be "site" when no measured ERD is given`);
   const idx = chart.findIndex((r) => r.model === e['matched_model'] && r.partNumber === e['matched_part'] && r.hub === e['matched_hub']);
   if (idx < 0 || chart[idx] !== est.row) throw new Error(`estimated list: variant ${id}: the rule picks ${est.row.model} ${est.row.partNumber} ${est.row.hub}, the file says ${e['matched_model']} ${e['matched_part']} ${e['matched_hub']}`);
   if (Number(e['erd_gap']) !== est.gap || Number(e['offset_gap']) !== est.offsetGap || Number(e['delta_drive']) !== est.deltaDrive || Number(e['delta_non_drive']) !== est.deltaNonDrive || Number(e['drive_mm']) !== est.lengths[0] || Number(e['non_drive_mm']) !== est.lengths[1]) throw new Error(`estimated list: variant ${id}: gap, correction or lengths differ from the rule (${JSON.stringify({ gap: est.gap, offsetGap: est.offsetGap, dD: est.deltaDrive, dN: est.deltaNonDrive, lengths: est.lengths })})`);

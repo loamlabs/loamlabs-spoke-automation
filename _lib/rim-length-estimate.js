@@ -71,6 +71,24 @@ export function estimateFromChart(target, chartRows) {
   };
 }
 
+/**
+ * A rim whose ERD was MEASURED in house (Jerry, SON gauge, bare rim; DT Swiss EX 511, FR 541, FR 571) as well as stored on the site: run the estimate with both effective ERDs and take the
+ * LONGER lengths per side (a spoke a little long is fine with double-square nipples, too short is a problem). The site's own ERD stays the one the stale-ERD guard compares with.
+ * @param {{ erd: number, offset?: number, holes: number }} site   effective ERD from the site
+ * @param {number} measuredEffectiveErd   measured ERD (bare rim) + 2 x the washer thickness the site uses for that rim
+ * @returns {null|{ primary: object, site: object, measured: object, lengths: [number, number]|null, basis: 'site'|'measured'|'mixed' }}
+ */
+export function estimateLongerOfSiteAndMeasured(site, measuredEffectiveErd, chartRows) {
+  const a = estimateFromChart(site, chartRows), b = estimateFromChart({ ...site, erd: measuredEffectiveErd }, chartRows);
+  if (!a) return null;
+  if (a.method === 'none' || !b || b.method === 'none') return { primary: a, site: a, measured: b, lengths: a.lengths, basis: 'site' };
+  const lengths = [Math.max(a.lengths[0], b.lengths[0]), Math.max(a.lengths[1], b.lengths[1])];
+  const sa = a.lengths[0] + a.lengths[1], sb = b.lengths[0] + b.lengths[1];
+  const primary = sb > sa ? b : a;   // the estimate that gives the longer pair carries the matched-rim details; a tie stays with the site
+  const basis = lengths[0] === a.lengths[0] && lengths[1] === a.lengths[1] ? 'site' : (lengths[0] === b.lengths[0] && lengths[1] === b.lengths[1] ? 'measured' : 'mixed');
+  return { primary, site: a, measured: b, lengths, basis };
+}
+
 // ---- the flat rule of PR #17 (nearest ERD only; copy up to 1.0 mm of gap, else ceil(length + gap / 2); nothing over 4.0), kept for the hold-out comparison only. Not used for any order.
 export const COPY_GAP_MM = 1.0;
 export function estimateFlatFromChart(target, chartRows) {
