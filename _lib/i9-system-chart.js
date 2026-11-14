@@ -4,7 +4,7 @@
 // for a real calculator. Columns are as I9 prints them: driveColumn = "drive side", nonDriveColumn = "non-drive side"; which wheel side each belongs to for a
 // front or a rear hub is decided in _lib/system-lengths.js (side mapping), not here.
 
-export const CHART_SOURCE = {"chartFile":"i9_system_length_chart.csv","allowedListFile":"I9_SYSTEM_ALLOWED_LIST.csv","date":"2026-10-28","label":"I9 System chart 2026","chartSha256":"74125b936ba3ad8271224d63c06320395749a9e9a454abffe370b636765ef31a","allowedListSha256":"f1dbe844e4ee1377d04a6d882f24ce63df0375ca51826b399831cdef33190335"};
+export const CHART_SOURCE = {"chartFile":"i9_system_length_chart.csv","allowedListFile":"I9_SYSTEM_ALLOWED_LIST.csv","date":"2026-10-28","label":"I9 System chart 2026","chartSha256":"74125b936ba3ad8271224d63c06320395749a9e9a454abffe370b636765ef31a","allowedListSha256":"f1dbe844e4ee1377d04a6d882f24ce63df0375ca51826b399831cdef33190335","estimatedListFile":"ESTIMATED_RIM_LENGTHS.csv","estimatedListSha256":"ae10ee8fb2ab4fb4359f1fa443244d7f0e687760dde8aaa59d31a944f08ead5d"};
 
 // 31 chart rows, in file order.
 export const CHART_ROWS = [
@@ -41,12 +41,59 @@ export const CHART_ROWS = [
   {"section":"Solix Carbon Rims","model":"Wide Gravel 32\"","partNumber":"TR403","erd":593,"rimOffset":0,"hub":"SM/G","driveColumn":297,"nonDriveColumn":293} // 30
 ];
 
-// Rim variant id (digits) -> chart row index. 29 variants: Jerry's allowed list plus the Coup Carbon 26" 32h. storeErd = the ERD the store holds when it differs from the chart.
+// Rim variant id (digits) -> chart row index. 109 variants: Jerry's allowed list plus the Coup Carbon 26" 32h, and 82 rims I9 has not listed (`estimated`: lengths from the nearest I9 Hydra2 rim, ESTIMATED_RIM_LENGTHS.csv). storeErd = the ERD the store holds when it differs from the chart.
 export const RIM_VARIANT_MAP = {
-  // Stan's Arch MK4 29" 32h borrows the Wanderer 29" row TR309 (ERD 600, H2 32h, 299/300): same ERD and hole count; the store offset is 2.5, the chart row's 2
-  "51797701067059": {"row":10,"title":"Stan's Arch MK4 Alloy Rim 29\" / 32h / Black","borrowed":true,"borrowedFrom":"borrowed from Wanderer row, same ERD and offset"},
-  // Stan's Flow MK4 29" 32h borrows the Wanderer 29" row TR309 (ERD 600, H2 32h, 299/300): same ERD and hole count; the store offset is 3.0, the chart row's 2
-  "51797701263667": {"row":10,"title":"Stan's Flow MK4 Alloy Rim 29\" / 32h / Black","borrowed":true,"borrowedFrom":"borrowed from Wanderer row, same ERD and offset"},
+  "51409494901043": {"row":1,"title":"Reserve 30|HD AL Alloy Rim 29\" / 32h","estimated":{"erd":596,"offset":0,"gap":-2,"offsetGap":-1,"drive":298,"nonDrive":300}},
+  "51409494933811": {"row":2,"title":"Reserve 30|HD AL Alloy Rim 27.5\" / 32h","estimated":{"erd":558,"offset":0,"gap":-2,"offsetGap":-1,"drive":277,"nonDrive":280}},
+  "51797698183475": {"row":11,"title":"DT Swiss FR 541 Alloy Rim (Downhill) 29\" / 28h","estimated":{"erd":601,"offset":0,"gap":1,"offsetGap":0,"drive":304,"nonDrive":306}},
+  "51797698216243": {"row":12,"title":"DT Swiss FR 541 Alloy Rim (Downhill) 29\" / 32h","estimated":{"erd":601,"offset":0,"gap":1,"offsetGap":0,"drive":300,"nonDrive":303}},
+  "51797698281779": {"row":13,"title":"DT Swiss FR 541 Alloy Rim (Downhill) 27.5\" / 32h","estimated":{"erd":563,"offset":0,"gap":-1,"offsetGap":0,"drive":282,"nonDrive":284}},
+  "51797698314547": {"row":11,"title":"DT Swiss EX 511 Alloy Rim (Enduro) 29\" / 28h","estimated":{"erd":599,"offset":0,"gap":-1,"offsetGap":0,"drive":303,"nonDrive":305}},
+  "51797698347315": {"row":12,"title":"DT Swiss EX 511 Alloy Rim (Enduro) 29\" / 32h","estimated":{"erd":599,"offset":0,"gap":-1,"offsetGap":0,"drive":299,"nonDrive":302}},
+  "51797698412851": {"row":16,"title":"DT Swiss EX 511 Alloy Rim (Enduro) 27.5\" / 32h","estimated":{"erd":561,"offset":0,"gap":-1,"offsetGap":0,"drive":280,"nonDrive":282}},
+  "51797698478387": {"row":1,"title":"DT Swiss EX 471 Alloy Rim (Enduro) 29\" / 32h","estimated":{"erd":598,"offset":0,"gap":0,"offsetGap":-1,"drive":299,"nonDrive":301}},
+  "51797698543923": {"row":2,"title":"DT Swiss EX 471 Alloy Rim (Enduro) 27.5\" / 32h","estimated":{"erd":560,"offset":0,"gap":0,"offsetGap":-1,"drive":278,"nonDrive":281}},
+  "51797698576691": {"row":11,"title":"DT Swiss XM 481 Alloy Rim (All Mountain) 29\" / 28h","estimated":{"erd":599,"offset":0,"gap":-1,"offsetGap":0,"drive":303,"nonDrive":305}},
+  "51797698609459": {"row":12,"title":"DT Swiss XM 481 Alloy Rim (All Mountain) 29\" / 32h","estimated":{"erd":599,"offset":0,"gap":-1,"offsetGap":0,"drive":299,"nonDrive":302}},
+  "51797698674995": {"row":16,"title":"DT Swiss XM 481 Alloy Rim (All Mountain) 27.5\" / 32h","estimated":{"erd":561,"offset":0,"gap":-1,"offsetGap":0,"drive":280,"nonDrive":282}},
+  "51797699133747": {"row":11,"title":"Astral Serpentine Alloy Rim 29\" / 28h","estimated":{"erd":600,"offset":3,"gap":0,"offsetGap":3,"drive":304,"nonDrive":305}},
+  "51797699166515": {"row":10,"title":"Astral Serpentine Alloy Rim 29\" / 32h","estimated":{"erd":600,"offset":3,"gap":0,"offsetGap":1,"drive":300,"nonDrive":300}},
+  "51797699199283": {"row":0,"title":"Astral Wanderlust GEN2 Alloy Rim 700c / 28h","estimated":{"erd":597.5,"offset":2,"gap":-0.5,"offsetGap":1,"drive":302,"nonDrive":303}},
+  "51797699232051": {"row":1,"title":"Astral Wanderlust GEN2 Alloy Rim 700c / 32h","estimated":{"erd":597.5,"offset":2,"gap":-0.5,"offsetGap":1,"drive":299,"nonDrive":300}},
+  "51797699297587": {"row":2,"title":"Astral Wanderlust GEN2 Alloy Rim 650b / 32h","estimated":{"erd":559.5,"offset":2,"gap":-0.5,"offsetGap":1,"drive":278,"nonDrive":280}},
+  "51797699330355": {"row":0,"title":"Astral Wanderlust GEN2 Alloy Rim 29\" / 28h","estimated":{"erd":597.5,"offset":2,"gap":-0.5,"offsetGap":1,"drive":302,"nonDrive":303}},
+  "51797699363123": {"row":1,"title":"Astral Wanderlust GEN2 Alloy Rim 29\" / 32h","estimated":{"erd":597.5,"offset":2,"gap":-0.5,"offsetGap":1,"drive":299,"nonDrive":300}},
+  "51797699428659": {"row":2,"title":"Astral Wanderlust GEN2 Alloy Rim 27.5\" / 32h","estimated":{"erd":559.5,"offset":2,"gap":-0.5,"offsetGap":1,"drive":278,"nonDrive":280}},
+  "51797699494195": {"row":10,"title":"Race Face ARC 25 Offset Alloy Rim 29\" / 32h","estimated":{"erd":600,"offset":3,"gap":0,"offsetGap":1,"drive":300,"nonDrive":300}},
+  "51797699559731": {"row":16,"title":"Race Face ARC 25 Offset Alloy Rim 27.5\" / 32h","estimated":{"erd":562,"offset":3,"gap":0,"offsetGap":3,"drive":281,"nonDrive":282}},
+  "51797699690803": {"row":1,"title":"Spank 359 Vibrocore Alloy Rim 29\" / 32h","estimated":{"erd":598,"offset":0,"gap":0,"offsetGap":-1,"drive":299,"nonDrive":301}},
+  "51797699723571": {"row":2,"title":"Spank 359 Vibrocore Alloy Rim 27.5\" / 32h","estimated":{"erd":560,"offset":0,"gap":0,"offsetGap":-1,"drive":278,"nonDrive":281}},
+  "51797699756339": {"row":0,"title":"Spank 359 Alloy Rim 29\" / 28h","estimated":{"erd":598,"offset":0,"gap":0,"offsetGap":-1,"drive":302,"nonDrive":304}},
+  "51797699789107": {"row":1,"title":"Spank 359 Alloy Rim 29\" / 32h","estimated":{"erd":598,"offset":0,"gap":0,"offsetGap":-1,"drive":299,"nonDrive":301}},
+  "51797699854643": {"row":2,"title":"Spank 359 Alloy Rim 27.5\" / 32h","estimated":{"erd":560,"offset":0,"gap":0,"offsetGap":-1,"drive":278,"nonDrive":281}},
+  "51797699887411": {"row":14,"title":"Spank Flare 24 Vibrocore Alloy Rim 700c / 28h","estimated":{"erd":602,"offset":0,"gap":-2,"offsetGap":0,"drive":305,"nonDrive":307}},
+  "51797699920179": {"row":15,"title":"Spank Flare 24 Vibrocore Alloy Rim 700c / 32h","estimated":{"erd":602,"offset":0,"gap":-2,"offsetGap":0,"drive":300,"nonDrive":303}},
+  "51797699952947": {"row":14,"title":"Spank 350 Vibrocore Alloy Rim 29\" / 28h","estimated":{"erd":602,"offset":0,"gap":-2,"offsetGap":0,"drive":305,"nonDrive":307}},
+  "51797699985715": {"row":15,"title":"Spank 350 Vibrocore Alloy Rim 29\" / 32h","estimated":{"erd":602,"offset":0,"gap":-2,"offsetGap":0,"drive":300,"nonDrive":303}},
+  "51797700051251": {"row":13,"title":"Spank 350 Vibrocore Alloy Rim 27.5\" / 32h","estimated":{"erd":564,"offset":0,"gap":0,"offsetGap":0,"drive":282,"nonDrive":284}},
+  "51797700215091": {"row":11,"title":"Spank 350 Alloy Rim 29\" / 28h","estimated":{"erd":601,"offset":0,"gap":1,"offsetGap":0,"drive":304,"nonDrive":306}},
+  "51797700247859": {"row":12,"title":"Spank 350 Alloy Rim 29\" / 32h","estimated":{"erd":601,"offset":0,"gap":1,"offsetGap":0,"drive":300,"nonDrive":303}},
+  "51797700280627": {"row":13,"title":"Spank 350 Alloy Rim 27.5\" / 32h","estimated":{"erd":564,"offset":0,"gap":0,"offsetGap":0,"drive":282,"nonDrive":284}},
+  "51797700837683": {"row":11,"title":"Stan's Crest MK4 Alloy Rim 29\" / 28h","estimated":{"erd":601,"offset":1.5,"gap":1,"offsetGap":1.5,"drive":304,"nonDrive":306}},
+  "51797700870451": {"row":10,"title":"Stan's Crest MK4 Alloy Rim 29\" / 32h","estimated":{"erd":601,"offset":1.5,"gap":1,"offsetGap":-0.5,"drive":300,"nonDrive":301}},
+  "51797700935987": {"row":16,"title":"Stan's Crest MK4 Alloy Rim 27.5\" / 32h","estimated":{"erd":563,"offset":1.5,"gap":1,"offsetGap":1.5,"drive":281,"nonDrive":283}},
+  "51797701001523": {"row":9,"title":"Stan's Crest MK4 Alloy Rim 26\" / 32h","estimated":{"erd":538,"offset":1.5,"gap":-1,"offsetGap":0.5,"drive":270,"nonDrive":272}},
+  "51797701034291": {"row":11,"title":"Stan's Arch MK4 Alloy Rim 29\" / 28h","estimated":{"erd":600,"offset":2.5,"gap":0,"offsetGap":2.5,"drive":304,"nonDrive":305}},
+  "51797701067059": {"row":10,"title":"Stan's Arch MK4 Alloy Rim 29\" / 32h","estimated":{"erd":600,"offset":2.5,"gap":0,"offsetGap":0.5,"drive":300,"nonDrive":300}},
+  "51797701132595": {"row":2,"title":"Stan's Arch MK4 Alloy Rim 27.5\" / 32h","estimated":{"erd":561,"offset":2.5,"gap":1,"offsetGap":1.5,"drive":279,"nonDrive":281}},
+  "51797701198131": {"row":21,"title":"Stan's Arch MK4 Alloy Rim 26\" / 32h","estimated":{"erd":536,"offset":2.5,"gap":0,"offsetGap":2.5,"drive":269,"nonDrive":270}},
+  "51797701230899": {"row":11,"title":"Stan's Flow MK4 Alloy Rim 29\" / 28h","estimated":{"erd":600,"offset":3,"gap":0,"offsetGap":3,"drive":304,"nonDrive":305}},
+  "51797701263667": {"row":10,"title":"Stan's Flow MK4 Alloy Rim 29\" / 32h","estimated":{"erd":600,"offset":3,"gap":0,"offsetGap":1,"drive":300,"nonDrive":300}},
+  "51797701329203": {"row":2,"title":"Stan's Flow MK4 Alloy Rim 27.5\" / 32h","estimated":{"erd":561,"offset":3,"gap":1,"offsetGap":2,"drive":279,"nonDrive":281}},
+  "51797701361971": {"row":15,"title":"Stan's Flow EX3 Alloy Rim 29\" / 32h","estimated":{"erd":602,"offset":0,"gap":-2,"offsetGap":0,"drive":300,"nonDrive":303}},
+  "51797701394739": {"row":13,"title":"Stan's Flow EX3 Alloy Rim 27.5\" / 32h","estimated":{"erd":564,"offset":0,"gap":0,"offsetGap":0,"drive":282,"nonDrive":284}},
+  "51797701460275": {"row":10,"title":"Stan's Flow CB7 Carbon Rim 29\" / 32h","estimated":{"erd":602,"offset":4,"gap":2,"offsetGap":2,"drive":301,"nonDrive":301}},
+  "51797701493043": {"row":13,"title":"Stan's Flow CB7 Carbon Rim 27.5\" / 32h","estimated":{"erd":564,"offset":4,"gap":0,"offsetGap":4,"drive":283,"nonDrive":284}},
   "51797702934835": {"row":17,"title":"We Are One FUSE Carbon Rim (Enduro) 29\" / 28h / Black"},
   "51797702967603": {"row":18,"title":"We Are One FUSE Carbon Rim (Enduro) 29\" / 32h / Black"},
   "51797703098675": {"row":14,"title":"We Are One TRIAD Carbon Rim (Enduro) 29\" / 28h / Black"},
@@ -54,12 +101,43 @@ export const RIM_VARIANT_MAP = {
   "51797703164211": {"row":13,"title":"We Are One TRIAD Carbon Rim (Enduro) 27.5\" / 32h / Black"},
   "51797703196979": {"row":11,"title":"We Are One SECTOR Carbon Rim (Trail) 29\" / 28h / Black"},
   "51797703229747": {"row":12,"title":"We Are One SECTOR Carbon Rim (Trail) 29\" / 32h / Black"},
+  "51797703295283": {"row":0,"title":"Reserve 30|DH Carbon Rim 29\" / 28h","estimated":{"erd":599,"offset":3.6,"gap":1,"offsetGap":2.6,"drive":303,"nonDrive":304}},
+  "51797703328051": {"row":1,"title":"Reserve 30|DH Carbon Rim 29\" / 32h","estimated":{"erd":599,"offset":3.6,"gap":1,"offsetGap":2.6,"drive":300,"nonDrive":301}},
+  "51797703360819": {"row":2,"title":"Reserve 30|DH Carbon Rim 27.5\" / 32h","estimated":{"erd":558,"offset":3.6,"gap":-2,"offsetGap":2.6,"drive":278,"nonDrive":279}},
+  "51797703852339": {"row":0,"title":"Reserve 30|SL AL Alloy Rim 29\" / 28h","estimated":{"erd":599,"offset":3,"gap":1,"offsetGap":2,"drive":303,"nonDrive":304}},
+  "51797703885107": {"row":0,"title":"Reserve 30|SL Carbon Rim 29\" / 28h","estimated":{"erd":599,"offset":3.6,"gap":1,"offsetGap":2.6,"drive":303,"nonDrive":304}},
+  "51797703917875": {"row":0,"title":"Reserve 30|HD Carbon Rim 29\" / 28h","estimated":{"erd":598,"offset":3,"gap":0,"offsetGap":2,"drive":303,"nonDrive":303}},
+  "51797704474931": {"row":11,"title":"DT Swiss EXC 330 Carbon Rim 29\" / 28h","estimated":{"erd":601,"offset":4,"gap":1,"offsetGap":4,"drive":304,"nonDrive":305}},
+  "51797704507699": {"row":10,"title":"DT Swiss EXC 330 Carbon Rim 29\" / 32h","estimated":{"erd":601,"offset":4,"gap":1,"offsetGap":2,"drive":300,"nonDrive":301}},
+  "51797704573235": {"row":2,"title":"DT Swiss EXC 330 Carbon Rim 27.5\" / 32h","estimated":{"erd":561,"offset":4,"gap":1,"offsetGap":3,"drive":279,"nonDrive":281}},
+  "51797704606003": {"row":11,"title":"DT Swiss XMC 320 Carbon Rim 29\" / 28h","estimated":{"erd":601,"offset":4,"gap":1,"offsetGap":4,"drive":304,"nonDrive":305}},
+  "51797704671539": {"row":11,"title":"DT Swiss XRC 310 Carbon Rim 29\" / 28h","estimated":{"erd":602,"offset":4,"gap":2,"offsetGap":4,"drive":305,"nonDrive":306}},
+  "51797705130291": {"row":10,"title":"Race Face ARC 30 Offset Alloy Rim 29\" / 32h","estimated":{"erd":600,"offset":4.5,"gap":0,"offsetGap":2.5,"drive":300,"nonDrive":300}},
+  "51797705163059": {"row":16,"title":"Race Face ARC 30 Offset Alloy Rim 27.5\" / 32h","estimated":{"erd":562,"offset":4.5,"gap":0,"offsetGap":4.5,"drive":281,"nonDrive":282}},
+  "51797705228595": {"row":10,"title":"Race Face ARC 35 Offset Alloy Rim 29\" / 32h","estimated":{"erd":600,"offset":4.5,"gap":0,"offsetGap":2.5,"drive":300,"nonDrive":300}},
+  "51797705261363": {"row":16,"title":"Race Face ARC 35 Offset Alloy Rim 27.5\" / 32h","estimated":{"erd":562,"offset":4.5,"gap":0,"offsetGap":4.5,"drive":281,"nonDrive":282}},
+  "51797705294131": {"row":10,"title":"Race Face ARC 40 Offset Alloy Rim 29\" / 32h","estimated":{"erd":600,"offset":4.5,"gap":0,"offsetGap":2.5,"drive":300,"nonDrive":300}},
+  "51797705326899": {"row":16,"title":"Race Face ARC 40 Offset Alloy Rim 27.5\" / 32h","estimated":{"erd":562,"offset":4.5,"gap":0,"offsetGap":4.5,"drive":281,"nonDrive":282}},
+  "51797706375475": {"row":0,"title":"Logos gída SL g2 Carbon Rim 29\" / 28h","estimated":{"erd":598,"offset":2.5,"gap":0,"offsetGap":1.5,"drive":303,"nonDrive":303}},
   "51901412114739": {"row":16,"title":"We Are One FUSE Carbon Rim (Enduro) 27.5\" / 32h / Black"},
   "51901420699955": {"row":10,"title":"We Are One WANDERER Carbon Rim (Bikepacking) 700c / 32h / Black"},
   // WAO Whisp 29" 28h borrows the chart row Sector 2.0 29" 28h TR314 (ERD 600, H2 28h, 303/305): same ERD and hole count, NOT an I9-listed Whisp combination
   "51901428400435": {"row":11,"title":"We Are One WHISP Carbon Rim (XC) 29\" / 28h / Black","borrowed":true},
   "51901428793651": {"row":20,"title":"We Are One DEAL Carbon Rim (Downhill) 29\" / 32h / Black"},
   "51901428859187": {"row":19,"title":"We Are One DEAL Carbon Rim (Downhill) 27.5\" / 32h / Black"},
+  "51924234567987": {"row":9,"title":"DT Swiss EX 471 Alloy Rim (Enduro) 26\" / 32h","estimated":{"erd":539,"offset":0,"gap":0,"offsetGap":-1,"drive":270,"nonDrive":273}},
+  "51926296985907": {"row":21,"title":"Stan's Flow MK4 Alloy Rim 26\" / 32h","estimated":{"erd":536,"offset":3,"gap":0,"offsetGap":3,"drive":269,"nonDrive":270}},
+  "52318435508531": {"row":12,"title":"DT Swiss FR 541 Alloy Rim (Downhill) 29\" / 32h","estimated":{"erd":601,"offset":0,"gap":1,"offsetGap":0,"drive":300,"nonDrive":303}},
+  "52318435541299": {"row":13,"title":"DT Swiss FR 541 Alloy Rim (Downhill) 27.5\" / 32h","estimated":{"erd":563,"offset":0,"gap":-1,"offsetGap":0,"drive":282,"nonDrive":284}},
+  "52318441996595": {"row":1,"title":"DT Swiss FR 571 Alloy Rim (Downhill) 29\" / 32h","estimated":{"erd":597,"offset":0,"gap":-1,"offsetGap":-1,"drive":299,"nonDrive":300}},
+  "52318442029363": {"row":1,"title":"DT Swiss FR 571 Alloy Rim (Downhill) 29\" / 32h","estimated":{"erd":597,"offset":0,"gap":-1,"offsetGap":-1,"drive":299,"nonDrive":300}},
+  "52318442094899": {"row":2,"title":"DT Swiss FR 571 Alloy Rim (Downhill) 27.5\" / 32h","estimated":{"erd":558,"offset":0,"gap":-2,"offsetGap":-1,"drive":277,"nonDrive":280}},
+  "52318442127667": {"row":2,"title":"DT Swiss FR 571 Alloy Rim (Downhill) 27.5\" / 32h","estimated":{"erd":558,"offset":0,"gap":-2,"offsetGap":-1,"drive":277,"nonDrive":280}},
+  "52453184274739": {"row":9,"title":"DT Swiss FR 560 Alloy Rim 26\" / 32h","estimated":{"erd":538,"offset":0,"gap":-1,"offsetGap":-1,"drive":270,"nonDrive":272}},
+  "53123491103027": {"row":1,"title":"Velocity Cliffhanger Alloy Rim 700c / 32h","estimated":{"erd":597,"offset":0,"gap":-1,"offsetGap":-1,"drive":299,"nonDrive":300}},
+  "53123497722163": {"row":12,"title":"Velocity A23 Alloy Rim 700c / 32h","estimated":{"erd":601,"offset":0,"gap":1,"offsetGap":0,"drive":300,"nonDrive":303}},
+  "53237902082355": {"row":0,"title":"Reserve 30|XC Carbon Rim 29\" / 28h","estimated":{"erd":599,"offset":3.6,"gap":1,"offsetGap":2.6,"drive":303,"nonDrive":304}},
+  "53237911519539": {"row":0,"title":"Reserve 30|XC SL Carbon Rim 29\" / 28h","estimated":{"erd":599,"offset":3.6,"gap":1,"offsetGap":2.6,"drive":303,"nonDrive":304}},
   "53530666402099": {"row":9,"title":"Industry Nine DJ305 Coup Alloy Rim (DJ) 26\" / 32h / Black"},
   "53530676134195": {"row":7,"title":"Industry Nine Grade 300 Deal Alloy Rim (DH) 27.5\" / 32h / Black"},
   "53530683834675": {"row":8,"title":"Industry Nine Grade 300 Deal Alloy Rim (DH) 29\" / 32h / Black"},
@@ -82,11 +160,11 @@ export const RIM_VARIANT_MAP = {
 /**
  * The chart numbers for a rim variant: no hub logic, no side mapping.
  * @param {string|number} rimVariantId  digits, or a gid://shopify/ProductVariant/<digits>
- * @returns {null|{ source: 'i9-chart', row: object, driveColumn: number, nonDriveColumn: number, variantTitle: string, borrowed?: boolean, storeErd?: number }}
+ * @returns {null|{ source: 'i9-chart', row: object, driveColumn: number, nonDriveColumn: number, variantTitle: string, borrowed?: boolean, storeErd?: number, estimated?: { erd: number, offset: number, gap: number, offsetGap: number } }}
  */
 export function chartLengthsForRim(rimVariantId) {
   const id = String(rimVariantId == null ? '' : rimVariantId).replace(/^.*\//, '');
   if (!Object.prototype.hasOwnProperty.call(RIM_VARIANT_MAP, id)) return null;
   const e = RIM_VARIANT_MAP[id], row = CHART_ROWS[e.row];
-  return { source: 'i9-chart', row, driveColumn: row.driveColumn, nonDriveColumn: row.nonDriveColumn, variantTitle: e.title, ...(e.borrowed ? { borrowed: true } : {}), ...(e.borrowedFrom ? { borrowedFrom: e.borrowedFrom } : {}), ...(e.storeErd ? { storeErd: e.storeErd } : {}) };
+  return { source: 'i9-chart', row, driveColumn: e.estimated ? e.estimated.drive : row.driveColumn, nonDriveColumn: e.estimated ? e.estimated.nonDrive : row.nonDriveColumn, variantTitle: e.title, ...(e.estimated ? { estimated: { erd: e.estimated.erd, offset: e.estimated.offset, gap: e.estimated.gap, offsetGap: e.estimated.offsetGap } } : {}), ...(e.borrowed ? { borrowed: true } : {}), ...(e.borrowedFrom ? { borrowedFrom: e.borrowedFrom } : {}), ...(e.storeErd ? { storeErd: e.storeErd } : {}) };
 }

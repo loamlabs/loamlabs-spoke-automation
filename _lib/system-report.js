@@ -99,7 +99,7 @@ export function lengthsFor(wheel, lengthCalculator) { // exported for the order 
     if (r && typeof r === 'object' && isFinite(r.left) && isFinite(r.right)) {
       // round 10: a result from I9's chart also says where it came from (r.sourceText), in the internal email and the order note only
       const sides = r.sideLabels && r.sideLabels.left && r.sideLabels.right ? `${r.sideLabels.left} ${r.left} mm, ${r.sideLabels.right} ${r.right} mm` : `Left/Rotor ${r.left} mm, Right/Drive ${r.right} mm`;
-      return { pending: false, left: r.left, right: r.right, chart: r.chart || null, extra: typeof r.note === 'string' && r.note ? r.note : null, text: `Spoke lengths (System): ${sides}${r.note ? ` (${r.note})` : ''}`, sourceText: typeof r.sourceText === 'string' ? r.sourceText : null, internalText: typeof r.internalText === 'string' ? r.internalText : null };
+      return { pending: false, left: r.left, right: r.right, chart: r.chart || null, extra: typeof r.note === 'string' && r.note ? r.note : null, text: `Spoke lengths (System): ${sides}${r.note ? ` (${r.note})` : ''}`, sourceText: typeof r.sourceText === 'string' ? r.sourceText : null, internalText: typeof r.internalText === 'string' ? r.internalText : null, ...(r.estimated && r.estimated.text ? { estimatedText: r.estimated.text, noteLine: `${NOTE_ESTIMATED_PREFIX} ${r.estimated.text}` } : {}) };
     }
     // the chart lookup says why in plain words; an injected calculator (tests) keeps the old text
     const why = lengthCalculator === calculateSystemSpokeLengths ? systemLengthsNotCalculatedText(wheel.geometryInput) : null;
@@ -221,6 +221,8 @@ function wheelHtml(w, images, imageErrors, opts) {
 // customer supplies and that the parts must arrive first. Orders without own parts have nothing above the wheel blocks.
 // the sentences the Shopify order note carries for a System wheel without a length: the fixed one for a rim with no I9 chart row, "Lengths not calculated: <plain reason>" for any other reason
 export const NOTE_PREFIX = 'Lengths not calculated:';
+// a length that is an estimate from the nearest I9 rim (the rim is not in I9's chart): one internal line under the wheel's color lines in the order note (rim-length-estimate.js)
+export const NOTE_ESTIMATED_PREFIX = 'Lengths';
 export const NOTE_NO_CHART_ROW = "Lengths not calculated: this rim is not in I9's chart, check the lengths with I9.";
 function noteText(wheels, lengthsByPos) {
   const own = suppliedSummary(wheels);

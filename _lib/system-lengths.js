@@ -17,6 +17,7 @@
 //   3. keep the signature: calculateSystemSpokeLengths(wheel) -> null | { left, right, note? }   (tests/system-lengths.test.js guards it).
 
 import { chartLengthsForRim, CHART_SOURCE } from './i9-system-chart.js';
+import { estimatedMarker } from './rim-length-estimate.js';
 import { suppliedRimNotCalculated } from './own-parts.js'; // OWN-PARTS: wording for a customer-supplied rim
 
 /**
@@ -113,22 +114,33 @@ export function resolveSystemLengths(wheel) {
   }
   // the ERD the order carries (rim metafield), else the one the store is known to hold for this variant
   const storeErd = Number.isFinite(w.erd) ? w.erd : (hit.storeErd || null);
-  if (storeErd != null && Math.abs(storeErd - row.erd) > ERD_TOLERANCE_MM) {
+  // an estimated rim (not in I9's chart) is compared with the ERD its estimate was made from: if the store ERD has moved since (DT Swiss figures may change), the estimate is stale
+  if (hit.estimated && storeErd != null && Math.abs(storeErd - hit.estimated.erd) > ERD_TOLERANCE_MM) {
+    flags.push('check ERD');
+    notes.push(`store ERD ${r1(storeErd)} differs from ${r1(hit.estimated.erd)}, the ERD this estimate was made from: the estimated lengths are out of date`);
+  } else if (!hit.estimated && storeErd != null && Math.abs(storeErd - row.erd) > ERD_TOLERANCE_MM) {
     flags.push('check ERD');
     const label = /^Hush/i.test(row.model) ? 'Hush' : row.model;
     notes.push(`${label}: store ERD ${r1(storeErd)} vs I9 chart ${r1(row.erd)}, confirm with I9 when ordering parts`);
+  }
+  let estimated = null;
+  if (hit.estimated) {
+    estimated = { model: row.model, partNumber: row.partNumber, gap: hit.estimated.gap, offsetGap: hit.estimated.offsetGap };
+    estimated.text = estimatedMarker(estimated);
+    flags.push('estimated'); notes.push(estimated.text);
   }
   if (hit.borrowed) notes.push('this rim is not an I9-listed combination; the numbers are the chart row with the same ERD and hole count');
   const lengths = {
     left: side.left, right: side.right, source: 'i9-chart', confidence: flags.length ? flags.join(' + ') : 'chart',
     chart: { section: row.section, model: row.model, partNumber: row.partNumber, erd: row.erd, hub: row.hub },
-    sourceText: `source: ${SOURCE_LABEL}, row ${row.model} ${row.partNumber}${hit.borrowedFrom ? ` (${hit.borrowedFrom})` : ''}`
+    sourceText: hit.estimated ? `source: ESTIMATED from ${SOURCE_LABEL}, row ${row.model} ${row.partNumber} (this rim is not in I9's chart)` : `source: ${SOURCE_LABEL}, row ${row.model} ${row.partNumber}${hit.borrowedFrom ? ` (${hit.borrowedFrom})` : ''}`
   };
+  if (estimated) lengths.estimated = estimated;
   if (notes.length) lengths.note = notes.join('; ');
   if (front32) {
     // plain side words on the front so the sides cannot be misread; the source line names I9's statement; the internal-email-only line carries the geometry caveat
     lengths.sideLabels = { left: 'Disc side', right: 'Non-disc side' };
-    lengths.sourceText = `Source: ${SOURCE_LABEL}, row ${row.model} ${row.partNumber}${hit.borrowedFrom ? ` (${hit.borrowedFrom})` : ''}, 32h pair (Thomas Ward, I9, 2026-10-30: same lengths front and rear)`;
+    lengths.sourceText = `Source: ${hit.estimated ? 'ESTIMATED from ' : ''}${SOURCE_LABEL}, row ${row.model} ${row.partNumber}${hit.borrowedFrom ? ` (${hit.borrowedFrom})` : ''}${hit.estimated ? " (this rim is not in I9's chart)" : ''}, 32h pair (Thomas Ward, I9, 2026-10-30: same lengths front and rear)`;
     lengths.internalText = "Front uses the rear 32h pair per I9. Jerry's geometry check differs by up to about 4 mm on one side; if the first real front build looks off, tell Claude.";
   }
   return { lengths, reason: null };

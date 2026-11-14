@@ -5,30 +5,29 @@
 // file from there into data/i9-source/ first. Inputs:
 //   i9_system_length_chart.csv     31 rows from I9's "System- 2026" tab (section, wheel_model, rim_part_number, erd_mm, rim_offset_mm, hub, drive/non-drive length)
 //   I9_SYSTEM_ALLOWED_LIST.csv     the rim variants allowed in the System builder; chart_row_for_lengths names the chart row (part number, hub, ERD, offset)
+//   ESTIMATED_RIM_LENGTHS.csv      non-I9 rim variants and the I9 Hydra2 row their lengths are estimated from (geometry difference to that rim, offset included); every row is re-derived with the rule in
+//                                  _lib/rim-length-estimate.js and the script stops if the file disagrees with the rule or the chart. Such a variant is marked `estimated` in the map.
 // The map rim variant id -> chart row is derived from the allowed list (part number + hub + model prefix pick the row); the chart numbers quoted in the
 // allowed list must equal the chart's, otherwise this script stops. EXTRA_VARIANTS adds variants that are not in the allowed-list file yet.
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
+import { estimateFromChart, estimateLongerOfSiteAndMeasured } from '../_lib/rim-length-estimate.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const dir = path.resolve(process.argv[2] || path.join(root, 'data', 'i9-source'));
 const CHART_FILE = 'i9_system_length_chart.csv', ALLOWED_FILE = 'I9_SYSTEM_ALLOWED_LIST.csv';
+const ESTIMATED_FILE = 'ESTIMATED_RIM_LENGTHS.csv'; // rims I9 has not listed: lengths from the nearest I9 Hydra2 rim (rule in _lib/rim-length-estimate.js), Jerry 2026-11-14
 const CHART_DATE = '2026-10-28';
 
 // Variants Jerry asked for in the round 10 prompt that the allowed-list file does not contain yet.
 const EXTRA_VARIANTS = [
   { variantId: '67819688788275', title: 'Industry Nine Coup Carbon Rim 26" / 32h', part: 'TR175', hub: 'H2 32h', modelPrefix: 'Coup 26', comment: 'Industry Nine Coup Carbon 26" 32h = chart "Coup 26" (Hydra2 Carbon section) TR175, ERD 536, H2 32h, 268/270 (Jerry, round 10 prompt)' },
-  // Jerry, Nov 7 2026 (rim fix addendum): the two Stan's 29" 32h rims borrow the Wanderer 29" row (TR309, H2 32h, ERD 600, 299/300)
-  { variantId: '51797701067059', title: "Stan's Arch MK4 Alloy Rim 29\" / 32h / Black", part: 'TR309', hub: 'H2 32h', modelPrefix: 'Wanderer 29', comment: "Stan's Arch MK4 29\" 32h borrows the Wanderer 29\" row TR309 (ERD 600, H2 32h, 299/300): same ERD and hole count; the store offset is 2.5, the chart row's 2" },
-  { variantId: '51797701263667', title: "Stan's Flow MK4 Alloy Rim 29\" / 32h / Black", part: 'TR309', hub: 'H2 32h', modelPrefix: 'Wanderer 29', comment: "Stan's Flow MK4 29\" 32h borrows the Wanderer 29\" row TR309 (ERD 600, H2 32h, 299/300): same ERD and hole count; the store offset is 3.0, the chart row's 2" }
 ];
 // Facts from the round 10 prompt about single variants.
 const VARIANT_NOTES = {
   '51901428400435': { borrowed: true, comment: 'WAO Whisp 29" 28h borrows the chart row Sector 2.0 29" 28h TR314 (ERD 600, H2 28h, 303/305): same ERD and hole count, NOT an I9-listed Whisp combination' },
-  '51797701067059': { borrowed: true, borrowedFrom: 'borrowed from Wanderer row, same ERD and offset' },
-  '51797701263667': { borrowed: true, borrowedFrom: 'borrowed from Wanderer row, same ERD and offset' },
   '53871010939187': { storeErd: 652, comment: 'WAO Hush 24h 2:1 = chart Hush 24h TR316 (ERD 655, SM, 328/325); the store says ERD 652: confirm with I9 when ordering parts' }
 };
 
@@ -86,6 +85,28 @@ for (const e of EXTRA_VARIANTS) {
   if (map[e.variantId]) throw new Error('extra variant already in the allowed list: ' + e.variantId);
   map[e.variantId] = { row: findRow(e), title: e.title, comment: e.comment, ...(VARIANT_NOTES[e.variantId] || {}) };
 }
+const estimatedBuf = read(ESTIMATED_FILE);
+const estimatedRows = parseCsv(estimatedBuf.toString('utf8'));
+for (const e of estimatedRows) {
+  const id = e['variant_id'];
+  if (!/^\d+$/.test(id)) throw new Error('estimated list: bad variant id ' + id);
+  if (map[id]) throw new Error('estimated list: variant already has an I9 chart row of its own (allowed list, extras or borrowed): ' + id);
+  const holes = Number(e['holes']), erd = Number(e['effective_erd']), offset = Number(e['rim_offset']);
+  // a rim whose ERD was measured in house as well (DT Swiss EX 511, FR 541, FR 571): both effective ERDs are run and the LONGER lengths per side are used (Jerry, 2026-11-14)
+  const measuredErd = e['measured_effective_erd'] === '' ? null : Number(e['measured_effective_erd']);
+  const both = measuredErd == null ? null : estimateLongerOfSiteAndMeasured({ erd, offset, holes }, measuredErd, chart);
+  const est = both ? { ...both.primary, lengths: both.lengths } : estimateFromChart({ erd, offset, holes }, chart);
+  if (!est || est.method === 'none') throw new Error(`estimated list: variant ${id} has no estimate by the rule (ERD gap over 4 mm or no row)`);
+  if (both) {
+    if (!both.measured || both.measured.method === 'none' || Number(e['measured_drive_mm']) !== both.measured.lengths[0] || Number(e['measured_non_drive_mm']) !== both.measured.lengths[1]) throw new Error(`estimated list: variant ${id}: the lengths for the measured ERD differ from the rule`);
+    if (!String(e['erd_basis']).startsWith(both.basis)) throw new Error(`estimated list: variant ${id}: erd_basis says "${e['erd_basis']}", the rule says ${both.basis}`);
+  } else if (e['erd_basis'] !== 'site') throw new Error(`estimated list: variant ${id}: erd_basis must be "site" when no measured ERD is given`);
+  const idx = chart.findIndex((r) => r.model === e['matched_model'] && r.partNumber === e['matched_part'] && r.hub === e['matched_hub']);
+  if (idx < 0 || chart[idx] !== est.row) throw new Error(`estimated list: variant ${id}: the rule picks ${est.row.model} ${est.row.partNumber} ${est.row.hub}, the file says ${e['matched_model']} ${e['matched_part']} ${e['matched_hub']}`);
+  if (Number(e['erd_gap']) !== est.gap || Number(e['offset_gap']) !== est.offsetGap || Number(e['delta_drive']) !== est.deltaDrive || Number(e['delta_non_drive']) !== est.deltaNonDrive || Number(e['drive_mm']) !== est.lengths[0] || Number(e['non_drive_mm']) !== est.lengths[1]) throw new Error(`estimated list: variant ${id}: gap, correction or lengths differ from the rule (${JSON.stringify({ gap: est.gap, offsetGap: est.offsetGap, dD: est.deltaDrive, dN: est.deltaNonDrive, lengths: est.lengths })})`);
+  if (Number(e['matched_erd']) !== est.row.erd || Number(e['matched_offset']) !== est.row.rimOffset) throw new Error(`estimated list: variant ${id}: matched ERD or offset differs from the chart`);
+  map[id] = { row: idx, title: `${e['product_title']} ${e['size']} / ${holes}h`, estimated: { erd, offset, gap: est.gap, offsetGap: est.offsetGap, drive: est.lengths[0], nonDrive: est.lengths[1] } };
+}
 const ids = Object.keys(map).sort((a, b) => (a < b ? -1 : 1));
 
 const js = (v) => JSON.stringify(v);
@@ -96,14 +117,14 @@ lines.push(`// Industry Nine's own spoke length chart for SYSTEM wheels ("System
 lines.push(`// for a real calculator. Columns are as I9 prints them: driveColumn = "drive side", nonDriveColumn = "non-drive side"; which wheel side each belongs to for a`);
 lines.push(`// front or a rear hub is decided in _lib/system-lengths.js (side mapping), not here.`);
 lines.push('');
-lines.push(`export const CHART_SOURCE = ${js({ chartFile: CHART_FILE, allowedListFile: ALLOWED_FILE, date: CHART_DATE, label: 'I9 System chart 2026', chartSha256: sha(chartBuf), allowedListSha256: sha(allowedBuf) })};`);
+lines.push(`export const CHART_SOURCE = ${js({ chartFile: CHART_FILE, allowedListFile: ALLOWED_FILE, date: CHART_DATE, label: 'I9 System chart 2026', chartSha256: sha(chartBuf), allowedListSha256: sha(allowedBuf), estimatedListFile: ESTIMATED_FILE, estimatedListSha256: sha(estimatedBuf) })};`);
 lines.push('');
 lines.push(`// ${chart.length} chart rows, in file order.`);
 lines.push(`export const CHART_ROWS = [`);
 chart.forEach((r, i) => lines.push(`  ${js(r)}${i < chart.length - 1 ? ',' : ''} // ${i}`));
 lines.push(`];`);
 lines.push('');
-lines.push(`// Rim variant id (digits) -> chart row index. ${ids.length} variants: Jerry's allowed list plus the Coup Carbon 26" 32h. storeErd = the ERD the store holds when it differs from the chart.`);
+lines.push(`// Rim variant id (digits) -> chart row index. ${ids.length} variants: Jerry's allowed list plus the Coup Carbon 26" 32h, and ${estimatedRows.length} rims I9 has not listed (\`estimated\`: lengths from the nearest I9 Hydra2 rim, ESTIMATED_RIM_LENGTHS.csv). storeErd = the ERD the store holds when it differs from the chart.`);
 lines.push(`export const RIM_VARIANT_MAP = {`);
 ids.forEach((id, k) => {
   const e = map[id];
@@ -116,13 +137,13 @@ lines.push('');
 lines.push(`/**`);
 lines.push(` * The chart numbers for a rim variant: no hub logic, no side mapping.`);
 lines.push(` * @param {string|number} rimVariantId  digits, or a gid://shopify/ProductVariant/<digits>`);
-lines.push(` * @returns {null|{ source: 'i9-chart', row: object, driveColumn: number, nonDriveColumn: number, variantTitle: string, borrowed?: boolean, storeErd?: number }}`);
+lines.push(` * @returns {null|{ source: 'i9-chart', row: object, driveColumn: number, nonDriveColumn: number, variantTitle: string, borrowed?: boolean, storeErd?: number, estimated?: { erd: number, offset: number, gap: number, offsetGap: number } }}`);
 lines.push(` */`);
 lines.push(`export function chartLengthsForRim(rimVariantId) {`);
 lines.push(`  const id = String(rimVariantId == null ? '' : rimVariantId).replace(/^.*\\//, '');`);
 lines.push(`  if (!Object.prototype.hasOwnProperty.call(RIM_VARIANT_MAP, id)) return null;`);
 lines.push(`  const e = RIM_VARIANT_MAP[id], row = CHART_ROWS[e.row];`);
-lines.push(`  return { source: 'i9-chart', row, driveColumn: row.driveColumn, nonDriveColumn: row.nonDriveColumn, variantTitle: e.title, ...(e.borrowed ? { borrowed: true } : {}), ...(e.borrowedFrom ? { borrowedFrom: e.borrowedFrom } : {}), ...(e.storeErd ? { storeErd: e.storeErd } : {}) };`);
+lines.push(`  return { source: 'i9-chart', row, driveColumn: e.estimated ? e.estimated.drive : row.driveColumn, nonDriveColumn: e.estimated ? e.estimated.nonDrive : row.nonDriveColumn, variantTitle: e.title, ...(e.estimated ? { estimated: { erd: e.estimated.erd, offset: e.estimated.offset, gap: e.estimated.gap, offsetGap: e.estimated.offsetGap } } : {}), ...(e.borrowed ? { borrowed: true } : {}), ...(e.borrowedFrom ? { borrowedFrom: e.borrowedFrom } : {}), ...(e.storeErd ? { storeErd: e.storeErd } : {}) };`);
 lines.push(`}`);
 lines.push('');
 fs.writeFileSync(path.join(root, '_lib', 'i9-system-chart.js'), lines.join('\n'));
