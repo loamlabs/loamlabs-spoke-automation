@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { estimateFromChart, estimateFlatFromChart, estimateLongerOfSiteAndMeasured, estimatedMarker, geometryLength, HUB_GEOMETRY, OFFSET_FLAG_MM, MAX_GAP_MM } from '../_lib/rim-length-estimate.js';
+import { estimateFromChart, estimateFlatFromChart, estimateLongerOfSiteAndMeasured, estimateByFormula, estimateFormulaLongerOfSiteAndMeasured, formulaAllowances, estimatedMarker, geometryLength, HUB_GEOMETRY, OFFSET_FLAG_MM, MAX_GAP_MM } from '../_lib/rim-length-estimate.js';
 import { CHART_ROWS, RIM_VARIANT_MAP, chartLengthsForRim } from '../_lib/i9-system-chart.js';
 import { resolveSystemLengths } from '../_lib/system-lengths.js';
 import { buildSystemReport } from '../_lib/system-report.js';
@@ -21,7 +21,7 @@ const png = async () => Buffer.from('PNG');
 const DT_XM481_29_32 = '51797698609459';   // DT Swiss XM 481 29" 32h: effective ERD 599, offset 0 -> Sector 2.0 TR315 (299 / 302), ERD gap -1: 299 / 302
 const STANS_EX3_29_32 = '51797701361971';  // Stan's Flow EX3 29" 32h: effective ERD 602, offset 0: exactly between Sector 2.0 TR315 (600) and Triad TR304 (604), both give 300 / 303; the longer I9 row (Triad) is taken, ERD gap -2
 const DT_XRC310_29_28 = '51797704671539';  // DT Swiss XRC 310 29" 28h: effective ERD 602, offset 4 -> Sector 2.0 28h TR314 (303 / 305), ERD gap +2, offset gap +4: 305 / 306
-const NO_ESTIMATE = '51797701099827';      // Stan's Arch MK4 27.5" 28h: 37 mm from the nearest H2 28h row, nothing assigned
+const NO_ESTIMATE = '51797699264819';      // Astral Wanderlust GEN2 650b 28h: no estimate and no row (Jerry, 2026-11-15)
 const FUSE_I9 = '51797702967603';          // We Are One FUSE 29" 32h: I9's own row TR307
 const MARK = /estimated from I9/;
 
@@ -82,7 +82,9 @@ test('the marker names the matched I9 rim, the ERD gap and (when there is one) t
 /* ------------------------------------------------------------------ 2. the data */
 
 const parseCsv = (t) => { const rows = []; let r = [], c = '', q = false; for (let i = 0; i < t.length; i++) { const ch = t[i]; if (q) { if (ch === '"') { if (t[i + 1] === '"') { c += '"'; i++; } else q = false; } else c += ch; } else if (ch === '"') q = true; else if (ch === ',') { r.push(c); c = ''; } else if (ch === '\n') { r.push(c.replace(/\r$/, '')); rows.push(r); r = []; c = ''; } else c += ch; } const h = rows.shift(); return rows.filter((x) => x.length > 1).map((x) => Object.fromEntries(h.map((k, i) => [k, x[i]]))); };
-const EST = parseCsv(fs.readFileSync(path.join(here, '..', 'data', 'i9-source', 'ESTIMATED_RIM_LENGTHS.csv'), 'utf8'));
+const EST_ALL = parseCsv(fs.readFileSync(path.join(here, '..', 'data', 'i9-source', 'ESTIMATED_RIM_LENGTHS.csv'), 'utf8'));
+const EST = EST_ALL.filter((e) => e.method !== 'formula');      // the 82 rows of the neighbour rule (PR #18)
+const FORMULA = EST_ALL.filter((e) => e.method === 'formula');  // the 13 28h rims estimated by formula (2026-11-15)
 const ALLOWED = parseCsv(fs.readFileSync(path.join(here, '..', 'data', 'i9-source', 'I9_SYSTEM_ALLOWED_LIST.csv'), 'utf8'));
 
 test('data: 82 variants (80 non-I9 rims plus the two Stan\'s 29" 32h rims that used to borrow the Wanderer row), every one re-derives from the rule and the chart; none is I9-listed', () => {
@@ -203,7 +205,7 @@ test('a wheel with an I9-listed rim is untouched: no marker anywhere; a mixed or
   assert.equal((mixed.i9OrderList.text.match(/\[length estimated/g) || []).length, 2, 'both sides of the estimated wheel in blocks B or C');
 });
 
-test('a rim with no estimate (28h, 37 mm from the nearest row) is still "not calculated" with the old sentence', async () => {
+test('a rim with no estimate and no row (Astral Wanderlust 650b 28h, Jerry 2026-11-15) is still "not calculated" with the old sentence', async () => {
   const r = await reportOf(rimOrder(NO_ESTIMATE, 28, 95007, 'front'));
   assert.equal(r.lengths.front.pending, true); assert.match(r.note, /Lengths not calculated: this rim is not in I9's chart/);
 });
@@ -325,7 +327,7 @@ test('CHECK BEFORE BUILDING: the first line under the title of the I9 order list
   const lines = r.i9OrderList.text.split('\n');
   assert.equal(lines[0], 'I9 ORDER LIST  -  order #95020'); assert.equal(lines[1], `${CHECK} (rear wheel)`); assert.equal(lines[2], '');
   assert.ok(r.html.indexOf(CHECK) > 0 && r.html.indexOf(CHECK) < r.html.indexOf('Build ID:'), 'the email says it right under the title, before the build id');
-  assert.match(r.html, /<p class="failed"><strong>CHECK BEFORE BUILDING: estimated length, may be up to 4 mm long on the non-drive side<\/strong> \(rear wheel\)<\/p>/);
+  assert.match(r.html, /<p class="failed"><strong>CHECK BEFORE BUILDING: estimated length, may be up to 4 mm long on the non-drive side \(rear wheel\)<\/strong><\/p>/);
   assert.doesNotMatch(r.note, /CHECK BEFORE BUILDING/, 'the order note keeps its marker line only');
   assert.equal(r.subject, 'I9 System Build Report for Order #95020 (spoke colors)', 'subject unchanged');
   assert.ok(r.i9OrderList.sections.dealerSpokes.lines.concat(r.i9OrderList.sections.orderByEmail.lines).every((l) => !/CHECK BEFORE/.test(l)), 'the sheet blocks do not carry the line');
@@ -389,4 +391,77 @@ test('CHECK BEFORE BUILDING on the order sheet: `checkBeforeBuilding` and the fi
   const r = await runWebhook(INDEX, 'orders/create', o, { env: { SYSTEM_CUSTOMER_EMAIL: 'on' } });
   const customer = r.restEmails.find((e) => /^Your custom spoke colors/.test(e.subject));
   assert.ok(customer && !/CHECK BEFORE/.test(customer.html)); assert.doesNotMatch(r.note, /CHECK BEFORE BUILDING/);
+});
+
+/* ------------------------------------------------------------------ 6. estimated BY FORMULA: 28h rims with no I9 28h row within 4 mm (Jerry, 2026-11-15) */
+
+const FORMULA_NOTE = "Lengths estimated by formula from I9's own rows (no I9 28h row within 4 mm): verify; may be up to 3 mm long";
+const CHECK_F = 'CHECK BEFORE BUILDING: estimated length, may be up to 3 mm long';
+const ASTRAL_27_28 = '51797699395891', ARCH_26_28 = '51926281093427', FR541_275_28 = '51797698249011', ASTRAL_650B_28 = '51797699264819';
+const chartForRule = CHART_ROWS.map((r) => ({ ...r }));
+
+test('formula rows: 13 variants, every one re-derives from the rule; none has an I9 row within 4 mm; the allowance leaves NO I9 28h row short; the Astral 650b 28h stays out', () => {
+  assert.equal(FORMULA.length, 13);
+  assert.equal(Object.keys(RIM_VARIANT_MAP).filter((id) => RIM_VARIANT_MAP[id].estimated && RIM_VARIANT_MAP[id].estimated.formula).length, 13);
+  const a = formulaAllowances(chartForRule, 28);
+  assert.equal(a.rows, 5); assert.ok(Math.abs(a.drive - 2.4198) < 0.001 && Math.abs(a.nonDrive - 2.9721) < 0.001, `allowances ${a.drive} ${a.nonDrive}`);
+  assert.equal(formulaAllowances(chartForRule, 32), null, 'only the 28h hole count is served by the formula method');
+  // the property that defines (2s): fed to I9's own 28h rows the formula never comes out short
+  for (const r of chartForRule.filter((x) => x.hub === 'H2 28h')) {
+    const e = estimateByFormula({ erd: r.erd, offset: r.rimOffset, holes: 28 }, chartForRule);
+    assert.ok(e.lengths[0] >= r.driveColumn && e.lengths[1] >= r.nonDriveColumn, `${r.model} ${r.partNumber}: ${e.lengths} vs I9 ${r.driveColumn}/${r.nonDriveColumn}`);
+  }
+  for (const e of FORMULA) {
+    const site = { erd: Number(e.effective_erd), offset: Number(e.rim_offset), holes: Number(e.holes) };
+    assert.equal(site.holes, 28, e.variant_id);
+    assert.equal(estimateFromChart(site, chartForRule).method, 'none', `${e.variant_id}: an I9 row within 4 mm would make the neighbour rule apply`);
+    const f = e.measured_effective_erd === '' ? estimateByFormula(site, chartForRule) : { lengths: estimateFormulaLongerOfSiteAndMeasured(site, Number(e.measured_effective_erd), chartForRule).lengths };
+    assert.deepEqual([Number(e.drive_mm), Number(e.non_drive_mm)], f.lengths, e.variant_id);
+    assert.deepEqual(chartLengthsForRim(e.variant_id).estimated.formula, true);
+    assert.deepEqual([chartLengthsForRim(e.variant_id).driveColumn, chartLengthsForRim(e.variant_id).nonDriveColumn], f.lengths, e.variant_id);
+  }
+  // three known figures (the I9 formula + allowance, rounded up)
+  assert.deepEqual([chartLengthsForRim(ASTRAL_27_28).driveColumn, chartLengthsForRim(ASTRAL_27_28).nonDriveColumn], [284, 285]);
+  assert.deepEqual([chartLengthsForRim(ARCH_26_28).driveColumn, chartLengthsForRim(ARCH_26_28).nonDriveColumn], [272, 274]);
+  assert.deepEqual([chartLengthsForRim(FR541_275_28).driveColumn, chartLengthsForRim(FR541_275_28).nonDriveColumn], [285, 287], 'DT FR 541 27.5" 28h: measured and site ERD both run, the longer (site) wins');
+  assert.equal(chartLengthsForRim(ASTRAL_650B_28), null, 'Astral Wanderlust 650b 28h: no estimate and no row (Jerry)');
+  // the 82 neighbour-rule rows keep method blank; the 28h rule never reaches a rim the neighbour rule serves
+  assert.equal(EST.filter((e) => e.method !== '').length, 0);
+  assert.equal(estimatedMarker({ model: 'M', partNumber: 'T', gap: 1 }).includes('formula'), false);
+});
+
+test('formula rim through a real order: the note line, the source line, the I9 list (no I9 code), the sheet and the email; the CHECK line says 3 mm; nothing for the customer', async () => {
+  const o = chartOrder({ front: { rim: ASTRAL_27_28, holes: 28, rimTitle: 'Astral Wanderlust GEN2 Alloy Rim - 27.5"' }, orderNumber: 95050 });
+  const r = await reportOf(o);
+  assert.deepEqual([r.lengths.front.left, r.lengths.front.right], [284, 285]);
+  assert.match(r.note, new RegExp(FORMULA_NOTE.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  assert.match(r.lengths.front.sourceText, /^source: ESTIMATED BY FORMULA from I9's hub numbers and the allowance of I9's own rows/);
+  assert.equal(r.lengths.front.chart.partNumber, null); assert.equal(r.lengths.front.chart.model, 'formula (no I9 row)');
+  const lines = r.i9OrderList.text.split('\n');
+  assert.equal(lines[1], `${CHECK_F} (front wheel)`); assert.equal(lines[2], '');
+  assert.match(r.i9OrderList.text, new RegExp(`\\[length ${FORMULA_NOTE.slice('Lengths '.length).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\]`));
+  assert.doesNotMatch(r.i9OrderList.text, /I9 code/, 'no I9 code for a rim that is in no I9 row');
+  assert.match(r.html, new RegExp(`<p class="failed"><strong>${CHECK_F.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} \\(front wheel\\)</strong></p>`));
+  assert.doesNotMatch(r.note, /CHECK BEFORE BUILDING/); assert.equal(r.subject, 'I9 System Build Report for Order #95050 (spoke colors)');
+  const sheet = buildOrderSheet({ orderData: o, calculatedAt: '2026-11-15T12:00:00.000Z' });
+  assert.deepEqual(sheet.checkBeforeBuilding, { line: `${CHECK_F} (front wheel)`, wheels: ['front'] }); assert.equal(sheet.orderChecks[0], `${CHECK_F} (front wheel)`);
+  assert.equal(sheet.wheels[0].lengths.chart.estimated, true); assert.match(sheet.wheels[0].lengths.chart.estimatedText, /estimated by formula/);
+  const w = await runWebhook(INDEX, 'orders/create', o, { env: { SYSTEM_CUSTOMER_EMAIL: 'on' } });
+  assert.equal(w.status, 200); assert.match(w.note, /Lengths estimated by formula from I9's own rows/); assert.doesNotMatch(w.note, /CHECK BEFORE BUILDING/);
+  const customer = w.restEmails.find((e) => /^Your custom spoke colors/.test(e.subject));
+  assert.ok(customer && !/CHECK BEFORE|formula|estimated|ESTIMATED/.test(customer.html.replace(/<style[\s\S]*?<\/style>/g, '')));
+});
+
+test('an order with BOTH kinds: the offset line first, the formula line second, each naming its own wheel; the stale-ERD guard also works for a formula rim', async () => {
+  const o = chartOrder({ front: { rim: ARCH_26_28, holes: 28 }, rear: { rim: ARC30_29_32(), holes: 32 }, orderNumber: 95051 });
+  const r = await reportOf(o);
+  const lines = r.i9OrderList.text.split('\n');
+  assert.equal(lines[1], `${CHECK} (rear wheel)`); assert.equal(lines[2], `${CHECK_F} (front wheel)`); assert.equal(lines[3], '');
+  assert.ok(r.html.indexOf(`${CHECK} (rear wheel)`) < r.html.indexOf(`${CHECK_F} (front wheel)`));
+  const sheet = buildOrderSheet({ orderData: o, calculatedAt: '2026-11-15T12:00:00.000Z' });
+  assert.deepEqual(sheet.checkBeforeBuilding.lines, [`${CHECK} (rear wheel)`, `${CHECK_F} (front wheel)`]); assert.deepEqual(sheet.orderChecks.slice(0, 2), sheet.checkBeforeBuilding.lines); assert.deepEqual(sheet.checkBeforeBuilding.wheels, ['front', 'rear'], 'wheel order, front first; the lines are ordered by kind');
+  // ERD moved: the same "check ERD" line as for the other estimates
+  const g = (erd) => ({ position: 'front', hubModel: 'Hydra2', holes: 28, erd, rimVariantId: ASTRAL_27_28, spokes: { left: 14, right: 14 }, cross: { left: 3, right: 3 } });
+  assert.equal(resolveSystemLengths(g(559.5)).lengths.note.includes('out of date'), false);
+  assert.match(resolveSystemLengths(g(565)).lengths.note, /store ERD 565 differs from 559\.5, the ERD this estimate was made from/);
 });

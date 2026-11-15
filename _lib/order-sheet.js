@@ -20,7 +20,7 @@ import { extraBuildNotice } from './order-lines.js';
 import { buildI9OrderList } from './i9-order-list.js';
 import { geometry } from './studio-geometry.js';
 import { numberSpokes, numberingFor } from './spoke-numbering.js';
-import { checkBeforeBuildingText } from './rim-length-estimate.js';
+import { checkBeforeBuildingLines } from './rim-length-estimate.js';
 
 // 1: PR 1 / PR 2. 2: adds `orderList` (+ orderListStatus, orderListNote). 3: the PR 1 field `i9OrderList` is gone (its data is in `orderList`: text, cartLink, cartLinkAdds, orderByEmailText, snapshotDate).
 // A saved row of any older version still loads and is answered as stored (a row of version 1 or 2 may carry `i9OrderList`; the reader ignores it, the dashboard keeps its legacy card for them).
@@ -141,10 +141,10 @@ export function buildOrderSheet(o) {
     const lengthsByPos = {};
     for (const w of wheels) lengthsByPos[w.position] = pre ? pre.lengths[w.position] : lengthsFor(w, lengthCalculator);
     sheet.wheels = wheels.map((w) => wheelEntry(w, lengthsOfSheet(lengthsByPos[w.position]), {}, numbering));
-    const checkWheels = wheels.filter((w) => { const l = lengthsByPos[w.position]; return l && !l.pending && l.checkBeforeBuilding; }).map((w) => w.position);
+    const checkItems = wheels.filter((w) => { const l = lengthsByPos[w.position]; return l && !l.pending && l.checkBeforeBuilding; }).map((w) => ({ position: w.position, kind: lengthsByPos[w.position].checkKind }));
     // an order with a wheel whose estimated length "may be up to 4 mm long on the non-drive side" (the 32 offset-flagged variants): the same line as the top of the I9 order list and the internal email,
     // as `checkBeforeBuilding` and first in `orderChecks` (the sheet's list of order-level flags). The key exists ONLY then, so every other sheet is byte for byte what it was. Internal only (Jerry, 2026-11-15).
-    if (checkWheels.length) { const line = checkBeforeBuildingText(checkWheels); sheet.checkBeforeBuilding = { line, wheels: checkWheels }; sheet.orderChecks.unshift(line); }
+    if (checkItems.length) { const lines = checkBeforeBuildingLines(checkItems); sheet.checkBeforeBuilding = { line: lines[0], ...(lines.length > 1 ? { lines } : {}), wheels: checkItems.map((i) => i.position) }; sheet.orderChecks.unshift(...lines); }
     const supplied = suppliedSummary(wheels);
     if (supplied) sheet.customerSupplied = { text: supplied, reminder: PARTS_MUST_ARRIVE };
     try {

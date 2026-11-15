@@ -54,7 +54,7 @@ test('the ERD compare still works for these rims: a store ERD of 604 is flagged 
 });
 
 test('ENVE M630, WTB i30 and Light Bicycle AM928 (no I9 data) and the other Stan\'s variants stay NOT CALCULATED', async () => {
-  for (const [id, title] of [['51000000000001', 'ENVE M630 Rim'], ['51000000000002', 'WTB ST i30 Rim'], ['51000000000003', 'Light Bicycle AM928 Rim'], ['51797701099827', "Stan's Arch MK4 Alloy Rim 27.5\" (28h variant: no I9 row and no estimate, 37 mm from the nearest H2 28h row)"]]) {
+  for (const [id, title] of [['51000000000001', 'ENVE M630 Rim'], ['51000000000002', 'WTB ST i30 Rim'], ['51000000000003', 'Light Bicycle AM928 Rim'], ['51797699264819', 'Astral Wanderlust GEN2 Alloy Rim 650b (28h variant: no I9 row and no estimate, left without a row by Jerry on 2026-11-15)']]) {
     const r = await run(order(rimComp(id, title))); assert.ok(mail(r).includes('NOT CALCULATED'), title); assert.equal(r.note.includes('NOT CALCULATED'), false, title);
   }
 });
