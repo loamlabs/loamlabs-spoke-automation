@@ -17,6 +17,7 @@ import { svgToPng } from './wheel-png.js';
 import { suppliedSummary, suppliedWheelText, PARTS_MUST_ARRIVE } from './own-parts.js'; // OWN-PARTS
 import { calculateSystemSpokeLengths, SYSTEM_LENGTHS_PENDING_TEXT, SYSTEM_LENGTHS_NOT_CALCULATED_PREFIX, systemLengthsNotCalculatedText, resolveSystemLengths, REASON_NOT_IN_CHART_MAP } from './system-lengths.js';
 import { resendTimeoutMs } from './http-timeout.js';
+import { CHECK_BEFORE_BUILDING_LINE, needsCheckBeforeBuilding } from './rim-length-estimate.js';
 import { buildI9OrderList } from './i9-order-list.js'; // I9 ORDER LIST (internal email only, never the order note)
 
 export const IMAGE_WIDTH_PX = 600;
@@ -99,7 +100,7 @@ export function lengthsFor(wheel, lengthCalculator) { // exported for the order 
     if (r && typeof r === 'object' && isFinite(r.left) && isFinite(r.right)) {
       // round 10: a result from I9's chart also says where it came from (r.sourceText), in the internal email and the order note only
       const sides = r.sideLabels && r.sideLabels.left && r.sideLabels.right ? `${r.sideLabels.left} ${r.left} mm, ${r.sideLabels.right} ${r.right} mm` : `Left/Rotor ${r.left} mm, Right/Drive ${r.right} mm`;
-      return { pending: false, left: r.left, right: r.right, chart: r.chart || null, extra: typeof r.note === 'string' && r.note ? r.note : null, text: `Spoke lengths (System): ${sides}${r.note ? ` (${r.note})` : ''}`, sourceText: typeof r.sourceText === 'string' ? r.sourceText : null, internalText: typeof r.internalText === 'string' ? r.internalText : null, ...(r.estimated && r.estimated.text ? { estimatedText: r.estimated.text, noteLine: `${NOTE_ESTIMATED_PREFIX} ${r.estimated.text}` } : {}) };
+      return { pending: false, left: r.left, right: r.right, chart: r.chart || null, extra: typeof r.note === 'string' && r.note ? r.note : null, text: `Spoke lengths (System): ${sides}${r.note ? ` (${r.note})` : ''}`, sourceText: typeof r.sourceText === 'string' ? r.sourceText : null, internalText: typeof r.internalText === 'string' ? r.internalText : null, ...(r.estimated && r.estimated.text ? { estimatedText: r.estimated.text, noteLine: `${NOTE_ESTIMATED_PREFIX} ${r.estimated.text}`, ...(needsCheckBeforeBuilding(r.estimated) ? { checkBeforeBuilding: true } : {}) } : {}) };
     }
     // the chart lookup says why in plain words; an injected calculator (tests) keeps the old text
     const why = lengthCalculator === calculateSystemSpokeLengths ? systemLengthsNotCalculatedText(wheel.geometryInput) : null;
@@ -257,6 +258,9 @@ export async function buildSystemReport(o) {
   let i9 = null, i9Html = '';
   try { i9 = buildI9OrderList({ wheels, lengthsByPos, orderNumber, recipe }); i9Html = i9.html; }
   catch (e) { console.error(`I9-SYSTEM: the I9 order list could not be built for order #${orderNumber}:`, e); i9Html = `<div class="wheel-section"><p class="failed">The I9 ORDER LIST could not be built (${esc(e && e.message)}). The rest of the report is complete.</p></div>`; }
+  // an order with a wheel whose estimate carries "may be up to 4 mm long" (32 variants): one red line at the top of the internal email, naming the wheel(s) (Jerry, 2026-11-15); the I9 list repeats it
+  const checkWheels = wheels.filter((w) => lengthsByPos[w.position] && lengthsByPos[w.position].checkBeforeBuilding).map((w) => w.position);
+  const checkBox = checkWheels.length ? `<p class="failed"><strong>${esc(CHECK_BEFORE_BUILDING_LINE)}</strong> (${esc(checkWheels.join(' and '))} wheel${checkWheels.length > 1 ? 's' : ''})</p>` : '';
   const orderAdminUrl = orderData.id ? `https://${process.env.SHOPIFY_STORE_DOMAIN}/admin/orders/${orderData.id}` : null;
   const hubModels = [...new Set(wheels.map((w) => w.hubModel))].join(' / ');
   const multi = wheels.filter((w) => w.isMultiColor).length;
@@ -273,7 +277,7 @@ export async function buildSystemReport(o) {
         </head>
         <body>
             <div class="container">
-                <h2>I9 System Build Report for Order #${esc(orderNumber)}</h2>
+                <h2>I9 System Build Report for Order #${esc(orderNumber)}</h2>${checkBox}
                 <p>Build ID: ${esc(recipe.buildId || 'n/a')}${orderAdminUrl ? ` | <a href="${orderAdminUrl}"><strong>View Order in Shopify &rarr;</strong></a>` : ''}</p>
 
                 <div class="summary-box">

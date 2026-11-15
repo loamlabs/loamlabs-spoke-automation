@@ -21,12 +21,11 @@ const CHART_FILE = 'i9_system_length_chart.csv', ALLOWED_FILE = 'I9_SYSTEM_ALLOW
 const ESTIMATED_FILE = 'ESTIMATED_RIM_LENGTHS.csv'; // rims I9 has not listed: lengths from the nearest I9 Hydra2 rim (rule in _lib/rim-length-estimate.js), Jerry 2026-11-14
 const CHART_DATE = '2026-10-28';
 
-// Variants Jerry asked for in the round 10 prompt that the allowed-list file does not contain yet.
-const EXTRA_VARIANTS = [
-  { variantId: '67819688788275', title: 'Industry Nine Coup Carbon Rim 26" / 32h', part: 'TR175', hub: 'H2 32h', modelPrefix: 'Coup 26', comment: 'Industry Nine Coup Carbon 26" 32h = chart "Coup 26" (Hydra2 Carbon section) TR175, ERD 536, H2 32h, 268/270 (Jerry, round 10 prompt)' },
-];
+// Variants that are in no CSV file yet (none now: the Coup Carbon 26" 32h became a row of I9_SYSTEM_ALLOWED_LIST.csv on 2026-11-15, so the CSV is the one source for the I9-listed rims).
+const EXTRA_VARIANTS = [];
 // Facts from the round 10 prompt about single variants.
 const VARIANT_NOTES = {
+  '67819688788275': { comment: 'Industry Nine Coup Carbon 26" 32h = chart "Coup 26" (Hydra2 Carbon section) TR175, ERD 536, H2 32h, 268/270 (Jerry, round 10 prompt)' },
   '51901428400435': { borrowed: true, comment: 'WAO Whisp 29" 28h borrows the chart row Sector 2.0 29" 28h TR314 (ERD 600, H2 28h, 303/305): same ERD and hole count, NOT an I9-listed Whisp combination' },
   '53871010939187': { storeErd: 652, comment: 'WAO Hush 24h 2:1 = chart Hush 24h TR316 (ERD 655, SM, 328/325); the store says ERD 652: confirm with I9 when ordering parts' }
 };
@@ -74,7 +73,9 @@ for (const a of parseCsv(allowedBuf.toString('utf8'))) {
   const id = a['variant_id'];
   const text = a['chart_row_for_lengths'];
   const m = /^(.*?)\s+(TR\d+)\s+(H2 28h|H2 32h|SM\/G|SG|SM)\s+erd\s+([\d.]+)\s+off\s+(\d+)/.exec(text);
-  if (String(a['set_custom.i9_system_allowed']).toLowerCase() !== 'true' || !m) continue; // explicit FALSE rows and rows without a chart row stay out of the map
+  // A row WITH a chart row stays in the map whatever its flag column says (Jerry, 2026-11-15): the flag is Shopify's switch for the builder, an old cart or a saved build can still hold the rim, and the backend never gates on the flag.
+  // Such a row says so in its note ("flag off deliberately Nov 14, row kept"). A row WITHOUT a chart row (explicit FALSE: I9 does not make the rim) stays out.
+  if (!m) continue;
   const idx = findRow({ part: m[2], hub: m[3], modelPrefix: m[1] });
   const row = chart[idx];
   if (row.erd !== Number(m[4]) || row.rimOffset !== Number(m[5])) throw new Error(`variant ${id}: ERD/offset in the allowed list differ from the chart (${text})`);

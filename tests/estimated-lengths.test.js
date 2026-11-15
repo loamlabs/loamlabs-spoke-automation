@@ -313,3 +313,80 @@ test('the sentence "may be up to 4 mm long on the non-drive side" is in the mark
   // and not on a rim whose offset is close to its I9 rim
   const plain = await reportOf(rimOrder(DT_XM481_29_32, 32, 95011, 'rear', 'DT Swiss XM 481 - 29"')); assert.doesNotMatch(plain.note, /may be up to 4 mm long/);
 });
+
+/* ------------------------------------------------------------------ 5. CHECK BEFORE BUILDING (Jerry, 2026-11-15): internal places only */
+
+const CHECK = 'CHECK BEFORE BUILDING: estimated length, may be up to 4 mm long on the non-drive side';
+const ARC30_29_32 = () => EST.find((x) => /ARC 30/.test(x.product_title) && x.size === '29"' && x.holes === '32').variant_id; // offset gap +2.5: one of the 32
+
+test('CHECK BEFORE BUILDING: the first line under the title of the I9 order list and the top of the internal email, naming the wheel; not in the order note, not in any customer text', async () => {
+  const o = chartOrder({ rear: { rim: ARC30_29_32(), holes: 32, rimTitle: 'Race Face ARC 30 Offset Alloy Rim - 29"' }, orderNumber: 95020 });
+  const r = await reportOf(o);
+  const lines = r.i9OrderList.text.split('\n');
+  assert.equal(lines[0], 'I9 ORDER LIST  -  order #95020'); assert.equal(lines[1], `${CHECK} (rear wheel)`); assert.equal(lines[2], '');
+  assert.ok(r.html.indexOf(CHECK) > 0 && r.html.indexOf(CHECK) < r.html.indexOf('Build ID:'), 'the email says it right under the title, before the build id');
+  assert.match(r.html, /<p class="failed"><strong>CHECK BEFORE BUILDING: estimated length, may be up to 4 mm long on the non-drive side<\/strong> \(rear wheel\)<\/p>/);
+  assert.doesNotMatch(r.note, /CHECK BEFORE BUILDING/, 'the order note keeps its marker line only');
+  assert.equal(r.subject, 'I9 System Build Report for Order #95020 (spoke colors)', 'subject unchanged');
+  assert.ok(r.i9OrderList.sections.dealerSpokes.lines.concat(r.i9OrderList.sections.orderByEmail.lines).every((l) => !/CHECK BEFORE/.test(l)), 'the sheet blocks do not carry the line');
+});
+
+test('CHECK BEFORE BUILDING: exactly the wheels whose marker carries the "may be up to 4 mm long" sentence; a second flagged wheel makes it "front and rear wheels"; an estimate without the sentence, an I9-listed rim and a wheel with no length get none', async () => {
+  const flagged = EST.filter((e) => Math.abs(Number(e.offset_gap)) >= 1.5), plainEst = EST.filter((e) => Math.abs(Number(e.offset_gap)) < 1.5);
+  assert.equal(flagged.length, 32);
+  const rear = ARC30_29_32(), front = flagged.find((e) => e.holes === '28').variant_id;
+  const both = await reportOf(chartOrder({ front: { rim: front, holes: 28 }, rear: { rim: rear, holes: 32 }, orderNumber: 95021 }));
+  assert.equal(both.i9OrderList.text.split('\n')[1], `${CHECK} (front and rear wheels)`);
+  const oneOfTwo = await reportOf(chartOrder({ front: { rim: FUSE_I9, holes: 32 }, rear: { rim: rear, holes: 32 }, orderNumber: 95022 }));
+  assert.equal(oneOfTwo.i9OrderList.text.split('\n')[1], `${CHECK} (rear wheel)`, 'only the flagged wheel is named');
+  for (const [name, o] of [['an estimate without the sentence (DT Swiss XM 481 29 inch 32h)', rimOrder(DT_XM481_29_32, 32, 95023, 'rear', 'DT Swiss XM 481 - 29"')], ['an I9-listed rim', chartOrder({ rear: { rim: FUSE_I9, holes: 32 }, orderNumber: 95024 })], ['a rim with no estimate (not calculated)', rimOrder(NO_ESTIMATE, 28, 95025, 'front')]]) {
+    const r = await reportOf(o);
+    assert.doesNotMatch(r.i9OrderList.text, /CHECK BEFORE BUILDING/, name); assert.doesNotMatch(r.html, /CHECK BEFORE BUILDING/, name);
+    assert.equal(r.i9OrderList.text.split('\n')[1], '', name + ': the line after the title is the blank line it always was');
+  }
+  // every one of the 32 variants gets the line, every other estimated variant none (through the real lengths path)
+  for (const e of EST) {
+    const h = Number(e.holes), pos = h === 28 ? 'front' : 'rear';
+    const r = await reportOf(chartOrder({ [pos]: { rim: e.variant_id, holes: h }, orderNumber: 95030 }));
+    assert.equal(/CHECK BEFORE BUILDING/.test(r.i9OrderList.text), Math.abs(Number(e.offset_gap)) >= 1.5, e.variant_id);
+  }
+  assert.equal(plainEst.length, 50);
+});
+
+test('CHECK BEFORE BUILDING through the whole webhook with the customer email on: in the internal email, not in the customer email, not in the order note', async () => {
+  const o = chartOrder({ rear: { rim: ARC30_29_32(), holes: 32, rimTitle: 'Race Face ARC 30 Offset Alloy Rim - 29"' }, orderNumber: 95026 });
+  const r = await runWebhook(INDEX, 'orders/create', o, { env: { SYSTEM_CUSTOMER_EMAIL: 'on' } });
+  assert.equal(r.status, 200);
+  const internal = r.restEmails.find((e) => /^I9 System Build Report/.test(e.subject)), customer = r.restEmails.find((e) => /^Your custom spoke colors/.test(e.subject));
+  assert.ok(internal && internal.html.includes(CHECK), 'internal email'); assert.ok(customer, 'customer email sent (flag on)');
+  assert.ok(!/CHECK BEFORE|estimated/i.test(customer.html.replace(/<style[\s\S]*?<\/style>/g, '')), 'nothing for the customer');
+  assert.doesNotMatch(r.note, /CHECK BEFORE BUILDING/);
+});
+
+test('CHECK BEFORE BUILDING on the order sheet: `checkBeforeBuilding` and the first entry of orderChecks, same wording and wheel as the I9 list and the email; the key exists only for the 32 variants; the order text of the list carries it too', async () => {
+  const AT = '2026-11-15T12:00:00.000Z';
+  const o = chartOrder({ front: { rim: FUSE_I9, holes: 32 }, rear: { rim: ARC30_29_32(), holes: 32, rimTitle: 'Race Face ARC 30 Offset Alloy Rim - 29"' }, orderNumber: 95040 });
+  const line = `${CHECK} (rear wheel)`;
+  const recalculated = buildOrderSheet({ orderData: JSON.parse(JSON.stringify(o)), calculatedAt: AT });
+  assert.deepEqual(recalculated.checkBeforeBuilding, { line, wheels: ['rear'] }); assert.equal(recalculated.orderChecks[0], line);
+  // the saved copy of the webhook is built from the report it already computed: the same
+  const rep = await reportOf(o);
+  const asSent = buildOrderSheet({ orderData: JSON.parse(JSON.stringify(o)), calculatedAt: AT, mode: 'as-sent', systemReport: { wheels: rep.wheels, lengths: rep.lengths, i9OrderList: rep.i9OrderList } });
+  assert.deepEqual(asSent.checkBeforeBuilding, { line, wheels: ['rear'] }); assert.equal(asSent.orderChecks[0], line);
+  assert.equal(asSent.orderList.text.split('\n')[1], line, 'the list text on the sheet starts with it too');
+  assert.equal(rep.i9OrderList.text.split('\n')[1], line, 'one wording in the list, the email and the sheet');
+  // two flagged wheels
+  const front = EST.find((e) => Math.abs(Number(e.offset_gap)) >= 1.5 && e.holes === '28').variant_id;
+  const both = buildOrderSheet({ orderData: chartOrder({ front: { rim: front, holes: 28 }, rear: { rim: ARC30_29_32(), holes: 32 }, orderNumber: 95041 }), calculatedAt: AT });
+  assert.equal(both.checkBeforeBuilding.line, `${CHECK} (front and rear wheels)`);
+  // every other sheet: no key at all, orderChecks as before (an I9 rim, an estimate without the sentence, a rim with no estimate)
+  for (const od of [chartOrder({ rear: { rim: FUSE_I9, holes: 32 }, orderNumber: 95042 }), rimOrder(DT_XM481_29_32, 32, 95043, 'rear', 'DT Swiss XM 481 - 29"'), rimOrder(NO_ESTIMATE, 28, 95044, 'front')]) {
+    const s = buildOrderSheet({ orderData: od, calculatedAt: AT });
+    assert.equal('checkBeforeBuilding' in s, false); assert.deepEqual(s.orderChecks, []);
+  }
+  // privacy: nothing but the line and the wheel names; the Shopify note and the customer text never carry it
+  assert.doesNotMatch(rep.note, /CHECK BEFORE BUILDING/);
+  const r = await runWebhook(INDEX, 'orders/create', o, { env: { SYSTEM_CUSTOMER_EMAIL: 'on' } });
+  const customer = r.restEmails.find((e) => /^Your custom spoke colors/.test(e.subject));
+  assert.ok(customer && !/CHECK BEFORE/.test(customer.html)); assert.doesNotMatch(r.note, /CHECK BEFORE BUILDING/);
+});

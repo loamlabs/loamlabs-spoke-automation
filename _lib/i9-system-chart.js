@@ -4,7 +4,7 @@
 // for a real calculator. Columns are as I9 prints them: driveColumn = "drive side", nonDriveColumn = "non-drive side"; which wheel side each belongs to for a
 // front or a rear hub is decided in _lib/system-lengths.js (side mapping), not here.
 
-export const CHART_SOURCE = {"chartFile":"i9_system_length_chart.csv","allowedListFile":"I9_SYSTEM_ALLOWED_LIST.csv","date":"2026-10-28","label":"I9 System chart 2026","chartSha256":"74125b936ba3ad8271224d63c06320395749a9e9a454abffe370b636765ef31a","allowedListSha256":"f1dbe844e4ee1377d04a6d882f24ce63df0375ca51826b399831cdef33190335","estimatedListFile":"ESTIMATED_RIM_LENGTHS.csv","estimatedListSha256":"ae10ee8fb2ab4fb4359f1fa443244d7f0e687760dde8aaa59d31a944f08ead5d"};
+export const CHART_SOURCE = {"chartFile":"i9_system_length_chart.csv","allowedListFile":"I9_SYSTEM_ALLOWED_LIST.csv","date":"2026-10-28","label":"I9 System chart 2026","chartSha256":"74125b936ba3ad8271224d63c06320395749a9e9a454abffe370b636765ef31a","allowedListSha256":"989679f55f6dea2b7adc08a9f9c05091d9a6f277afc193631524eb91056c9664","estimatedListFile":"ESTIMATED_RIM_LENGTHS.csv","estimatedListSha256":"72793d3517dc1697ca5534dc870fc82d803747a939df9431336edcbe0cce5ca7"};
 
 // 31 chart rows, in file order.
 export const CHART_ROWS = [
@@ -152,7 +152,7 @@ export const RIM_VARIANT_MAP = {
   "67796530037043": {"row":26,"title":"We Are One WHISP Carbon Rim (XC) 29\" / 24h 2:1 / Black"},
   "67796583547187": {"row":10,"title":"We Are One WANDERER Carbon Rim (Bikepacking) 29\" / 32h / Black"},
   // Industry Nine Coup Carbon 26" 32h = chart "Coup 26" (Hydra2 Carbon section) TR175, ERD 536, H2 32h, 268/270 (Jerry, round 10 prompt)
-  "67819688788275": {"row":21,"title":"Industry Nine Coup Carbon Rim 26\" / 32h"},
+  "67819688788275": {"row":21,"title":"Industry Nine Coup Carbon Rim (DJ) 26\" / 32h / Black"},
   "67980774637875": {"row":25,"title":"We Are One REVIVE 2.0 Carbon Rim (Gravel) 700c / 24h 2:1 / Black"},
   "67984929227059": {"row":24,"title":"Industry Nine Revive 2.0 Alloy Rim (Gravel) 29\" / 24h 2:1 / Black"}
 };
