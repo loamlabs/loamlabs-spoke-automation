@@ -43,7 +43,7 @@ const wheelResult = (order, pos) => resolveSystemLengths(systemWheels(recipeOf(o
 test('data: 31 chart rows and the map are in the generated file; they equal the committed CSV files (data/i9-source/), and the stored checksums', () => {
   assert.equal(CHART_ROWS.length, 31);
   assert.equal(CHART_SOURCE.date, '2026-10-28');
-  assert.equal(Object.keys(RIM_VARIANT_MAP).length, 109, '29 own and borrowed entries plus 80 estimated ones (ESTIMATED_RIM_LENGTHS.csv, Nov 14). The 29: 27 from the allowed list and the Coup, plus Stans Arch MK4 and Flow MK4 29 inch 32h (borrowed from the Wanderer row, Nov 7); the 27 include the Revive 2.0 700c 24h 2:1 (Nov 13) and the Industry Nine Revive 2.0 Alloy 29 inch 24h 2:1 (Nov 14)');
+  assert.equal(Object.keys(RIM_VARIANT_MAP).length, 122, '109 = 29 own and borrowed entries plus 80 estimated ones (ESTIMATED_RIM_LENGTHS.csv, Nov 14), plus 13 28h rims estimated by formula (Nov 15, method formula in the same file). The 29: 27 from the allowed list and the Coup, plus Stans Arch MK4 and Flow MK4 29 inch 32h (borrowed from the Wanderer row, Nov 7); the 27 include the Revive 2.0 700c 24h 2:1 (Nov 13) and the Industry Nine Revive 2.0 Alloy 29 inch 24h 2:1 (Nov 14)');
   { // the committed CSV files (data/i9-source/) always exist here, so this check runs on every checkout
     const csv = parseCsv(fs.readFileSync(path.join(CSV_DIR, 'i9_system_length_chart.csv'), 'utf8'));
     assert.equal(csv.length, 31);
@@ -58,10 +58,11 @@ test('data: 31 chart rows and the map are in the generated file; they equal the 
   }
   { // and the content of the generated file is pinned too
     assert.equal(sha(CHART_ROWS), 'd60f092ac9c20cc2ffdab8c842c51f08ffbf6e1f14d04b7c2ea258dec0760ac4');
-    const own = Object.fromEntries(Object.entries(RIM_VARIANT_MAP).filter(([, e]) => !e.estimated)), est = Object.fromEntries(Object.entries(RIM_VARIANT_MAP).filter(([, e]) => e.estimated));
-    assert.equal(Object.keys(own).length, 27); assert.equal(Object.keys(est).length, 82);
+    const own = Object.fromEntries(Object.entries(RIM_VARIANT_MAP).filter(([, e]) => !e.estimated)), est = Object.fromEntries(Object.entries(RIM_VARIANT_MAP).filter(([, e]) => e.estimated && !e.estimated.formula)), fml = Object.fromEntries(Object.entries(RIM_VARIANT_MAP).filter(([, e]) => e.estimated && e.estimated.formula));
+    assert.equal(Object.keys(own).length, 27); assert.equal(Object.keys(est).length, 82); assert.equal(Object.keys(fml).length, 13);
     assert.equal(sha(own), '896cf01c73cbc92469f1bc2bd3c53401bc3623960b76f0d6d225d4232bbc2c79', 'the I9-listed entries (and the Whisp 28h borrowed one) are exactly what they were (a54942e2...) except one string: the title of the Coup Carbon 26 inch 32h, now taken from its row in I9_SYSTEM_ALLOWED_LIST.csv (2026-11-15); no length, row or flag handling changed');
-    assert.equal(sha(est), 'c7af5ba93228511ec3f9f657b3ce33fc6c56e0ae65d6ffa7e4a524f148e90230', 'the estimated entries');
+    assert.equal(sha(est), 'c7af5ba93228511ec3f9f657b3ce33fc6c56e0ae65d6ffa7e4a524f148e90230', 'the 82 neighbour-rule estimated entries are exactly what they were before the formula rows');
+    assert.equal(sha(fml), '42be209a22250bd28a61eb237835818388f38f3fb2937788e25bbb251c52d8e5', 'the 13 formula entries (28h rims, no I9 28h row within 4 mm)');
   }
 });
 
@@ -99,7 +100,9 @@ test('every mapped rim variant returns exactly its chart pair through the real o
     const dc = e.estimated ? e.estimated.drive : row.driveColumn, nc = e.estimated ? e.estimated.nonDrive : row.nonDriveColumn; // an estimated rim carries its own pair (copy or adjusted)
     const expected = pos === 'front' ? { left: dc, right: nc } : { left: nc, right: dc };
     assert.deepEqual({ left: r.left, right: r.right }, expected, `${id} ${row.model} ${row.partNumber} (${pos})`);
-    assert.equal(r.source, 'i9-chart'); assert.equal(r.chart.partNumber, row.partNumber); assert.equal(r.chart.model, row.model);
+    assert.equal(r.source, 'i9-chart');
+    if (e.estimated && e.estimated.formula) { assert.equal(r.chart.partNumber, null); assert.equal(r.chart.model, 'formula (no I9 row)'); assert.match(r.sourceText, /ESTIMATED BY FORMULA/); }  // the numbers come from no I9 row
+    else { assert.equal(r.chart.partNumber, row.partNumber); assert.equal(r.chart.model, row.model); }
     assert.ok(lengths[pos] && lengths[pos].pending === false, `${id}: the report shows numbers`);
   }
 });

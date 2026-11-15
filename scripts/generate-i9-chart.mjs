@@ -6,14 +6,15 @@
 //   i9_system_length_chart.csv     31 rows from I9's "System- 2026" tab (section, wheel_model, rim_part_number, erd_mm, rim_offset_mm, hub, drive/non-drive length)
 //   I9_SYSTEM_ALLOWED_LIST.csv     the rim variants allowed in the System builder; chart_row_for_lengths names the chart row (part number, hub, ERD, offset)
 //   ESTIMATED_RIM_LENGTHS.csv      non-I9 rim variants and the I9 Hydra2 row their lengths are estimated from (geometry difference to that rim, offset included); every row is re-derived with the rule in
-//                                  _lib/rim-length-estimate.js and the script stops if the file disagrees with the rule or the chart. Such a variant is marked `estimated` in the map.
+//                                  _lib/rim-length-estimate.js and the script stops if the file disagrees with the rule or the chart. Such a variant is marked `estimated` in the map. A row with method `formula` is a 28h rim with no
+//                                  I9 28h row within 4 mm: formula + the allowance of I9's own rows that leaves no I9 row short (estimateByFormula); marked `estimated` with formula: true.
 // The map rim variant id -> chart row is derived from the allowed list (part number + hub + model prefix pick the row); the chart numbers quoted in the
 // allowed list must equal the chart's, otherwise this script stops. EXTRA_VARIANTS adds variants that are not in the allowed-list file yet.
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
-import { estimateFromChart, estimateLongerOfSiteAndMeasured } from '../_lib/rim-length-estimate.js';
+import { estimateFromChart, estimateLongerOfSiteAndMeasured, estimateByFormula, estimateFormulaLongerOfSiteAndMeasured } from '../_lib/rim-length-estimate.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const dir = path.resolve(process.argv[2] || path.join(root, 'data', 'i9-source'));
@@ -92,6 +93,24 @@ for (const e of estimatedRows) {
   const id = e['variant_id'];
   if (!/^\d+$/.test(id)) throw new Error('estimated list: bad variant id ' + id);
   if (map[id]) throw new Error('estimated list: variant already has an I9 chart row of its own (allowed list, extras or borrowed): ' + id);
+  if (e['method'] === 'formula') { // a 28h rim with no I9 28h row within 4 mm: formula + the allowance of I9's own rows that leaves no I9 row short (Jerry, 2026-11-15). matched_* = the nearest 28h row, for the record only.
+    const fh = Number(e['holes']), ferd = Number(e['effective_erd']), foff = Number(e['rim_offset']);
+    const none = estimateFromChart({ erd: ferd, offset: foff, holes: fh }, chart);
+    if (none && none.method !== 'none') throw new Error(`estimated list: variant ${id} has an I9 row within 4 mm of ERD, the formula method does not apply`);
+    const fm = e['measured_effective_erd'] === '' ? null : Number(e['measured_effective_erd']);
+    const fboth = fm == null ? null : estimateFormulaLongerOfSiteAndMeasured({ erd: ferd, offset: foff, holes: fh }, fm, chart);
+    const fest = fboth ? { ...fboth.primary, lengths: fboth.lengths } : estimateByFormula({ erd: ferd, offset: foff, holes: fh }, chart);
+    if (!fest) throw new Error(`estimated list: variant ${id}: no formula estimate (hole count ${fh})`);
+    if (fboth) {
+      if (Number(e['measured_drive_mm']) !== fboth.measured.lengths[0] || Number(e['measured_non_drive_mm']) !== fboth.measured.lengths[1]) throw new Error(`estimated list: variant ${id}: the lengths for the measured ERD differ from the rule`);
+      if (!String(e['erd_basis']).startsWith(fboth.basis)) throw new Error(`estimated list: variant ${id}: erd_basis says "${e['erd_basis']}", the rule says ${fboth.basis}`);
+    } else if (e['erd_basis'] !== 'site') throw new Error(`estimated list: variant ${id}: erd_basis must be "site" when no measured ERD is given`);
+    const fidx = chart.indexOf(fest.row);
+    if (fidx < 0 || e['matched_model'] !== fest.row.model || e['matched_part'] !== fest.row.partNumber || e['matched_hub'] !== fest.row.hub || Number(e['matched_erd']) !== fest.row.erd || Number(e['matched_offset']) !== fest.row.rimOffset || Number(e['erd_gap']) !== fest.gap) throw new Error(`estimated list: variant ${id}: the nearest 28h row or the ERD gap in the file differ from the chart`);
+    if (Number(e['drive_mm']) !== fest.lengths[0] || Number(e['non_drive_mm']) !== fest.lengths[1]) throw new Error(`estimated list: variant ${id}: the lengths differ from the formula rule (${JSON.stringify(fest.lengths)})`);
+    map[id] = { row: fidx, title: `${e['product_title']} ${e['size']} / ${fh}h`, estimated: { erd: ferd, offset: foff, gap: fest.gap, offsetGap: null, drive: fest.lengths[0], nonDrive: fest.lengths[1], formula: true } };
+    continue;
+  }
   const holes = Number(e['holes']), erd = Number(e['effective_erd']), offset = Number(e['rim_offset']);
   // a rim whose ERD was measured in house as well (DT Swiss EX 511, FR 541, FR 571): both effective ERDs are run and the LONGER lengths per side are used (Jerry, 2026-11-14)
   const measuredErd = e['measured_effective_erd'] === '' ? null : Number(e['measured_effective_erd']);
@@ -144,7 +163,7 @@ lines.push(`export function chartLengthsForRim(rimVariantId) {`);
 lines.push(`  const id = String(rimVariantId == null ? '' : rimVariantId).replace(/^.*\\//, '');`);
 lines.push(`  if (!Object.prototype.hasOwnProperty.call(RIM_VARIANT_MAP, id)) return null;`);
 lines.push(`  const e = RIM_VARIANT_MAP[id], row = CHART_ROWS[e.row];`);
-lines.push(`  return { source: 'i9-chart', row, driveColumn: e.estimated ? e.estimated.drive : row.driveColumn, nonDriveColumn: e.estimated ? e.estimated.nonDrive : row.nonDriveColumn, variantTitle: e.title, ...(e.estimated ? { estimated: { erd: e.estimated.erd, offset: e.estimated.offset, gap: e.estimated.gap, offsetGap: e.estimated.offsetGap } } : {}), ...(e.borrowed ? { borrowed: true } : {}), ...(e.borrowedFrom ? { borrowedFrom: e.borrowedFrom } : {}), ...(e.storeErd ? { storeErd: e.storeErd } : {}) };`);
+lines.push(`  return { source: 'i9-chart', row, driveColumn: e.estimated ? e.estimated.drive : row.driveColumn, nonDriveColumn: e.estimated ? e.estimated.nonDrive : row.nonDriveColumn, variantTitle: e.title, ...(e.estimated ? { estimated: { erd: e.estimated.erd, offset: e.estimated.offset, gap: e.estimated.gap, offsetGap: e.estimated.offsetGap, ...(e.estimated.formula ? { formula: true } : {}) } } : {}), ...(e.borrowed ? { borrowed: true } : {}), ...(e.borrowedFrom ? { borrowedFrom: e.borrowedFrom } : {}), ...(e.storeErd ? { storeErd: e.storeErd } : {}) };`);
 lines.push(`}`);
 lines.push('');
 fs.writeFileSync(path.join(root, '_lib', 'i9-system-chart.js'), lines.join('\n'));

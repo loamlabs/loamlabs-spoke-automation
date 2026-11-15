@@ -17,7 +17,7 @@
 //   3. keep the signature: calculateSystemSpokeLengths(wheel) -> null | { left, right, note? }   (tests/system-lengths.test.js guards it).
 
 import { chartLengthsForRim, CHART_SOURCE } from './i9-system-chart.js';
-import { estimatedMarker } from './rim-length-estimate.js';
+import { estimatedMarker, FORMULA_ESTIMATE_TEXT, FORMULA_SOURCE_TEXT } from './rim-length-estimate.js';
 import { suppliedRimNotCalculated } from './own-parts.js'; // OWN-PARTS: wording for a customer-supplied rim
 
 /**
@@ -125,15 +125,20 @@ export function resolveSystemLengths(wheel) {
   }
   let estimated = null;
   if (hit.estimated) {
-    estimated = { model: row.model, partNumber: row.partNumber, gap: hit.estimated.gap, offsetGap: hit.estimated.offsetGap };
-    estimated.text = estimatedMarker(estimated);
+    if (hit.estimated.formula) {
+      // a 28h rim with no I9 28h row within 4 mm: the numbers come from the formula, not from any I9 row (Jerry, 2026-11-15)
+      estimated = { formula: true, gap: hit.estimated.gap, offsetGap: null, text: FORMULA_ESTIMATE_TEXT };
+    } else {
+      estimated = { model: row.model, partNumber: row.partNumber, gap: hit.estimated.gap, offsetGap: hit.estimated.offsetGap };
+      estimated.text = estimatedMarker(estimated);
+    }
     flags.push('estimated'); notes.push(estimated.text);
   }
   if (hit.borrowed) notes.push('this rim is not an I9-listed combination; the numbers are the chart row with the same ERD and hole count');
   const lengths = {
     left: side.left, right: side.right, source: 'i9-chart', confidence: flags.length ? flags.join(' + ') : 'chart',
-    chart: { section: row.section, model: row.model, partNumber: row.partNumber, erd: row.erd, hub: row.hub },
-    sourceText: hit.estimated ? `source: ESTIMATED from ${SOURCE_LABEL}, row ${row.model} ${row.partNumber} (this rim is not in I9's chart)` : `source: ${SOURCE_LABEL}, row ${row.model} ${row.partNumber}${hit.borrowedFrom ? ` (${hit.borrowedFrom})` : ''}`
+    chart: hit.estimated && hit.estimated.formula ? { section: 'Estimated by formula', model: 'formula (no I9 row)', partNumber: null, erd: hit.estimated.erd, hub: row.hub } : { section: row.section, model: row.model, partNumber: row.partNumber, erd: row.erd, hub: row.hub },
+    sourceText: hit.estimated && hit.estimated.formula ? `source: ${FORMULA_SOURCE_TEXT}` : hit.estimated ? `source: ESTIMATED from ${SOURCE_LABEL}, row ${row.model} ${row.partNumber} (this rim is not in I9's chart)` : `source: ${SOURCE_LABEL}, row ${row.model} ${row.partNumber}${hit.borrowedFrom ? ` (${hit.borrowedFrom})` : ''}`
   };
   if (estimated) lengths.estimated = estimated;
   if (notes.length) lengths.note = notes.join('; ');

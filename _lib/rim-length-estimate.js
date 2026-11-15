@@ -121,3 +121,57 @@ export function estimatedMarker({ model, partNumber, gap, offsetGap = 0 }) {
   const g = r1(gap), o = r1(offsetGap);
   return `estimated from I9 ${model} ${partNumber} (ERD gap ${sgn(g)}${g} mm${o ? `, offset gap ${sgn(o)}${o} mm` : ''}): ${Math.abs(offsetGap) >= OFFSET_FLAG_MM ? `${OFFSET_LONG_SENTENCE}; ` : ''}verify`;
 }
+
+// ---- ESTIMATED BY FORMULA: a 28h rim with NO I9 28h row within 4 mm of ERD (26", 27.5", 650b: the nearest H2 28h chart row is 34 to 62 mm away). Jerry, 2026-11-15, after the offset-fit report.
+// The length is the formula of I9 (hub numbers of I9_SYSTEM_HUB_SPECS.md section 2, rim ERD and offset as in the rule above) PLUS an allowance fitted on I9's own H2 28h rows, chosen as the
+// LARGEST (length - formula) of those rows, so that no I9 28h row comes out short (this is "(2s)" of OFFSET_FIT_AND_DIRECT_CALC.xlsx). Rounded up. On I9's own 32h rows the same method was
+// tested by extrapolation (fitted only on rims of ERD 590 and up, predicting rims of ERD 536 to 564): never short, 0 to 3 mm long: hence the marker. The 14 rims are all 28h.
+export const FORMULA_HOLES = 28;
+export const FORMULA_ESTIMATE_TEXT = "estimated by formula from I9's own rows (no I9 28h row within 4 mm): verify; may be up to 3 mm long";
+export const FORMULA_SOURCE_TEXT = "ESTIMATED BY FORMULA from I9's hub numbers and the allowance of I9's own rows (no I9 28h row within 4 mm of this rim)";
+export const FORMULA_UNCERTAINTY_MM = 3;
+
+/** The allowance (mm) per chart column that leaves no I9 row of this hole count short: largest of (I9 length - formula length). null when the hole count is not served by the formula method. */
+export function formulaAllowances(chartRows, holes) {
+  if (holes !== FORMULA_HOLES) return null;
+  const rows = chartRows.filter((r) => HYDRA2_HUB_HOLES[r.hub] === holes);
+  if (!rows.length) return null;
+  const one = (side, col) => Math.max(...rows.map((r) => col(r) - geometryLength({ erd: r.erd, offset: r.rimOffset || 0, holes, side }))) - 1e-6;
+  return { drive: one('drive', (r) => r.driveColumn), nonDrive: one('nonDrive', (r) => r.nonDriveColumn), rows: rows.length };
+}
+
+/**
+ * @param {{ erd: number, offset?: number, holes: number }} target  effective ERD and offset
+ * @returns {null|{ method: 'formula', row: object, gap: number, lengths: [number, number], allowance: [number, number], formula: [number, number] }}  `row` = the nearest I9 row of that hole count, for the record only (it is NOT the source of the numbers)
+ */
+export function estimateByFormula(target, chartRows) {
+  const holes = target.holes, offset = Number.isFinite(target.offset) ? target.offset : 0;
+  const a = formulaAllowances(chartRows, holes);
+  if (!a || !Number.isFinite(target.erd)) return null;
+  const pool = chartRows.filter((r) => HYDRA2_HUB_HOLES[r.hub] === holes);
+  const row = pool.slice().sort((x, y) => Math.abs(x.erd - target.erd) - Math.abs(y.erd - target.erd))[0];
+  const gd = geometryLength({ erd: target.erd, offset, holes, side: 'drive' }), gn = geometryLength({ erd: target.erd, offset, holes, side: 'nonDrive' });
+  return { method: 'formula', row, gap: target.erd - row.erd, lengths: [up(gd + a.drive), up(gn + a.nonDrive)], allowance: [a.drive, a.nonDrive], formula: [gd, gn] };
+}
+
+/** DT Swiss rims Jerry measured (as estimateLongerOfSiteAndMeasured, but by formula): run both effective ERDs, take the LONGER length per side. */
+export function estimateFormulaLongerOfSiteAndMeasured(site, measuredEffectiveErd, chartRows) {
+  const a = estimateByFormula(site, chartRows), b = estimateByFormula({ ...site, erd: measuredEffectiveErd }, chartRows);
+  if (!a || !b) return null;
+  const lengths = [Math.max(a.lengths[0], b.lengths[0]), Math.max(a.lengths[1], b.lengths[1])];
+  const basis = lengths[0] === a.lengths[0] && lengths[1] === a.lengths[1] ? 'site' : (lengths[0] === b.lengths[0] && lengths[1] === b.lengths[1] ? 'measured' : 'mixed');
+  return { primary: a, site: a, measured: b, lengths, basis };
+}
+
+// ---- CHECK BEFORE BUILDING lines: two kinds. 'offset' = the estimate carries the offset sentence (32 variants); 'formula' = estimated by formula (14 variants).
+export const CHECK_FORMULA_LINE = `CHECK BEFORE BUILDING: estimated length, may be up to ${FORMULA_UNCERTAINTY_MM} mm long`;
+/** 'formula' | 'offset' | null for the `estimated` object of one wheel's lengths */
+export const checkKindOf = (estimated) => (!estimated ? null : estimated.formula ? 'formula' : needsCheckBeforeBuilding(estimated) ? 'offset' : null);
+/** the lines for an order: items = [{ position, kind }]; the offset line first, then the formula line, each naming its wheel(s) */
+export function checkBeforeBuildingLines(items) {
+  const out = [], names = (k) => items.filter((i) => i.kind === k).map((i) => i.position);
+  const o = names('offset'), f = names('formula');
+  if (o.length) out.push(checkBeforeBuildingText(o));
+  if (f.length) out.push(`${CHECK_FORMULA_LINE} (${f.join(' and ')} wheel${f.length > 1 ? 's' : ''})`);
+  return out;
+}
