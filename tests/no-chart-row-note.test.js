@@ -15,7 +15,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const order1466 = () => JSON.parse(fs.readFileSync(path.join(here, 'fixtures', 'order-1466.json'), 'utf8'));
 const png = async () => Buffer.from('PNG');
 const SENTENCE = "Lengths not calculated: this rim is not in I9's chart, check the lengths with I9.";
-const NO_ROW = '51797701361971';   // Stan's Flow EX3 29" 32h: flag true, no chart row
+const NO_ROW = '51797701099827';   // Stan's Arch MK4 27.5" 28h: no chart row and no estimate either (28h rim, nearest H2 28h chart row is 37 mm away)
 const ROW = '51797702967603';      // We Are One FUSE 29" 32h: chart row TR307
 const count = (s, t) => s.split(t).length - 1;
 const report = (o) => buildSystemReport({ recipe: recipeOf(o), orderData: o, renderPng: png });

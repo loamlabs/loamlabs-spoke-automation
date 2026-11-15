@@ -91,6 +91,8 @@ export function buildI9OrderList({ wheels, lengthsByPos, orderNumber, recipe = {
   const totalSpokes = link.reduce((s, x) => s + x.qty, 0), totalSpares = link.reduce((s, x) => s + x.spares, 0);
   const linkAdds = link.map((x) => `${x.qty} x ${mmText(x.mm)} ${x.color}${stockNote(x.row, date)}`).join(', ') + ` (total ${totalSpokes} spokes, includes ${totalSpares} spares)`;
   const baseText = (r) => (r.spare.text ? `  (${r.spare.text})` : '');
+  // an estimated length (rim not in I9's chart: lengths from the nearest I9 rim) is marked on every line of that wheel's sides, in block B and C
+  const estTag = (r) => { const l = lengthsByPos[r.w.position]; return l && !l.pending && l.estimatedText ? `  [length ${l.estimatedText}]` : ''; };
   const pre = (r) => `   ${cap(r.w.position).padEnd(5)}  ${r.side}  `;
   const whyText = (why) => (why.reason === 'color' ? `color not on I9's list at this length (I9 has: ${why.detail})` : why.reason === 'hub' ? 'I9 lists this length only for other hubs, not for the hub on this wheel' : why.reason === 'ambiguous' ? 'more than one I9 product at this length' : 'length not on the dealer list');
 
@@ -108,7 +110,7 @@ export function buildI9OrderList({ wheels, lengthsByPos, orderNumber, recipe = {
   L.push(`B. SPOKES on I9's dealer list, with spares${linkUrl ? `   ${marker}` : ''}`);
   const bRows = sideRows.filter((r) => r.dealer.length);
   if (!bRows.length) L.push("   none: no spokes of this order are on I9's dealer list (no cart link)");
-  bRows.forEach((r) => L.push(`${pre(r)}${mmText(r.mm)}  ${r.dealer.map((e) => fmtEntry(e) + stockNote(e.row, date)).join('   ')}${baseText(r)}`));
+  bRows.forEach((r) => L.push(`${pre(r)}${mmText(r.mm)}  ${r.dealer.map((e) => fmtEntry(e) + stockNote(e.row, date)).join('   ')}${baseText(r)}${estTag(r)}`));
   const noLen = sideRows.filter((r) => r.mm == null);
   noLen.forEach((r) => L.push(`${pre(r)}length not calculated  ${r.entries.map(fmtEntry).join('   ')}${baseText(r)}  (left out of the link and out of block C: no chart length for this wheel)`));
   if (linkUrl) {
@@ -126,7 +128,7 @@ export function buildI9OrderList({ wheels, lengthsByPos, orderNumber, recipe = {
     else if (noLen.length === sideRows.length) L.push('   none: no length is calculated for this order, so nothing could be matched against the dealer list (see block B)');
     else L.push(`   none: every length that is calculated is on I9's dealer list; the sides marked "length not calculated" in block B are not covered`);
   }
-  cRows.forEach((r) => L.push(`${pre(r)}${mmText(r.mm)}  ${r.other.map((e) => fmtEntry(e) + (e.why.reason === 'length' ? '' : ` [${whyText(e.why)}]`)).join('   ')}${baseText(r)}`));
+  cRows.forEach((r) => L.push(`${pre(r)}${mmText(r.mm)}  ${r.other.map((e) => fmtEntry(e) + (e.why.reason === 'length' ? '' : ` [${whyText(e.why)}]`)).join('   ')}${baseText(r)}${estTag(r)}`));
   let thomasText = null;
   if (cMap.size) {
     const parts = [...cMap.entries()].sort((a, b) => a[0] - b[0]).map(([mm, byColor]) => `${mmText(mm)}: ${[...byColor.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([c, q]) => `${q} ${c}`).join(', ')}`);
@@ -142,7 +144,7 @@ export function buildI9OrderList({ wheels, lengthsByPos, orderNumber, recipe = {
   for (const w of wheels) {
     if (w.supplied && w.supplied.rim) { L.push(`   ${cap(w.position)}: customer-supplied`); continue; }
     const l = lengthsByPos[w.position], rawVendor = recipe && recipe.components && recipe.components[w.position + 'Rim'] && recipe.components[w.position + 'Rim'].vendor, vendor = typeof rawVendor === 'string' ? clip(rawVendor, MAX_NAME_CHARS) : null;
-    const borrowed = !!(l && /borrowed/i.test(String(l.sourceText || '')));
+    const borrowed = !!(l && (/borrowed/i.test(String(l.sourceText || '')) || l.estimatedText)); // a borrowed or estimated length names a chart row of ANOTHER rim: no I9 code for this rim
     const code = l && !l.pending && l.chart && l.chart.partNumber && !borrowed ? `  (I9 code ${l.chart.partNumber})` : '';
     const notI9 = vendor && !/industry nine|we are one/i.test(vendor) ? `  (vendor ${vendor}: probably not sold by I9)` : '';
     L.push(`   ${cap(w.position)}: ${w.rimTitle}, ${w.total}h${code}${notI9}`);
