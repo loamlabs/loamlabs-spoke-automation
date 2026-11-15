@@ -60,22 +60,26 @@ test('data: 31 chart rows and the map are in the generated file; they equal the 
     assert.equal(sha(CHART_ROWS), 'd60f092ac9c20cc2ffdab8c842c51f08ffbf6e1f14d04b7c2ea258dec0760ac4');
     const own = Object.fromEntries(Object.entries(RIM_VARIANT_MAP).filter(([, e]) => !e.estimated)), est = Object.fromEntries(Object.entries(RIM_VARIANT_MAP).filter(([, e]) => e.estimated));
     assert.equal(Object.keys(own).length, 27); assert.equal(Object.keys(est).length, 82);
-    assert.equal(sha(own), 'a54942e2a83dc7c2caf62f4e569d7a7e425dffe2a42f7012f92c14fdf401f14f', 'the I9-listed entries (and the Whisp 28h borrowed one) are exactly what they were before the estimates: the old pin 0e913b74... minus the two Stans 29 inch 32h entries, which moved to the estimates on 2026-11-14');
+    assert.equal(sha(own), '896cf01c73cbc92469f1bc2bd3c53401bc3623960b76f0d6d225d4232bbc2c79', 'the I9-listed entries (and the Whisp 28h borrowed one) are exactly what they were (a54942e2...) except one string: the title of the Coup Carbon 26 inch 32h, now taken from its row in I9_SYSTEM_ALLOWED_LIST.csv (2026-11-15); no length, row or flag handling changed');
     assert.equal(sha(est), 'c7af5ba93228511ec3f9f657b3ce33fc6c56e0ae65d6ffa7e4a524f148e90230', 'the estimated entries');
   }
 });
 
-test('data: every allowed-list variant that names a chart row is mapped to exactly the chart pair quoted in the allowed list (and the Coup Carbon 26" 32h is added)', () => {
+test('data: every allowed-list variant that names a chart row is mapped to exactly the chart pair quoted in the allowed list, whatever its flag column says (the Coup Carbon 26" 32h is a row of the list since 2026-11-15)', () => {
   const allowed = parseCsv(fs.readFileSync(path.join(CSV_DIR, 'I9_SYSTEM_ALLOWED_LIST.csv'), 'utf8'));
   let n = 0;
   for (const a of allowed) {
-    if (String(a['set_custom.i9_system_allowed']).toLowerCase() !== 'true') { assert.equal(chartLengthsForRim(a.variant_id), null, `${a.variant_id} (not allowed) must not be mapped`); continue; }
+    if (!/\sTR\d+\s/.test(a.chart_row_for_lengths)) { assert.equal(chartLengthsForRim(a.variant_id), null, `${a.variant_id} (no chart row: I9 does not make it) must not be mapped`); continue; }
+    // a row WITH a chart row is mapped whether its flag column is true or false (Jerry, 2026-11-15: a flag switched off on purpose keeps its row: an old cart or a saved build can still hold the rim)
     const hit = chartLengthsForRim(a.variant_id);
     assert.ok(hit, `variant ${a.variant_id} (${a.variant_title}) is mapped`);
     assert.equal(hit.driveColumn, Number(a.chart_drive_mm), a.variant_id); assert.equal(hit.nonDriveColumn, Number(a.chart_non_drive_mm), a.variant_id);
     n++;
   }
-  assert.equal(n, 26);
+  assert.equal(n, 27, '25 flagged true and 2 flagged off on purpose (Revive 2.0 Carbon 29 inch 24h, Wanderer 700c 32h)');
+  for (const a of allowed) if (['67792754475315', '51901420699955'].includes(a.variant_id)) { assert.equal(a['set_custom.i9_system_allowed'], 'false', a.variant_id); assert.match(a.note, /flag off deliberately Nov 14, row kept/, a.variant_id); assert.ok(chartLengthsForRim(a.variant_id), a.variant_id + ' keeps its chart row'); }
+  assert.equal(allowed.filter((a) => String(a['set_custom.i9_system_allowed']).toLowerCase() === 'false' && !/\sTR\d+\s/.test(a.chart_row_for_lengths)).length, 1, 'the one explicit FALSE row without a chart row (Triad 27.5 inch 28h) stays out');
+  assert.equal(allowed.find((a) => a.variant_id === '67819688788275').vendor, 'Industry Nine');
   const coup = chartLengthsForRim('67819688788275');
   assert.deepEqual([coup.row.partNumber, coup.row.erd, coup.row.hub, coup.driveColumn, coup.nonDriveColumn], ['TR175', 536, 'H2 32h', 268, 270]);
   assert.equal(chartLengthsForRim('51901428400435').borrowed, true, 'the Whisp 28h borrows the Sector 2.0 row');

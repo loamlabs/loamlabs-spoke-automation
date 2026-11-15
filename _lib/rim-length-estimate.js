@@ -111,6 +111,9 @@ const sgn = (n) => (n > 0 ? '+' : '');
 // offset. If I9's pattern is the real one the estimate is long on the non-drive side by up to about 4 mm (Jerry accepts long, not short): the marker says so (Jerry, 2026-11-14).
 export const OFFSET_FLAG_MM = 1.5;
 export const OFFSET_LONG_SENTENCE = 'may be up to 4 mm long on the non-drive side';
+// The line at the top of the I9 order list and of the internal email when a wheel's estimate carries the sentence above (offset gap 1.5 mm or more: 32 variants). Internal places only (Jerry, 2026-11-15).
+export const CHECK_BEFORE_BUILDING_LINE = `CHECK BEFORE BUILDING: estimated length, ${OFFSET_LONG_SENTENCE}`;
+export const needsCheckBeforeBuilding = (estimated) => !!estimated && Math.abs(estimated.offsetGap || 0) >= OFFSET_FLAG_MM;
 /** "estimated from I9 Sector 29" 32h TR256 (ERD gap -2 mm, offset gap +1 mm): verify": the internal marker in the order note, email, sheet and I9 list. */
 export function estimatedMarker({ model, partNumber, gap, offsetGap = 0 }) {
   const g = r1(gap), o = r1(offsetGap);

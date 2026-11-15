@@ -47,9 +47,9 @@ variant_id,vendor,product_title,size,holes,stored_erd,effective_erd,measured_eff
 51797699428659,Astral,Astral Wanderlust GEN2 Alloy Rim,"27.5""",32,559.5,559.5,,,,site,2,"Triad 27.5"" 32h",TR250,H2 32h,560,1,-0.5,1,-0.16,-0.36,278,280,1,
 51797699330355,Astral,Astral Wanderlust GEN2 Alloy Rim,"29""",28,597.5,597.5,,,,site,2,"Sector 29"" 28h",TR255,H2 28h,598,1,-0.5,1,-0.15,-0.38,302,303,1,
 51797699363123,Astral,Astral Wanderlust GEN2 Alloy Rim,"29""",32,597.5,597.5,,,,site,2,"Sector 29"" 32h",TR256,H2 32h,598,1,-0.5,1,-0.17,-0.36,299,300,1,
-51797699297587,Astral,Astral Wanderlust GEN2 Alloy Rim,650b,32,559.5,559.5,,,,site,2,"Triad 27.5"" 32h",TR250,H2 32h,560,1,-0.5,1,-0.16,-0.36,278,280,1,
-51797699199283,Astral,Astral Wanderlust GEN2 Alloy Rim,700c,28,597.5,597.5,,,,site,2,"Sector 29"" 28h",TR255,H2 28h,598,1,-0.5,1,-0.15,-0.38,302,303,1,
-51797699232051,Astral,Astral Wanderlust GEN2 Alloy Rim,700c,32,597.5,597.5,,,,site,2,"Sector 29"" 32h",TR256,H2 32h,598,1,-0.5,1,-0.17,-0.36,299,300,1,
+51797699297587,Astral,Astral Wanderlust GEN2 Alloy Rim,650b,32,559.5,559.5,,,,site,2,"Triad 27.5"" 32h",TR250,H2 32h,560,1,-0.5,1,-0.16,-0.36,278,280,1,"flag off deliberately Nov 14, row kept"
+51797699199283,Astral,Astral Wanderlust GEN2 Alloy Rim,700c,28,597.5,597.5,,,,site,2,"Sector 29"" 28h",TR255,H2 28h,598,1,-0.5,1,-0.15,-0.38,302,303,1,"flag off deliberately Nov 14, row kept"
+51797699232051,Astral,Astral Wanderlust GEN2 Alloy Rim,700c,32,597.5,597.5,,,,site,2,"Sector 29"" 32h",TR256,H2 32h,598,1,-0.5,1,-0.17,-0.36,299,300,1,"flag off deliberately Nov 14, row kept"
 51797699559731,Race Face,Race Face ARC 25 Offset Alloy Rim,"27.5""",32,562,562,,,,site,3,"Fuse 27.5"" 32h",TR308,H2 32h,562,0,0,3,0.25,-0.35,281,282,1,
 51797705163059,Race Face,Race Face ARC 30 Offset Alloy Rim,"27.5""",32,562,562,,,,site,4.5,"Fuse 27.5"" 32h",TR308,H2 32h,562,0,0,4.5,0.39,-0.51,281,282,1,
 51797705130291,Race Face,Race Face ARC 30 Offset Alloy Rim,"29""",32,600,600,,,,site,4.5,"Wanderer 29""",TR309,H2 32h,600,2,0,2.5,0.21,-0.26,300,300,1,
