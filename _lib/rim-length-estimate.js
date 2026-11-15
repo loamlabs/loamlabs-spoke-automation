@@ -113,6 +113,8 @@ export const OFFSET_FLAG_MM = 1.5;
 export const OFFSET_LONG_SENTENCE = 'may be up to 4 mm long on the non-drive side';
 // The line at the top of the I9 order list and of the internal email when a wheel's estimate carries the sentence above (offset gap 1.5 mm or more: 32 variants). Internal places only (Jerry, 2026-11-15).
 export const CHECK_BEFORE_BUILDING_LINE = `CHECK BEFORE BUILDING: estimated length, ${OFFSET_LONG_SENTENCE}`;
+// the line with the wheel(s) in brackets, the same in the I9 order list, the internal email and the order sheet: checkBeforeBuildingText(['rear']) / (['front', 'rear'])
+export const checkBeforeBuildingText = (positions) => `${CHECK_BEFORE_BUILDING_LINE} (${positions.join(' and ')} wheel${positions.length > 1 ? 's' : ''})`;
 export const needsCheckBeforeBuilding = (estimated) => !!estimated && Math.abs(estimated.offsetGap || 0) >= OFFSET_FLAG_MM;
 /** "estimated from I9 Sector 29" 32h TR256 (ERD gap -2 mm, offset gap +1 mm): verify": the internal marker in the order note, email, sheet and I9 list. */
 export function estimatedMarker({ model, partNumber, gap, offsetGap = 0 }) {

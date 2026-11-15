@@ -12,7 +12,7 @@
 // weekly saved file). Exact length (SKU inches rounded to the mm, never a nearby length), STANDARD gauge only (see findDealerSpoke), exact color name. Anything else goes to block C.
 import SNAPSHOT from './i9-b2b-spokes.json' with { type: 'json' };
 import { clip, MAX_NAME_CHARS } from './system-build.js';
-import { CHECK_BEFORE_BUILDING_LINE } from './rim-length-estimate.js';
+import { checkBeforeBuildingText } from './rim-length-estimate.js';
 
 export const I9_CART_BASE = 'https://b2b.industrynine.com/cart/';
 export const SPARES_PER_SIDE = 1;
@@ -102,7 +102,7 @@ export function buildI9OrderList({ wheels, lengthsByPos, orderNumber, recipe = {
   L.push(`I9 ORDER LIST  -  order #${orderNumber}`);
   // a wheel whose estimate says "may be up to 4 mm long on the non-drive side" (offset gap 1.5 mm or more): one line at the top, naming the wheel(s) (Jerry, 2026-11-15)
   const checkWheels = wheels.filter((w) => { const l = lengthsByPos[w.position]; return l && !l.pending && l.checkBeforeBuilding; }).map((w) => w.position);
-  if (checkWheels.length) L.push(`${CHECK_BEFORE_BUILDING_LINE} (${checkWheels.join(' and ')} wheel${checkWheels.length > 1 ? 's' : ''})`);
+  if (checkWheels.length) L.push(checkBeforeBuildingText(checkWheels));
   L.push('');
   // A. pre-built wheels
   L.push('A. PRE-BUILT WHEELS');

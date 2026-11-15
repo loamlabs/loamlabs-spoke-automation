@@ -362,3 +362,31 @@ test('CHECK BEFORE BUILDING through the whole webhook with the customer email on
   assert.ok(!/CHECK BEFORE|estimated/i.test(customer.html.replace(/<style[\s\S]*?<\/style>/g, '')), 'nothing for the customer');
   assert.doesNotMatch(r.note, /CHECK BEFORE BUILDING/);
 });
+
+test('CHECK BEFORE BUILDING on the order sheet: `checkBeforeBuilding` and the first entry of orderChecks, same wording and wheel as the I9 list and the email; the key exists only for the 32 variants; the order text of the list carries it too', async () => {
+  const AT = '2026-11-15T12:00:00.000Z';
+  const o = chartOrder({ front: { rim: FUSE_I9, holes: 32 }, rear: { rim: ARC30_29_32(), holes: 32, rimTitle: 'Race Face ARC 30 Offset Alloy Rim - 29"' }, orderNumber: 95040 });
+  const line = `${CHECK} (rear wheel)`;
+  const recalculated = buildOrderSheet({ orderData: JSON.parse(JSON.stringify(o)), calculatedAt: AT });
+  assert.deepEqual(recalculated.checkBeforeBuilding, { line, wheels: ['rear'] }); assert.equal(recalculated.orderChecks[0], line);
+  // the saved copy of the webhook is built from the report it already computed: the same
+  const rep = await reportOf(o);
+  const asSent = buildOrderSheet({ orderData: JSON.parse(JSON.stringify(o)), calculatedAt: AT, mode: 'as-sent', systemReport: { wheels: rep.wheels, lengths: rep.lengths, i9OrderList: rep.i9OrderList } });
+  assert.deepEqual(asSent.checkBeforeBuilding, { line, wheels: ['rear'] }); assert.equal(asSent.orderChecks[0], line);
+  assert.equal(asSent.orderList.text.split('\n')[1], line, 'the list text on the sheet starts with it too');
+  assert.equal(rep.i9OrderList.text.split('\n')[1], line, 'one wording in the list, the email and the sheet');
+  // two flagged wheels
+  const front = EST.find((e) => Math.abs(Number(e.offset_gap)) >= 1.5 && e.holes === '28').variant_id;
+  const both = buildOrderSheet({ orderData: chartOrder({ front: { rim: front, holes: 28 }, rear: { rim: ARC30_29_32(), holes: 32 }, orderNumber: 95041 }), calculatedAt: AT });
+  assert.equal(both.checkBeforeBuilding.line, `${CHECK} (front and rear wheels)`);
+  // every other sheet: no key at all, orderChecks as before (an I9 rim, an estimate without the sentence, a rim with no estimate)
+  for (const od of [chartOrder({ rear: { rim: FUSE_I9, holes: 32 }, orderNumber: 95042 }), rimOrder(DT_XM481_29_32, 32, 95043, 'rear', 'DT Swiss XM 481 - 29"'), rimOrder(NO_ESTIMATE, 28, 95044, 'front')]) {
+    const s = buildOrderSheet({ orderData: od, calculatedAt: AT });
+    assert.equal('checkBeforeBuilding' in s, false); assert.deepEqual(s.orderChecks, []);
+  }
+  // privacy: nothing but the line and the wheel names; the Shopify note and the customer text never carry it
+  assert.doesNotMatch(rep.note, /CHECK BEFORE BUILDING/);
+  const r = await runWebhook(INDEX, 'orders/create', o, { env: { SYSTEM_CUSTOMER_EMAIL: 'on' } });
+  const customer = r.restEmails.find((e) => /^Your custom spoke colors/.test(e.subject));
+  assert.ok(customer && !/CHECK BEFORE/.test(customer.html)); assert.doesNotMatch(r.note, /CHECK BEFORE BUILDING/);
+});
