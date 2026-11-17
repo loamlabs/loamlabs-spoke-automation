@@ -39,7 +39,7 @@ export function loadMockShopify() {
 // fetch() stand-in for the Shopify Admin GraphQL API and the Resend REST API.
 export function createMock(mockData) {
   const data = mockData || { metafields: {}, variantColors: ['Black', 'Silver', 'White Berd', 'Black Berd'], variantLengths: [230, 330] };
-  const calls = { metafieldQueries: [], variantQueries: [], inventoryAdjustments: [], notes: [], locationQueries: [], restEmails: [], orderNoteQueries: [], other: [] };
+  const calls = { kitQueries: [], metafieldQueries: [], variantQueries: [], inventoryAdjustments: [], notes: [], locationQueries: [], restEmails: [], orderNoteQueries: [], other: [] };
   // Shopify's live order notes: seeded from the delivered order, overwritten by orderUpdate, read by the orderNote query (the idempotency guard).
   const state = { orderNotes: {}, failOrderNoteQuery: false };
   const json = (body, status = 200) => ({ ok: status < 400, status, json: async () => body, text: async () => JSON.stringify(body) });
@@ -63,6 +63,10 @@ export function createMock(mockData) {
         return { id, metafields: { nodes: mfs }, product: { id: m._parent_product_id || `gid://shopify/Product/unknown-${id.split('/').pop()}`, metafields: { nodes: [] } } };
       });
       return json({ data: { nodes } });
+    }
+    if (q.includes('getKitVariants')) { // HUB-KIT-NOTE: kit variants named by a hub variant (data.kitVariants: { gid: { title, sku, product } }); unknown ids come back null
+      calls.kitQueries.push(body.variables.ids);
+      return json({ data: { nodes: body.variables.ids.map((id) => { const k = (data.kitVariants || {})[id]; return k ? { id, title: k.title, sku: k.sku, product: { title: k.product } } : null; }) } });
     }
     if (q.includes('getProductVariants')) { calls.variantQueries.push(body.variables.id); return json({ data: { product: { variants: { nodes: variantsFor(body.variables.id) } } } }); }
     if (q.includes('inventoryAdjustQuantities')) { calls.inventoryAdjustments.push(body.variables.input); return json({ data: { inventoryAdjustQuantities: { inventoryAdjustmentGroup: { id: 'gid://shopify/InventoryAdjustmentGroup/1' }, userErrors: [] } } }); }
