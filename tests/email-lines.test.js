@@ -31,7 +31,7 @@ test('an order WITHOUT a freehub body and WITHOUT a rule prints neither line, in
   const r = await run(preconfiguredOrder({ rule: null }));
   assert.equal(r.status, 200);
   assert.equal(/Freehub body|Rule:/.test(r.note), false); assert.equal(/Freehub body|<td>Rule<\/td>/.test(html(r)), false);
-  assert.ok(html(r).includes('<tr><td>Hub</td><td>Test Hub 240 SP Front Hub - Centerlock - 12x100mm</td></tr>\n                <tr><td>Spokes</td>'), 'Hub row directly followed by the Spokes row');
+  assert.ok(html(r).includes('<tr><td>Hub</td><td>Test Hub 240 SP Front Hub - Centerlock - 12x100mm (24h / Black)</td></tr>\n                <tr><td>Spokes</td>'), 'Hub row directly followed by the Spokes row');
 });
 
 test('a rule and an XD body: rear wheel gets both lines, front wheel only the Rule; note and email carry the same text; lengths, stock and subject do not change', async () => {
@@ -39,7 +39,7 @@ test('a rule and an XD body: rear wheel gets both lines, front wheel only the Ru
   const rule = 'LoamLabs Reserve 30|DH Mullet + Industry Nine Hydra2 15x110/12x148';
   const r = await run(preconfiguredOrder({ rule, build: withFreehub('XD') }));
   const rear = side(r.note, 'rear'), front = side(r.note, 'front');
-  assert.ok(rear.includes('  Hub: Test Hub 240 EXP SP Rear Hub - Centerlock - 12x142mm\n  Freehub body: SRAM XD\n  Spokes:'), 'freehub line sits under the hub');
+  assert.ok(rear.includes('  Hub: Test Hub 240 EXP SP Rear Hub - Centerlock - 12x142mm (24h / Black)\n  Freehub body: SRAM XD\n  Spokes:'), 'freehub line sits under the hub');
   assert.ok(rear.includes(`  Target Tension: 115 kgf\n  Rule: ${rule}\n  --- Calculated Lengths ---`), 'rule line ends the key inputs');
   assert.equal(front.includes('Freehub body'), false); assert.ok(front.includes(`  Rule: ${rule}\n`));
   const t = text(html(r));

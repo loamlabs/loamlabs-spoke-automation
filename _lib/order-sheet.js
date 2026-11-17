@@ -188,7 +188,7 @@ export function buildOrderSheet(o) {
       const total = parseInt(String((recipe.specs && recipe.specs[pos + 'SpokeCount']) || '').replace('h', ''), 10);
       const known = Number.isFinite(total) && total > 0, even = known && total % 2 === 0;
       sheet.wheels.push({
-        position: pos, label: cap(pos), hubModel: null, hubTitle: str(inp.hub, 160), hubVariantTitle: null, hubColor: null, freehub: null, rimTitle: str(inp.rim, 200),
+        position: pos, label: cap(pos), hubModel: null, hubTitle: str(inp.hub, 160), hubVariantTitle: str(inp.hubVariant, 160) || null, hubColor: null, freehub: null, rimTitle: str(inp.rim, 200),
         spokeCountLabel: known ? `${total}h` : null, total: known ? total : null, ratio: even ? '1:1' : null, highSide: null, lowSide: null,
         countsNote: known ? 'Standard build: the calculation and the spoke stock step take half of the spokes for each side; the store records no lacing ratio for Standard hubs.' : null,
         sides: { drive: { count: even ? total / 2 : null, lengthMm: lengths.driveMm, counts: [] }, rotor: { count: even ? total / 2 : null, lengthMm: lengths.rotorMm, counts: [] } },

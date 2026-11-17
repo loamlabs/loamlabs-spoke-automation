@@ -12,7 +12,8 @@ import {
 // I9-SYSTEM: Industry Nine System builds (Spoke Color Studio) take their own report path; Standard builds are untouched.
 import { findSystemBuildRecipe, findWheelBuildLineItem } from '../_lib/system-build.js';
 import { rimColorPolicy, rimLabel } from '../_lib/rim-color.js'; // RIM-COLOR: hub-choice orders name the rim color in the report
-import { attachOrderLines, attachNippleRows, escapeText, extraBuildNotice, addAttentionNotice, reportNeedsAction } from '../_lib/order-lines.js'; // EMAIL-LINES: "Freehub body" and "Rule" lines in the key inputs; NIPPLES-ROW: the nipple product and color of a wheel without mixed nipples
+import { hubInputsExtras, hubDisplayText, kitLineText, hubWarnings, addHubWarningNotice, attachKitLines } from '../_lib/hub-order-lines.js'; // HUB-KIT-NOTE
+import { attachOrderLines,attachNippleRows, escapeText, extraBuildNotice, addAttentionNotice, reportNeedsAction } from '../_lib/order-lines.js'; // EMAIL-LINES: "Freehub body" and "Rule" lines in the key inputs; NIPPLES-ROW: the nipple product and color of a wheel without mixed nipples
 import { buildSystemReport, buildFailureEmail, addNoteFailureNotice, sendSystemEmail, buildCustomerEmail, sendCustomerEmailIfEnabled } from '../_lib/system-report.js';
 import { shopifyTimeoutMs, resendTimeoutMs, timeoutSignal, withTimeout } from '../_lib/http-timeout.js';
 import { waitUntil } from '@vercel/functions';
@@ -81,6 +82,13 @@ async function shopifyAdminApiQuery(query, variables, retries = 3, delay = 500) 
             await new Promise(res => setTimeout(res, delay * Math.pow(2, i)));
         }
     }
+}
+
+// HUB-KIT-NOTE: the kit variants a hub variant names (custom.required_addon_variants), looked up in ONE request: title, SKU and product title. Display only.
+const KIT_VARIANTS_QUERY = `query getKitVariants($ids: [ID!]!) { nodes(ids: $ids) { ... on ProductVariant { id title sku product { title } } } }`;
+async function lookupKitVariants(ids) {
+    const data = await shopifyAdminApiQuery(KIT_VARIANTS_QUERY, { ids });
+    return (data && Array.isArray(data.nodes)) ? data.nodes : [];
 }
 
 async function fetchComponentData(buildRecipe) {
@@ -477,6 +485,7 @@ async function handleOrderCreate(orderData) {
             if (componentData) {
                 let buildReport = runCalculationEngine(buildRecipe, componentData, rimColorPolicy(buildRecipe, wheelBuildLineItem.properties));
                 attachOrderLines(buildReport, buildRecipe, wheelBuildLineItem.properties); // EMAIL-LINES: display lines only; lengths and stock are decided above
+                { try { await attachKitLines(buildReport, orderData, lookupKitVariants); } catch (error) { console.error('HUB-KIT-NOTE: kit lines skipped:', error); } const hw = hubWarnings(buildReport, orderData, buildRecipe); if (hw.length) buildReport.hubWarnings = hw; } // HUB-KIT-NOTE: warnings for the builder email only (not in the note, not an error)
                 { // ORDER-CHECK-FLAGS: a second build line or a quantity above 1 is not calculated; say so (note WARNINGS, email top, subject). Nothing else changes.
                     const notice = extraBuildNotice(orderData, wheelBuildLineItem);
                     if (notice) { buildReport.attention = [notice]; buildReport.errors = [...(buildReport.errors || []), notice]; }
@@ -876,8 +885,9 @@ export function runCalculationEngine(buildRecipe, componentData, rimColorPolicy_
                     washerPolicy: "Mandatory (Berd)", 
                     washerThickness: washerThickness, 
                     finalErd: finalErd.toFixed(2), 
-                    targetTension: getMeta(rim.variantId, rim.productId, 'rim_target_tension_kgf', true, 120), 
-                    hubDimensions: hubDimensions 
+                    targetTension: getMeta(rim.variantId, rim.productId, 'rim_target_tension_kgf', true, 120),
+                    hubDimensions: hubDimensions,
+                    ...hubInputsExtras(hub, getMeta(hub.variantId, hub.productId, 'required_addon_variants')) // HUB-KIT-NOTE: variant title and kit lines, display only
                 }
             };
         } else { // Steel spoke logic
@@ -918,7 +928,7 @@ if (hubType !== 'Straight Pull') {
                     left: { geo: lengthL.toFixed(2), stretch: calculateElongation(lengthL, tensionKgf, crossArea).toFixed(2), rounded: applyRounding(lengthL, 'Steel') },
                     right: { geo: lengthR.toFixed(2), stretch: calculateElongation(lengthR, tensionKgf, crossArea).toFixed(2), rounded: applyRounding(lengthR, 'Steel') }
                 },
-                inputs: { rim: rimTitleWithSize, hub: hub.title, spokes: spokes.title, rimAsymmetry: rimAsymmetry, erd: erd, washerPolicy: washerPolicy, washerThickness: washerThickness, finalErd: finalErd.toFixed(2), targetTension: tensionKgf, hubDimensions: hubDimensions }
+                inputs: { rim: rimTitleWithSize, hub: hub.title, spokes: spokes.title, rimAsymmetry: rimAsymmetry, erd: erd, washerPolicy: washerPolicy, washerThickness: washerThickness, finalErd: finalErd.toFixed(2), targetTension: tensionKgf, hubDimensions: hubDimensions, ...hubInputsExtras(hub, getMeta(hub.variantId, hub.productId, 'required_addon_variants')) } // HUB-KIT-NOTE: variant title and kit lines, display only
             };
         }
     };
@@ -1018,7 +1028,8 @@ export function formatNote(report) {
 
         wheelNote += `${rimLine}\n` + 
                `${erdNote}\n` + 
-               `  Hub: ${wheel.inputs.hub}\n` +
+               `  Hub: ${hubDisplayText(wheel.inputs.hub, wheel.inputs.hubVariant)}\n` +
+               (Array.isArray(wheel.inputs.kitNeeded) ? wheel.inputs.kitNeeded.map(k => kitLineText(k, { withNotFound: false })).filter(Boolean).map(l => `  Kit needed: ${l}\n`).join('') : '') +
                (wheel.inputs.freehubBody ? `  Freehub body: ${wheel.inputs.freehubBody}\n` : '') +
                `  Spokes: ${wheel.inputs.spokes}\n` +
                (wheel.inputs.nipplesRow ? `  Nipples: ${wheel.inputs.nipplesRow}\n` : '') +
@@ -1114,6 +1125,7 @@ export async function sendEmailReport(report, orderData, buildRecipe, extra, opt
     }
     erdBreakdownHtml += `<br/><strong>Final: ${wheel.inputs.finalErd} mm</strong>`;
     // EMAIL-LINES: two optional rows; empty strings (no characters at all) when the order has no such value
+    const kitRowHtml = Array.isArray(wheel.inputs.kitNeeded) && wheel.inputs.kitNeeded.length ? `\n                <tr><td>Kit needed</td><td>${wheel.inputs.kitNeeded.map(k => escapeText(kitLineText(k))).join('<br/>')}</td></tr>` : ''; // HUB-KIT-NOTE
     const freehubRowHtml = wheel.inputs.freehubBody ? `\n                <tr><td>Freehub body</td><td>${escapeText(wheel.inputs.freehubBody)}</td></tr>` : '';
     const nipplesRowHtml = wheel.inputs.nipplesRow ? `\n                <tr><td>Nipples</td><td>${escapeText(wheel.inputs.nipplesRow)}</td></tr>` : ''; // NIPPLES-ROW
     const ruleRowHtml = wheel.inputs.ruleName ? `\n                <tr><td>Rule</td><td>${escapeText(wheel.inputs.ruleName)}</td></tr>` : '';
@@ -1129,7 +1141,7 @@ export async function sendEmailReport(report, orderData, buildRecipe, extra, opt
             <h4>Key Inputs</h4>
             <table class="data-table">
                 <tr><td>Rim</td><td>${rimHtml}</td></tr>
-                <tr><td>Hub</td><td>${wheel.inputs.hub}</td></tr>${freehubRowHtml}
+                <tr><td>Hub</td><td>${wheel.inputs.hub}${wheel.inputs.hubVariant ? ` (${escapeText(wheel.inputs.hubVariant)})` : ''}</td></tr>${kitRowHtml}${freehubRowHtml}
                 <tr><td>Spokes</td><td>${wheel.inputs.spokes}</td></tr>${nipplesRowHtml}
                 <tr><td>ERD Breakdown</td><td>${erdBreakdownHtml}</td></tr>
                 <tr><td>Target Tension</td><td>${wheel.inputs.targetTension} kgf</td></tr>${ruleRowHtml}
@@ -1206,6 +1218,7 @@ export async function sendEmailReport(report, orderData, buildRecipe, extra, opt
     `;
     if (options && options.noteFailure) emailHtml = addNoteFailureNotice(emailHtml, options.noteFailure);
     emailHtml = addAttentionNotice(emailHtml, report.attention); // ORDER-CHECK-FLAGS
+    emailHtml = addHubWarningNotice(emailHtml, report.hubWarnings, escapeText); // HUB-KIT-NOTE: yellow, not an error, no subject change
     const emailSubject = `${reportNeedsAction(report, anySideNotDeducted(report)) ? 'ACTION REQUIRED: ' : ''}Spoke Calculation Complete for Order #${orderNumber}`;
 
     // STANDARD-STUDIO: with images the email goes through the Resend REST API so the wheel images can be inline attachments (content ids), like System;
