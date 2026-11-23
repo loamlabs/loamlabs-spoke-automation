@@ -1103,7 +1103,7 @@ export async function sendEmailReport(report, orderData, buildRecipe, extra, opt
                     <tr><td>PCD (L/R)</td><td>${hubDims.pcd_l} mm / ${hubDims.pcd_r} mm</td></tr>
                     <tr><td>Flange Offset (L/R)</td><td>${hubDims.flange_l} mm / ${hubDims.flange_r} mm</td></tr>
             `;
-            if (hubDims.hubType === 'Classic Flange') {
+            if (hubDims.hubType === 'Classic Flange' || hubDims.hubType === 'Hook Flange') { // Hook Flange lengths use the hole diameter too (Hook Flange fix, PR #22); shd already has the 2.6 default for a blank / "-" value
                 hubDimensionsHtml += `<tr><td>Spoke Hole Diameter</td><td>${hubDims.shd} mm</td></tr>`;
             }
             if (hubDims.hubType === 'Straight Pull') {
