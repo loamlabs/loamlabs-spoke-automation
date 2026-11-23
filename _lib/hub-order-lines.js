@@ -8,6 +8,10 @@
 //       cannot be looked up, a kit list that cannot be read, and a recipe that names a hub variant which is not a line of the order.
 // Pure functions except attachKitLines, which calls the lookup it is given (ONE batched request per order, only when a hub variant has the metafield). Display only: no length,
 // stock or recipient logic reads anything from here.
+//   (d) EXTRALITE-ESTIMATE: a hub variant whose geometry is ESTIMATED from the maker's drawing (the 22 Extralite variants of data/extralite-source/ESTIMATED_EXTRALITE_HUB_GEOMETRY.csv,
+//       via _lib/estimated-extralite-hubs.js) carries inputs.hubEstimate, a "CHECK BEFORE BUILDING" line: printed in the order note and the builder email (a row in the wheel's key inputs
+//       and a "Hub note" at the top). Lengths do not change. Orders with any other hub get no such key, so they are byte-identical to before.
+import { ESTIMATED_HUB_VARIANTS, ESTIMATED_HUB_SENTENCE } from './estimated-extralite-hubs.js';
 
 const clip = (v, n) => String(v === undefined || v === null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, n);
 const idOf = (v) => { const m = /(\d+)\s*$/.exec(String(v === undefined || v === null ? '' : v)); return m ? m[1] : null; };
@@ -45,10 +49,18 @@ export function kitIdsOf(raw) {
   return { ids, problem: null };
 }
 
+/** EXTRALITE-ESTIMATE: the CHECK BEFORE BUILDING line when this hub variant (a gid or the digits) is one of the estimated Extralite hub variants; null for every other hub. */
+export function estimatedHubLine(variantId) {
+  const id = idOf(variantId);
+  if (!id || !Object.prototype.hasOwnProperty.call(ESTIMATED_HUB_VARIANTS, id)) return null;
+  return `CHECK BEFORE BUILDING: ${ESTIMATED_HUB_SENTENCE}. Check the spoke length against the hub in hand before ordering spokes for the first order of this model.`;
+}
+
 /** What runCalculationEngine adds to a wheel's inputs. Only keys with a value (so an order without any of it is byte-identical to before). */
 export function hubInputsExtras(hub, kitRaw) {
   const out = {};
   const v = hubVariantText(hub); if (v) out.hubVariant = v;
+  const est = estimatedHubLine(hub && hub.variantId); if (est) out.hubEstimate = est;
   const k = kitIdsOf(kitRaw);
   if (k.ids.length) out.kitVariantIds = k.ids;
   if (k.problem) out.kitProblem = k.problem;
@@ -107,6 +119,7 @@ export function hubWarnings(report, orderData, recipe) {
     const w = report && report[pos];
     const label = pos === 'front' ? 'Front' : 'Rear';
     if (!w || !w.calculationSuccessful || !w.inputs) continue;
+    if (w.inputs.hubEstimate) out.push(`${label} hub: ${w.inputs.hubEstimate}`); // EXTRALITE-ESTIMATE
     if (w.inputs.kitProblem) out.push(`${label} hub: ${w.inputs.kitProblem}. Check by hand whether a kit has to be bought.`);
     for (const k of Array.isArray(w.inputs.kitNeeded) ? w.inputs.kitNeeded : []) {
       if (!k.resolved) out.push(`${label} hub: the kit variant ${idOf(k.id)} named by the hub could not be looked up (deleted or not readable). Check by hand which kit is needed.`);
