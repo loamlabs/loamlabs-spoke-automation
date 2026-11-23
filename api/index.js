@@ -1029,6 +1029,7 @@ export function formatNote(report) {
         wheelNote += `${rimLine}\n` + 
                `${erdNote}\n` + 
                `  Hub: ${hubDisplayText(wheel.inputs.hub, wheel.inputs.hubVariant)}\n` +
+               (wheel.inputs.hubEstimate ? `  ${wheel.inputs.hubEstimate}\n` : '') + // EXTRALITE-ESTIMATE
                (Array.isArray(wheel.inputs.kitNeeded) ? wheel.inputs.kitNeeded.map(k => kitLineText(k, { withNotFound: false })).filter(Boolean).map(l => `  Kit needed: ${l}\n`).join('') : '') +
                (wheel.inputs.freehubBody ? `  Freehub body: ${wheel.inputs.freehubBody}\n` : '') +
                `  Spokes: ${wheel.inputs.spokes}\n` +
@@ -1126,6 +1127,7 @@ export async function sendEmailReport(report, orderData, buildRecipe, extra, opt
     erdBreakdownHtml += `<br/><strong>Final: ${wheel.inputs.finalErd} mm</strong>`;
     // EMAIL-LINES: two optional rows; empty strings (no characters at all) when the order has no such value
     const kitRowHtml = Array.isArray(wheel.inputs.kitNeeded) && wheel.inputs.kitNeeded.length ? `\n                <tr><td>Kit needed</td><td>${wheel.inputs.kitNeeded.map(k => escapeText(kitLineText(k))).join('<br/>')}</td></tr>` : ''; // HUB-KIT-NOTE
+    const estimateRowHtml = wheel.inputs.hubEstimate ? `\n                <tr><td>Hub geometry</td><td style="color:#9F6000"><strong>${escapeText(wheel.inputs.hubEstimate)}</strong></td></tr>` : ''; // EXTRALITE-ESTIMATE
     const freehubRowHtml = wheel.inputs.freehubBody ? `\n                <tr><td>Freehub body</td><td>${escapeText(wheel.inputs.freehubBody)}</td></tr>` : '';
     const nipplesRowHtml = wheel.inputs.nipplesRow ? `\n                <tr><td>Nipples</td><td>${escapeText(wheel.inputs.nipplesRow)}</td></tr>` : ''; // NIPPLES-ROW
     const ruleRowHtml = wheel.inputs.ruleName ? `\n                <tr><td>Rule</td><td>${escapeText(wheel.inputs.ruleName)}</td></tr>` : '';
@@ -1141,7 +1143,7 @@ export async function sendEmailReport(report, orderData, buildRecipe, extra, opt
             <h4>Key Inputs</h4>
             <table class="data-table">
                 <tr><td>Rim</td><td>${rimHtml}</td></tr>
-                <tr><td>Hub</td><td>${wheel.inputs.hub}${wheel.inputs.hubVariant ? ` (${escapeText(wheel.inputs.hubVariant)})` : ''}</td></tr>${kitRowHtml}${freehubRowHtml}
+                <tr><td>Hub</td><td>${wheel.inputs.hub}${wheel.inputs.hubVariant ? ` (${escapeText(wheel.inputs.hubVariant)})` : ''}</td></tr>${estimateRowHtml}${kitRowHtml}${freehubRowHtml}
                 <tr><td>Spokes</td><td>${wheel.inputs.spokes}</td></tr>${nipplesRowHtml}
                 <tr><td>ERD Breakdown</td><td>${erdBreakdownHtml}</td></tr>
                 <tr><td>Target Tension</td><td>${wheel.inputs.targetTension} kgf</td></tr>${ruleRowHtml}
