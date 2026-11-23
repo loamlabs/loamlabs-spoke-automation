@@ -91,12 +91,15 @@ export function calculateSpokeLength(params) {
     if (hubType === 'Straight Pull') {
         // Add the 'spOffset' (the internal hub seating length)
         return geometricLength + spOffset;
-    } else if (hubType === 'Classic Flange') {
-        // Subtract half the hole diameter for J-bend elbow seat
+    } else if (hubType === 'Classic Flange' || hubType === 'Hook Flange') {
+        // Subtract half the hole diameter for the J-bend elbow seat. Hook Flange hubs get the same deduction as Classic Flange:
+        // Berd's own calculator (berdspokes.com/pages/calculator) subtracts it for its "Hook Flange" hub type too, and so does the
+        // customer calculator (spoke-calculator.js) for every hub that is not Straight Pull. A missing, blank or non-numeric hole
+        // diameter arrives here as the 2.6 default (api/index.js getMeta, and the default above).
         return geometricLength - (hubSpokeHoleDiameter / 2);
     }
-    
-    // For Hook Flange, return the raw geometric path
+
+    // Any other hub type: the raw geometric path
     return geometricLength;
 }
 
