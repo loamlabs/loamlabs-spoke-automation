@@ -68,7 +68,14 @@ export function createMock(mockData) {
       calls.kitQueries.push(body.variables.ids);
       return json({ data: { nodes: body.variables.ids.map((id) => { const k = (data.kitVariants || {})[id]; return k ? { id, title: k.title, sku: k.sku, product: { title: k.product } } : null; }) } });
     }
-    if (q.includes('getProductVariants')) { calls.variantQueries.push(body.variables.id); return json({ data: { product: { variants: { nodes: variantsFor(body.variables.id) } } } }); }
+    if (q.includes('getProductVariants')) {
+      calls.variantQueries.push(body.variables.id);
+      const all = variantsFor(body.variables.id);
+      if (!q.includes('pageInfo')) return json({ data: { product: { variants: { nodes: all } } } }); // an old query without paging gets everything, like before
+      // like Shopify: at most 250 per page, cursor = index of the next variant
+      const start = Number(body.variables.after || 0), end = Math.min(start + 250, all.length);
+      return json({ data: { product: { variants: { pageInfo: { hasNextPage: end < all.length, endCursor: String(end) }, nodes: all.slice(start, end) } } } });
+    }
     if (q.includes('inventoryAdjustQuantities')) { calls.inventoryAdjustments.push(body.variables.input); return json({ data: { inventoryAdjustQuantities: { inventoryAdjustmentGroup: { id: 'gid://shopify/InventoryAdjustmentGroup/1' }, userErrors: [] } } }); }
     if (q.includes('orderNote(')) {
       calls.orderNoteQueries.push(body.variables.id);

@@ -168,10 +168,12 @@ async function getVariantsCached(productId) {
     
     // Otherwise, ask Shopify
     console.log(`🌐 Fetching variants from API for product ${productId}`);
+    // BERD-NO-DEDUCT: page through ALL variants (Shopify returns at most 250 per page). Berd PolyLight has 267, so the last 17 used to be invisible.
     const query = `
-      query getProductVariants($id: ID!) {
+      query getProductVariants($id: ID!, $after: String) {
         product(id: $id) {
-          variants(first: 250) {
+          variants(first: 250, after: $after) {
+            pageInfo { hasNextPage endCursor }
             nodes {
               id
               title
@@ -182,14 +184,29 @@ async function getVariantsCached(productId) {
       }
     `;
     try {
-        const data = await shopifyAdminApiQuery(query, { id: productId });
-        const variants = data.product.variants.nodes;
+        const variants = [];
+        let after = null;
+        for (let page = 0; page < 20; page++) { // 20 pages = 5,000 variants, a stop against a loop that never ends
+            const data = await shopifyAdminApiQuery(query, { id: productId, after });
+            const conn = data.product.variants;
+            variants.push(...conn.nodes);
+            if (!conn.pageInfo || !conn.pageInfo.hasNextPage || !conn.pageInfo.endCursor) break;
+            after = conn.pageInfo.endCursor;
+        }
         variantCache.set(productId, variants); // Save to cache
         return variants;
     } catch (error) {
         console.error(`Error fetching variants for ${productId}:`, error);
         return [];
     }
+}
+
+// BERD-NO-DEDUCT: product metafield custom.deduct_length_stock = "No" means this spoke product is not stocked by length (Berd): no length variant is looked up or deducted.
+// Blank or any other value keeps today's behaviour exactly.
+export const NOT_TRACKED_STATUS = 'not tracked, not stocked';
+export function lengthStockNotTracked(meta) {
+    const v = meta && meta.deduct_length_stock;
+    return typeof v === 'string' && v.trim().toLowerCase() === 'no';
 }
 
 async function findVariantForLengthAndColor(productId, length, color) {
@@ -530,7 +547,9 @@ async function handleOrderCreate(orderData) {
                     }
 
                     // --- PARALLEL PROCESSING ---
+                    const notTracked = lengthStockNotTracked(componentData && componentData.get(spokeComponent.variantId)); // BERD-NO-DEDUCT
                     const processSide = async (length) => {
+                        if (notTracked) return { length, quantity: spokeCountPerSide, status: NOT_TRACKED_STATUS };
                         const variant = await findVariantForLengthAndColor(spokeProductId, length, inventoryColor);
                         let status = "ACTION REQUIRED: Variant not found!";
                         
@@ -709,6 +728,17 @@ async function handleOrderCancelled(orderData) {
             inventoryColor = 'White Berd'; 
         }
 
+        // BERD-NO-DEDUCT: a product flagged "No" has no length variant to put stock back on. An order made after the flag has no "(Adjusted)" lines for this wheel: skip it without
+        // using up another wheel's lines. An older order that did deduct (lines exist) gets "not restocked" lines, never FAILED.
+        if (lengthStockNotTracked(componentData && componentData.get(spokeComponent.variantId))) {
+            const n = Math.min(adjustedLinesInWheelSection(note, position), restockActions.length - actionIndex);
+            for (let i = 0; i < n; i++) {
+                const action = restockActions[actionIndex++];
+                restockNote += `- ${i === 0 ? 'Left' : 'Right'} (${position}): ${action.quantity} x ${action.length}mm (${inventoryColor}) - not restocked (not tracked)\n`;
+            }
+            continue;
+        }
+
         // Process Left Side
         if (actionIndex < restockActions.length) {
             const action = restockActions[actionIndex++];
@@ -736,6 +766,17 @@ async function handleOrderCancelled(orderData) {
     }
 
     await addNoteToOrder(orderData.admin_graphql_api_id, restockNote, orderData.order_number); // no internal email on this path: a rejected write is in the log (ORDER #n: note write rejected)
+}
+
+// BERD-NO-DEDUCT: how many "(Adjusted)" spoke lines the saved note holds inside one wheel's section ("FRONT WHEEL" / "REAR WHEEL" headings written by formatNote).
+function adjustedLinesInWheelSection(note, position) {
+    const head = `${position.toUpperCase()} WHEEL`;
+    const start = note.indexOf(head);
+    if (start < 0) return 0;
+    const rest = note.slice(start + head.length);
+    const next = rest.search(/\n(FRONT|REAR) WHEEL/);
+    const section = next < 0 ? rest : rest.slice(0, next);
+    return (section.match(/(Left|Right):\s*\d+\s*x\s*\d+mm\s*\(Adjusted\)/g) || []).length;
 }
 
 export function runCalculationEngine(buildRecipe, componentData, rimColorPolicy_ = null) { // 3rd argument (optional): which orders name the rim color, see _lib/rim-color.js
@@ -965,7 +1006,7 @@ export function stockFailed(wheel, quantity, status) {
 export const TEST_ONLY_STATUS = 'test only, nothing adjusted';
 function notDeductedFlag(side) {
     const status = side && side.status;
-    if (status === 'Adjusted' || status === TEST_ONLY_STATUS) return '';
+    if (status === 'Adjusted' || status === TEST_ONLY_STATUS || status === NOT_TRACKED_STATUS) return '';
     if (!status || /variant not found/i.test(status)) return ' NOT DEDUCTED (no variant)';
     if (/failed to adjust/i.test(status)) return ' NOT DEDUCTED (adjust failed)';
     return ` NOT DEDUCTED (${String(status).replace(/^FAIL:\s*/i, '').toLowerCase()})`;
