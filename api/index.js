@@ -690,7 +690,8 @@ async function handleOrderCancelled(orderData) {
     // ----------------------------------------------------------
 
     let restockNote = "AUTOMATED RESTOCK COMPLETE\n--------------------------\n";
-    let actionIndex = 0;
+    let actionIndex = 0; // only used by notes without wheel headings
+    const actionsByWheel = adjustedActionsByWheel(note);
 
     // Clear cache to ensure we get fresh inventory Item IDs
     variantCache.clear();
@@ -710,7 +711,7 @@ async function handleOrderCancelled(orderData) {
              console.error(`Could not determine Product ID for ${position} spokes during restock.`);
              restockNote += `- ${position.toUpperCase()}: FAILED (Missing Product ID)\n`;
              // Skip the restock actions for this wheel side to keep the index aligned
-             actionIndex += 2; 
+             if (!actionsByWheel) actionIndex += 2; 
              continue;
         }
         // ---------------------------------------
@@ -728,39 +729,31 @@ async function handleOrderCancelled(orderData) {
             inventoryColor = 'White Berd'; 
         }
 
-        // BERD-NO-DEDUCT: a product flagged "No" has no length variant to put stock back on. An order made after the flag has no "(Adjusted)" lines for this wheel: skip it without
-        // using up another wheel's lines. An older order that did deduct (lines exist) gets "not restocked" lines, never FAILED.
-        if (lengthStockNotTracked(componentData && componentData.get(spokeComponent.variantId))) {
-            const n = Math.min(adjustedLinesInWheelSection(note, position), restockActions.length - actionIndex);
-            for (let i = 0; i < n; i++) {
-                const action = restockActions[actionIndex++];
-                restockNote += `- ${i === 0 ? 'Left' : 'Right'} (${position}): ${action.quantity} x ${action.length}mm (${inventoryColor}) - not restocked (not tracked)\n`;
-            }
-            continue;
+        // CANCEL-WHEEL-MATCH: each "(Adjusted)" line belongs to the wheel section (FRONT WHEEL / REAR WHEEL) and side (Left / Right) it is written in. A wheel that was not deducted
+        // (missing length variant) has no lines and must not take the other wheel's. Notes without those headings (very old format) keep the old order-based matching.
+        let wheelActions;
+        if (actionsByWheel) wheelActions = actionsByWheel[position] || [];
+        else {
+            wheelActions = [];
+            for (const side of ['Left', 'Right']) if (actionIndex < restockActions.length) wheelActions.push({ side, ...restockActions[actionIndex++] });
         }
-
-        // Process Left Side
-        if (actionIndex < restockActions.length) {
-            const action = restockActions[actionIndex++];
+        // BERD-NO-DEDUCT: a product flagged "No" has no length variant to put stock back on. An order made after the flag has no "(Adjusted)" lines for this wheel (nothing to do);
+        // an older order that did deduct gets "not restocked" lines, never FAILED.
+        const notTracked = lengthStockNotTracked(componentData && componentData.get(spokeComponent.variantId));
+        for (const action of wheelActions) {
+            if (notTracked) {
+                restockNote += `- ${action.side} (${position}): ${action.quantity} x ${action.length}mm (${inventoryColor}) - not restocked (not tracked)\n`;
+                continue;
+            }
             const variant = await findVariantForLengthAndColor(spokeProductId, action.length, inventoryColor);
             if (variant) {
                 const success = await adjustInventory(variant.inventoryItemId, action.quantity, `gid://shopify/Location/${locationId}`, orderData.admin_graphql_api_id);
                 const status = success ? "Restocked" : "FAILED";
-                restockNote += `- Left (${position}): ${action.quantity} x ${action.length}mm (${inventoryColor}) - ${status}\n`;
+                restockNote += `- ${action.side} (${position}): ${action.quantity} x ${action.length}mm (${inventoryColor}) - ${status}
+`;
             } else {
-                restockNote += `- Left (${position}): ${action.quantity} x ${action.length}mm (${inventoryColor}) - FAILED (Variant not found)\n`;
-            }
-        }
-        // Process Right Side
-        if (actionIndex < restockActions.length) {
-            const action = restockActions[actionIndex++];
-            const variant = await findVariantForLengthAndColor(spokeProductId, action.length, inventoryColor);
-            if (variant) {
-                const success = await adjustInventory(variant.inventoryItemId, action.quantity, `gid://shopify/Location/${locationId}`, orderData.admin_graphql_api_id);
-                const status = success ? "Restocked" : "FAILED";
-                restockNote += `- Right (${position}): ${action.quantity} x ${action.length}mm (${inventoryColor}) - ${status}\n`;
-            } else {
-                restockNote += `- Right (${position}): ${action.quantity} x ${action.length}mm (${inventoryColor}) - FAILED (Variant not found)\n`;
+                restockNote += `- ${action.side} (${position}): ${action.quantity} x ${action.length}mm (${inventoryColor}) - FAILED (Variant not found)
+`;
             }
         }
     }
@@ -768,15 +761,21 @@ async function handleOrderCancelled(orderData) {
     await addNoteToOrder(orderData.admin_graphql_api_id, restockNote, orderData.order_number); // no internal email on this path: a rejected write is in the log (ORDER #n: note write rejected)
 }
 
-// BERD-NO-DEDUCT: how many "(Adjusted)" spoke lines the saved note holds inside one wheel's section ("FRONT WHEEL" / "REAR WHEEL" headings written by formatNote).
-function adjustedLinesInWheelSection(note, position) {
-    const head = `${position.toUpperCase()} WHEEL`;
-    const start = note.indexOf(head);
-    if (start < 0) return 0;
-    const rest = note.slice(start + head.length);
-    const next = rest.search(/\n(FRONT|REAR) WHEEL/);
-    const section = next < 0 ? rest : rest.slice(0, next);
-    return (section.match(/(Left|Right):\s*\d+\s*x\s*\d+mm\s*\(Adjusted\)/g) || []).length;
+// CANCEL-WHEEL-MATCH: the "(Adjusted)" spoke lines of a saved note, per wheel section ("FRONT WHEEL" / "REAR WHEEL" headings written by formatNote) and side.
+// Returns null when the note has no wheel headings (old format), so the caller falls back to the old order-based matching.
+function adjustedActionsByWheel(note) {
+    const start = note.indexOf('AUTOMATED SPOKE CALCULATION'); // a customer note may come first and could say anything
+    const text = start >= 0 ? note.slice(start) : note;
+    const heads = [...text.matchAll(/\n(FRONT|REAR) WHEEL\b/g)];
+    if (heads.length === 0) return null;
+    const out = { front: [], rear: [] };
+    heads.forEach((m, i) => {
+        const section = text.slice(m.index + m[0].length, i + 1 < heads.length ? heads[i + 1].index : text.length);
+        const re = /(Left|Right):\s*(\d+)\s*x\s*(\d+)mm\s*\(Adjusted\)/g;
+        let x;
+        while ((x = re.exec(section)) !== null) out[m[1].toLowerCase()].push({ side: x[1], quantity: parseInt(x[2], 10), length: parseInt(x[3], 10) });
+    });
+    return out;
 }
 
 export function runCalculationEngine(buildRecipe, componentData, rimColorPolicy_ = null) { // 3rd argument (optional): which orders name the rim color, see _lib/rim-color.js
