@@ -13,6 +13,7 @@ import {
 import { findSystemBuildRecipe, findWheelBuildLineItem } from '../_lib/system-build.js';
 import { rimColorPolicy, rimLabel } from '../_lib/rim-color.js'; // RIM-COLOR: hub-choice orders name the rim color in the report
 import { hubInputsExtras, hubDisplayText, kitLineText, hubWarnings, addHubWarningNotice, attachKitLines } from '../_lib/hub-order-lines.js'; // HUB-KIT-NOTE
+import { perSpokeNotices } from '../_lib/per-spoke.js'; // PER-SPOKE
 import { attachOrderLines,attachNippleRows, escapeText, extraBuildNotice, addAttentionNotice, reportNeedsAction } from '../_lib/order-lines.js'; // EMAIL-LINES: "Freehub body" and "Rule" lines in the key inputs; NIPPLES-ROW: the nipple product and color of a wheel without mixed nipples
 import { buildSystemReport, buildFailureEmail, addNoteFailureNotice, sendSystemEmail, buildCustomerEmail, sendCustomerEmailIfEnabled } from '../_lib/system-report.js';
 import { shopifyTimeoutMs, resendTimeoutMs, timeoutSignal, withTimeout } from '../_lib/http-timeout.js';
@@ -506,6 +507,12 @@ async function handleOrderCreate(orderData) {
                 { // ORDER-CHECK-FLAGS: a second build line or a quantity above 1 is not calculated; say so (note WARNINGS, email top, subject). Nothing else changes.
                     const notice = extraBuildNotice(orderData, wheelBuildLineItem);
                     if (notice) { buildReport.attention = [notice]; buildReport.errors = [...(buildReport.errors || []), notice]; }
+                }
+                { // PER-SPOKE: a per-spoke variant (Length "Each") on a spoke line whose quantity is not the wheel's spoke count: note WARNINGS, email top, subject ACTION REQUIRED. Lengths and stock are not affected.
+                    try {
+                        const wrong = perSpokeNotices(orderData, buildRecipe).map((n) => `${n}.`);
+                        if (wrong.length) { buildReport.attention = [...(buildReport.attention || []), ...wrong]; buildReport.errors = [...(buildReport.errors || []), ...wrong]; }
+                    } catch (error) { console.error('PER-SPOKE: quantity check skipped:', error); }
                 }
                 console.log("✅ Initial Build Report:", JSON.stringify(buildReport, null, 2));
 
