@@ -22,6 +22,7 @@ import {
   findWheelBuildLineItem, parseBuildRecipe, isSystemBuildRecipe, SYSTEM_FEE, feeWheelsOf
 } from './system-build.js';
 
+import { isPerSpokeLine, isFlatLine } from './per-spoke.js'; // PER-SPOKE
 import { ringKeyForRim } from './rim-rings.js'; // round 12: which photo rim ring a wheel's pictures get
 import { valveFieldsFor } from './valve-colors.js'; // round 15: the valve stem color the customer chose
 import { nippleInfoFor, nippleFeeCoverage, nippleFeeWarnings } from './nipple-build.js'; // NIPPLE-REPORT: nipple colors (Release 15)
@@ -188,7 +189,13 @@ function standardFeeUnits(orderData, expectedByPos) {
   for (const p of positions) if (pool.length && !expectedByPos[p]) units[p].push(pool.shift());
   return { units, shared };
 }
-// Spoke lines of the wheel in the order: { color: quantity } (null when no line of the wheel's spoke product is found, so nothing is compared)
+// Spoke lines of the wheel in the order: { color: quantity } (null when nothing in the order can be compared, so nothing is warned about).
+// PER-SPOKE: three cart models exist and none of them may raise a false "do not match" warning:
+//   - older length lines ("Black Berd / 290mm"): quantity = the spokes of that colour; compared colour by colour as before;
+//   - the flat builder variant ("Black Berd / -"): quantity 1 per wheel (2 on a merged Front/Rear line): the quantity says nothing about spokes, so it is not compared;
+//   - the per-spoke variant ("Black Berd / Each"): quantity = the wheel's spoke count of the one line (or front + rear on a merged line), carried by one colour, so it cannot be split
+//     per colour; a wrong quantity is reported separately by _lib/per-spoke.js (ACTION REQUIRED), not here.
+// Only the older length lines are returned; lines of the other two models are skipped.
 function cartSpokeCountsStandard(orderData, recipe, pos, knownColors) {
   const comp = recipe?.components?.[pos + 'Spokes'];
   const title = String(comp?.title || '').trim().toLowerCase();
@@ -199,6 +206,7 @@ function cartSpokeCountsStandard(orderData, recipe, pos, knownColors) {
     if (String(li?.title || li?.name || '').trim().toLowerCase() !== title) continue;
     const wheel = String(propValue(li, 'Wheel') || '').toLowerCase();
     if (wheel && wheel !== pos) continue;
+    if (isPerSpokeLine(li) || isFlatLine(li)) continue; // PER-SPOKE: quantity is not a per-colour spoke count in these models
     const parts = String(li.variant_title || '').split('/').map((x) => x.trim()).filter(Boolean);
     const color = clip(parts.find((p) => knownColors.includes(p)) || parts[0] || 'unknown', MAX_NAME_CHARS);
     out[color] = (out[color] || 0) + (Number(li.quantity) || 0);
